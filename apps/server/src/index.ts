@@ -1,18 +1,31 @@
+import type { Server } from "node:http";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { webhookCallback } from "grammy";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { configureBotDelivery, createTelegramBot } from "./bot/index.js";
+import { connectPglite, connectPostgres } from "./db/client.js";
 import { adminRouter } from "./modules/admin/routes.js";
+import { ensureActiveEvent } from "./modules/event/seed.js";
 import { gameRouter } from "./modules/game/routes.js";
 import { teamRouter } from "./modules/team/routes.js";
+import { RealtimeHub } from "./realtime/hub.js";
+import { attachRealtime } from "./realtime/ws-server.js";
 import type { AppEnv } from "./shared/app-env.js";
 import { config } from "./shared/config.js";
 import { DomainError } from "./shared/errors.js";
-import { tmaAuthMiddleware } from "./shared/telegram-auth.js";
+import { runtime, setRuntime } from "./shared/runtime.js";
+import { identityMiddleware } from "./shared/telegram-auth.js";
 
 const WEBHOOK_PATH = "/telegram/webhook";
+
+const database = config.DATABASE_URL
+  ? await connectPostgres(config.DATABASE_URL, config.MIGRATIONS_DIR)
+  : await connectPglite(config.PGLITE_DIR, config.MIGRATIONS_DIR);
+const hub = new RealtimeHub(() => runtime().db);
+setRuntime({ db: database.db, hub });
+await ensureActiveEvent(database.db, config.seedDemoTeams);
 
 const app = new Hono<AppEnv>();
 const bot = config.BOT_TOKEN ? createTelegramBot(config.BOT_TOKEN, config.webAppUrl) : null;
@@ -22,9 +35,9 @@ const webhook =
     : null;
 
 app.use("/api/*", cors(config.PUBLIC_URL ? { origin: new URL(config.PUBLIC_URL).origin } : undefined));
-app.get("/api/health", (c) => c.json({ status: "ok", version: config.APP_VERSION }));
+app.get("/api/health", (c) => c.json({ status: "ok", version: config.APP_VERSION, clients: hub.size }));
 
-app.use("/api/*", tmaAuthMiddleware);
+app.use("/api/*", identityMiddleware);
 app.route("/api/game", gameRouter);
 app.route("/api/team", teamRouter);
 app.route("/api/admin", adminRouter);
@@ -49,18 +62,24 @@ const server = serve({ fetch: app.fetch, port: config.PORT }, (info) => {
   if (config.isProduction && !bot)
     console.warn("BOT_TOKEN is not set: Telegram auth is unavailable, API answers 401");
 });
+const realtime = attachRealtime(server as Server);
 
 if (bot) {
-  configureBotDelivery(bot, webhook).catch((error) => {
-    console.error("Bot delivery setup failed", error);
-    process.exitCode = 1;
-  });
+  configureBotDelivery(bot, { webhook, polling: config.BOT_POLLING && !config.isProduction }).catch(
+    (error) => {
+      console.error("Bot delivery setup failed", error);
+      process.exitCode = 1;
+    },
+  );
 }
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, async () => {
+    realtime.close();
+    hub.close();
     if (bot?.isRunning()) await bot.stop();
     server.close();
+    await database.close();
   });
 }
 

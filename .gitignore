@@ -56,3 +56,6 @@ AGENTS.local.md
 
 # Legacy reference dump (if unpacked locally for inspection)
 _legacy/
+
+# Local database (PGlite)
+.data/

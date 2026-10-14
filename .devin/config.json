@@ -12,9 +12,7 @@
       "Exec(npx tsc)",
       "Exec(uv run)"
     ],
-    "deny": [
-      "Exec(sudo)"
-    ]
+    "deny": ["Exec(sudo)"]
   },
   "read_config_from": {
     "agents_standard": true,

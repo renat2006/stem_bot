@@ -1,10 +1,10 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { createTelegramBot } from "./bot/index.js";
+import { adminRouter } from "./modules/admin/routes.js";
 import { gameRouter } from "./modules/game/routes.js";
 import { teamRouter } from "./modules/team/routes.js";
-import { adminRouter } from "./modules/admin/routes.js";
-import { createTelegramBot } from "./bot/index.js";
 import { tmaAuthMiddleware } from "./shared/telegram-auth.js";
 
 const app = new Hono();

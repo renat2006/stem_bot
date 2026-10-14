@@ -1,15 +1,13 @@
 import {
   DEFAULT_TEMPLATES,
-  NEUROFAUNA_TEMPLATE,
   type GameState,
   type GameTemplate,
+  NEUROFAUNA_TEMPLATE,
   type Team,
 } from "@stem/shared";
 
 class MemoryStore {
-  templates: Map<string, GameTemplate> = new Map(
-    DEFAULT_TEMPLATES.map((t) => [t.id, t]),
-  );
+  templates: Map<string, GameTemplate> = new Map(DEFAULT_TEMPLATES.map((t) => [t.id, t]));
 
   gameState: GameState = {
     activeTemplateId: NEUROFAUNA_TEMPLATE.id,

@@ -3,11 +3,11 @@
 :root {
   --app-safe-top: calc(
     var(--tg-viewport-safe-area-inset-top, 0px) +
-      var(--tg-viewport-content-safe-area-inset-top, 0px)
+    var(--tg-viewport-content-safe-area-inset-top, 0px)
   );
   --app-safe-bottom: calc(
     var(--tg-viewport-safe-area-inset-bottom, 0px) +
-      var(--tg-viewport-content-safe-area-inset-bottom, 0px)
+    var(--tg-viewport-content-safe-area-inset-bottom, 0px)
   );
 }
 

@@ -1,5 +1,5 @@
-import { Hono } from "hono";
 import { calculateTeamStats, validateGameBalance } from "@stem/shared";
+import { Hono } from "hono";
 import { store } from "../../shared/store.js";
 
 export const gameRouter = new Hono();

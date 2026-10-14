@@ -55,7 +55,10 @@ export function TeamDashboardPage({
 
         <div className="mt-4 grid grid-cols-3 gap-2">
           {template.stats.map((stat) => (
-            <div key={stat.id} className="rounded-xl border border-slate-800 bg-slate-950/60 p-2.5 text-center">
+            <div
+              key={stat.id}
+              className="rounded-xl border border-slate-800 bg-slate-950/60 p-2.5 text-center"
+            >
               <div className="text-xs text-slate-400">
                 {stat.icon} {stat.label}
               </div>
@@ -85,9 +88,7 @@ export function TeamDashboardPage({
 
       <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-200">
-            Магазин компонентов (День 1–{currentDay})
-          </h3>
+          <h3 className="text-sm font-semibold text-slate-200">Магазин компонентов (День 1–{currentDay})</h3>
           <span
             className={`rounded-full px-2 py-0.5 text-xs ${
               purchasePhaseActive ? "bg-emerald-500/20 text-emerald-300" : "bg-rose-500/20 text-rose-300"

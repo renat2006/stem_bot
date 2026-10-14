@@ -1,5 +1,5 @@
-import type { Context, Next } from "hono";
 import { isValid, parse, validate } from "@tma.js/init-data-node";
+import type { Context, Next } from "hono";
 
 export function verifyTelegramInitData(rawInitData: string, botToken: string): boolean {
   if (!rawInitData || !botToken) return false;

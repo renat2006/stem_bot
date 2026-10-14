@@ -1,10 +1,4 @@
-import type {
-  BalanceReport,
-  GameState,
-  GameTemplate,
-  Team,
-  TeamComputedStats,
-} from "@stem/shared";
+import type { BalanceReport, GameState, GameTemplate, Team, TeamComputedStats } from "@stem/shared";
 import { getRawInitData } from "../lib/telegram.js";
 
 export interface TeamWithStats extends Team {

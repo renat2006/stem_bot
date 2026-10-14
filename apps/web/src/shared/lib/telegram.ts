@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import {
   hapticFeedback,
   init,
@@ -10,6 +9,7 @@ import {
   themeParams,
   viewport,
 } from "@tma.js/sdk-react";
+import { useEffect } from "react";
 
 let initialized = false;
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { api, useTelegram, type GameSnapshotResponse } from "../shared/index.js";
-import { TeamDashboardPage } from "../pages/team-dashboard.js";
 import { AdminConsolePage } from "../pages/admin-console.js";
+import { TeamDashboardPage } from "../pages/team-dashboard.js";
+import { api, type GameSnapshotResponse, useTelegram } from "../shared/index.js";
 
 export function App() {
   const { hapticSuccess, hapticTap } = useTelegram();
@@ -32,8 +32,7 @@ export function App() {
     );
   }
 
-  const currentTeam =
-    snapshot.teams.find((t) => t.id === selectedTeamId) ?? snapshot.teams[0];
+  const currentTeam = snapshot.teams.find((t) => t.id === selectedTeamId) ?? snapshot.teams[0];
 
   const handleAction = async (fn: () => Promise<unknown>) => {
     try {
@@ -96,9 +95,7 @@ export function App() {
                 key={t.id}
                 onClick={() => setSelectedTeamId(t.id)}
                 className={`rounded-lg px-2.5 py-1 text-xs font-medium ${
-                  t.id === currentTeam.id
-                    ? "bg-slate-800 text-white"
-                    : "text-slate-500 hover:text-slate-300"
+                  t.id === currentTeam.id ? "bg-slate-800 text-white" : "text-slate-500 hover:text-slate-300"
                 }`}
               >
                 {t.name}

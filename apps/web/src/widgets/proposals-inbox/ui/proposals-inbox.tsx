@@ -1,4 +1,5 @@
 import { type GameTemplate, previewCardEffect } from "@stem/shared";
+import { AssemblyStage, PartSticker } from "../../../entities/assembly/index.js";
 import type { ProposalInfo, TeamWithStats } from "../../../entities/game/index.js";
 import { resolveProposal } from "../../../features/purchase/index.js";
 import type { RunAction } from "../../../shared/lib/index.js";
@@ -36,7 +37,8 @@ export function ProposalsInbox({
           return (
             <li key={proposal.id} className="space-y-2 rounded-xl border border-ln bg-sf2 p-3">
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
+                <PartSticker template={template} card={card} thumbnail />
+                <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-fg">{card.name}</p>
                   <p className="text-xs text-mu">
                     от {proposal.fromName} · {card.price} {template.currencyName} · шаг{" "}
@@ -46,6 +48,17 @@ export function ProposalsInbox({
                   </p>
                 </div>
               </div>
+              <details>
+                <summary className="cursor-pointer text-sm text-ac">Посмотреть сборку</summary>
+                <div className="mt-2 flex justify-center">
+                  <AssemblyStage
+                    template={template}
+                    equipped={team.equippedCards}
+                    preview={{ slotId: card.slotId, cardId: card.id }}
+                    size="card"
+                  />
+                </div>
+              </details>
               {isCaptain && (
                 <div className="grid grid-cols-2 gap-1.5">
                   <Button variant="ghost" onClick={() => run(() => resolveProposal(proposal.id, false))}>

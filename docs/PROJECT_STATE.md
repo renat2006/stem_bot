@@ -25,6 +25,7 @@
 | Бот | `/start` с кнопкой Mini App, webhook в prod | `apps/server/src/bot/index.ts` |
 | Mini App: Кабинет участника C1–C8 («Конструкт» v2) | готово (Вход, Онбординг, Команда, Схема сборки, Шкалы с порогами, Рынок, BottomSheet До/После, Undo-тост, Трек, Правила) | `apps/web/src` |
 | Mini App: Пульт ведущего | фазы с таймером, начисление по критериям нескольким командам, команды с кодами и капитанами, журнал | `apps/web/src/pages/admin-console` |
+| Визуальный движок сборки, этап 1 | процедурные сборки всех трёх тем, главная/рынок/предложения/рейтинг/пульт; эталоны стиля ждут утверждения | `packages/art`, `apps/web/src/entities/assembly`, `docs/design/visual-engine/` |
 | Тулинг и CI | готово: Biome, Steiger, Vitest, audit | `biome.json`, `.github/workflows/ci.yml` |
 | Агентские скиллы и MCP | готово | `.claude/skills/`, `.mcp.json` |
 | Продакшн-деплой (Docker, GHCR, Actions, Caddy, откат) | готово | `Dockerfile`, `deploy/`, `.github/workflows/deploy.yml`, `docs/DEPLOYMENT.md` |
@@ -78,6 +79,13 @@
 ### P2 — Баланс и генерация (Вася, Даня)
 - [ ] Симулятор смены (агенты-стратегии, метрики — `docs/research/GAME_DESIGN.md` §3).
 - [ ] Генератор `GameTemplate` через structured output + repair-цикл через валидатор и симуляцию.
+
+### P2 — Визуальный движок (Codex, согласование владельцем)
+- [x] Этап 1: пакет `@stem/art`, риги, процедурный слой для всех текущих карт, имена видов, композиция, `AssemblyStage`/`PartSticker`, 11 тестов и интеграции в основные экраны.
+- [ ] Утвердить три эталона из `docs/design/visual-engine/contact-sheet.html` — контрольная точка `VISUAL_ENGINE_BRIEF.md` §5.1/§10.
+- [ ] После утверждения: CLI prompts/ingest/sheet/validate, раздача и кеш, полные production-паки трёх тем, обложки и пустые состояния.
+- [ ] UI-иконки, эффекты тиров, Canvas-экспорт карточки.
+- [ ] Настоящий Android LOW (в SDK v3 нет `useAndroidDeviceData`, сейчас эвристика числа ядер), media reduced-motion и Slow 4G: полный прогон производительности ещё впереди.
 
 ### Техдолг
 - [ ] Rate limit мутаций (CORS уже ограничен публичным origin).

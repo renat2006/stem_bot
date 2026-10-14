@@ -1,4 +1,5 @@
 import type { GameState, GameTemplate } from "@stem/shared";
+import { AssemblyStage } from "../../../entities/assembly/index.js";
 import { StatDeltaList } from "../../../entities/card/index.js";
 import type { TeamWithStats } from "../../../entities/game/index.js";
 import { formatStatValue, ModuleCard, StatGlyph } from "../../../shared/ui/index.js";
@@ -51,6 +52,14 @@ export function SlotBuild({ team, template, gameState, onSelectEmptySlot, onHelp
             ))}
           </div>
         </div>
+
+        <AssemblyStage
+          template={template}
+          equipped={team.equippedCards}
+          teamName={team.name}
+          interactive
+          onSlotTap={onSelectEmptySlot}
+        />
 
         <div className="grid grid-cols-2 gap-2">
           {template.slots.map((slot) => {

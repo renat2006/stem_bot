@@ -1,0 +1,24 @@
+{
+  "id": "neurofauna",
+  "version": 1,
+  "rig": "creature",
+  "palette": {
+    "outline": "#1B1F23",
+    "paper": "#F3EEE3",
+    "moss": "#5E8C4A",
+    "sand": "#D9B26F",
+    "rust": "#B8573A",
+    "teal": "#2F7F86",
+    "bone": "#EDE3CF",
+    "plum": "#6B4A6E",
+    "glow": "#7CF29A"
+  },
+  "rigOverrides": [],
+  "parts": [],
+  "perks": {},
+  "stats": {},
+  "currency": "",
+  "cells": {},
+  "covers": {},
+  "emptyStates": {}
+}

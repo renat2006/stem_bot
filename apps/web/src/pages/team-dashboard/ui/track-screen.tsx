@@ -1,4 +1,5 @@
 import type { GameTemplate } from "@stem/shared";
+import { AssemblyStage } from "../../../entities/assembly/index.js";
 import type { TeamWithStats } from "../../../entities/game/index.js";
 
 export function TrackScreen({
@@ -29,6 +30,12 @@ export function TrackScreen({
               className={`flex items-center gap-3 border-b border-ln px-4 py-3 last:border-b-0 ${isMe ? "bg-sf2" : ""}`}
             >
               <span className="w-5 text-right font-mono text-[15px] font-semibold text-fg">{idx + 1}</span>
+              <AssemblyStage
+                template={template}
+                equipped={item.equippedCards}
+                size="token"
+                teamName={item.name}
+              />
               <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className={`truncate text-sm text-fg ${isMe ? "font-semibold" : ""}`}>

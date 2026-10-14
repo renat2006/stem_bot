@@ -5,6 +5,17 @@
 
 ## [Unreleased]
 
+### Added (2026-10-14) — продакшн-деплой
+- **Docker-образ**: distroless Node 22, non-root, один процесс отдаёт API, Mini App и вебхук бота; сервер собирается esbuild в один бандл.
+- **Deploy workflow**: CI → сборка образа в GHCR (SBOM, build provenance) → деплой по SSH-ключу с forced-command → публичный smoke-тест; GitHub Release получает web/server/deploy-бандлы и `SHA256SUMS`; workflow **Rollback**.
+- **Сервер**: пользователь `stembot`, атомарные релизы с автооткатом, Caddy с HTTPS, HSTS, CSP для Telegram, фильтрацией секретов в логах и вебхуком только из сетей Telegram.
+- **Dependabot** (npm, Docker, Actions) и категории release notes.
+- `docs/DEPLOYMENT.md` — runbook.
+
+### Security (2026-10-14)
+- `/api/admin/*` требует членства в `ADMIN_IDS`/`SUPER_ADMIN_IDS` по проверенному initData.
+- Валидация окружения при старте; CORS ограничен публичным origin; вебхук бота с `secret_token`.
+
 ### Changed (2026-10-14) — приведение репозитория в порядок
 - **Зависимости**: Vite 8, `@vitejs/plugin-react` 6, Zod 4, `@hono/node-server` 2, TypeScript 5.9; Node.js ≥ 22.12 (`.nvmrc`).
 - **Сервер**: бизнес-логика вынесена в `modules/*/service.ts`, роуты валидируют вход через `@hono/zod-validator` (400 вместо 500), единый `DomainError` + `app.onError`, типизированный Hono env для проверенного initData, `bot.catch`, fallback для callback-запросов, graceful shutdown.

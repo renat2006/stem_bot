@@ -1,5 +1,9 @@
 # STEM Game Constructor (`stem_bot`)
 
+[![CI](https://github.com/renat2006/stem_bot/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/renat2006/stem_bot/actions/workflows/ci.yml)
+[![Deploy](https://github.com/renat2006/stem_bot/actions/workflows/deploy.yml/badge.svg)](https://github.com/renat2006/stem_bot/actions/workflows/deploy.yml)
+[![Release](https://img.shields.io/github/v/release/renat2006/stem_bot?include_prereleases&sort=semver)](https://github.com/renat2006/stem_bot/releases)
+
 Конструктор игровых систем для образовательных событий STEM: настраиваемое игровое ядро + Telegram Mini App + Telegram-бот. Основа — игра «НейроФауна» Летней школы STEM.
 
 ## Структура
@@ -34,6 +38,10 @@ npm run build
 
 `npm run format` — автоисправление форматирования (Biome).
 
+## Деплой
+
+Push в `main` выкатывает прод автоматически, публикация Release — версию с артефактами; откат — workflow **Rollback**. Подробно: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
 ## Документация
 
 - [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) — что готово, известные проблемы, бэклог по ролям (**начинать отсюда**)
@@ -41,6 +49,7 @@ npm run build
 - [`docs/BRIEF_AND_LEGACY_AUDIT.md`](docs/BRIEF_AND_LEGACY_AUDIT.md) — бриф заказчика, команда, разбор старого бота
 - [`docs/legacy/NEUROFAUNA_RULES.md`](docs/legacy/NEUROFAUNA_RULES.md) — полные правила оригинала + данные
 - [`docs/research/`](docs/research) — платформа TMA, безопасность, геймдизайн и баланс
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — релизы, секреты, сервер, DNS, Telegram
 
 ## Процесс
 

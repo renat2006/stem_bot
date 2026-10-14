@@ -1,0 +1,57 @@
+# Changelog
+
+Все заметные изменения в проекте `stem_bot` фиксируются в этом файле.
+Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/).
+
+## [Unreleased]
+
+### Added (2026-10-14) — продакшн-деплой
+- **Docker-образ**: distroless Node 22, non-root, один процесс отдаёт API, Mini App и вебхук бота; сервер собирается esbuild в один бандл.
+- **Deploy workflow**: CI → сборка образа в GHCR (SBOM, build provenance) → деплой по SSH-ключу с forced-command → публичный smoke-тест; GitHub Release получает web/server/deploy-бандлы и `SHA256SUMS`; workflow **Rollback**.
+- **Сервер**: пользователь `stembot`, атомарные релизы с автооткатом, Caddy с HTTPS, HSTS, CSP для Telegram, фильтрацией секретов в логах и вебхуком только из сетей Telegram.
+- **Dependabot** (npm, Docker, Actions) и категории release notes.
+- `docs/DEPLOYMENT.md` — runbook.
+
+### Security (2026-10-14)
+- `/api/admin/*` требует членства в `ADMIN_IDS`/`SUPER_ADMIN_IDS` по проверенному initData.
+- Валидация окружения при старте; CORS ограничен публичным origin; вебхук бота с `secret_token`.
+
+### Changed (2026-10-14) — приведение репозитория в порядок
+- **Зависимости**: Vite 8, `@vitejs/plugin-react` 6, Zod 4, `@hono/node-server` 2, TypeScript 5.9; Node.js ≥ 22.12 (`.nvmrc`).
+- **Сервер**: бизнес-логика вынесена в `modules/*/service.ts`, роуты валидируют вход через `@hono/zod-validator` (400 вместо 500), единый `DomainError` + `app.onError`, типизированный Hono env для проверенного initData, `bot.catch`, fallback для callback-запросов, graceful shutdown.
+- **Mini App**: переразложен по Feature-Sliced Design (`shared/entities/features/widgets/pages`), цвета переведены на токены `--tg-theme-*` с fallback `light-dark()` (корректные светлая и тёмная темы), SDK инициализируется до рендера, `miniApp.ready()` после монтирования, haptics на ошибки, убран лишний `telegram-web-app.js`.
+- **CI**: lint → typecheck → test → build → `npm audit --omit=dev`; Python-джоба удалена.
+- **Документация**: `README`, `ARCHITECTURE` синхронизированы с кодом; `PROJECT_STATE` с честными статусами и известными проблемами; `CLAUDE.md` импортирует `AGENTS.md`.
+
+### Added (2026-10-14)
+- **Тулинг**: Biome (lint + format), Steiger (границы FSD), Vitest + характеризационные тесты ядра.
+- **Агентские скиллы** (`.claude/skills`, симлинк для Devin): `tma-security`, `tma-frontend`, `grammy-bot`, `game-engine`; обновлены `twa-audit`, `pr-check`, `handoff`. MCP `context7` (`.mcp.json`), `.claude/launch.json` для превью.
+- **Эталон оригинала**: `docs/legacy/NEUROFAUNA_RULES.md` + `neurofauna-data.json` (78 карт, 15 свойств, 16 клеток, формула шага).
+- **Исследования**: `docs/research/TMA_PLATFORM.md` (Bot API 8.0–10.3, статус пакетов, гайдлайны), `SECURITY.md` (модель угроз, TENET, бэклог), `GAME_DESIGN.md` (геймификация, баланс, симуляция, генерация).
+
+### Removed (2026-10-14)
+- `docs/TWA_DESIGN_AND_SECURITY.md` — содержимое перенесено в `docs/research/`.
+
+## [0.1.0] — 2026-10-14 (каркас)
+
+### Added (2026-10-14)
+- **Инфраструктура и Git Flow**:
+  - Настроены ветки `main` и `dev`, автоудаление смерженных веток, шаблоны Pull Request и Issues (`.github/`), адаптивный CI/CD пайплайн (`.github/workflows/ci.yml`), `.gitignore` и `.editorconfig`.
+  - Настроены правила и скиллы для AI-агентов (`AGENTS.md`, `CLAUDE.md`, `.devin/config.json`, `/twa-audit`, `/pr-check`, `/handoff`).
+- **Архитектура и Документация (`docs/`)**:
+  - `docs/BRIEF_AND_LEGACY_AUDIT.md` — аудит старого бота `neurofauna_bot`, требования брифа STEM ЦУ и матрица ролей команды (RACI).
+  - `docs/ARCHITECTURE.md` — архитектура монорепозитория, описание универсального игрового ядра и правил FSD.
+  - `docs/TWA_DESIGN_AND_SECURITY.md` — гайдлайны по безопасности и нативному дизайну Telegram Mini Apps (Bot API 8.0–10.1, `@tma.js/*`).
+  - `docs/PROJECT_STATE.md` — живой документ текущего состояния проекта и чеклист для передачи контекста между участниками и AI-сессиями.
+- **Универсальное ядро конструктора (`packages/shared`)**:
+  - Декларативные Zod-схемы `GameTemplateSchema`, `CardItemSchema`, `PerkPropertySchema`, `BoardCellSchema`, `TeamSchema`.
+  - Математический движок расчёта статов команды (`calculateTeamStats`) и автоматический валидатор экономического баланса (`validateGameBalance`).
+  - Два готовых пресета игровых систем: *«НейроФауна: Эволюция»* и *«АэроТех: Нейро-Дирижабли»*.
+- **Backend API & Telegram Bot (`apps/server`)**:
+  - HTTP-сервер на **Hono** (`^4.13.13`) с модулями `/api/game`, `/api/team`, `/api/admin`.
+  - Middleware безопасности `tmaAuthMiddleware` на базе `@tma.js/init-data-node` (`^2.0.8`) с проверкой HMAC-SHA256 подписи и `expiresIn`.
+  - Telegram-бот на **grammY** (`^1.46.0`) с запуском Mini App.
+- **Telegram Mini App (`apps/web`)**:
+  - Фронтенд на **React 19 + Vite 6 + Tailwind CSS v4** по структуре **FSD (Feature-Sliced Design)**.
+  - Интеграция с `@tma.js/sdk-react` (`^3.0.23`): монтирование `themeParams`, `miniApp`, `viewport` (`bindCssVars`, `expand`), `swipeBehavior.disableVertical()`, `hapticFeedback` и передача заголовка `Authorization: tma <rawInitData>`.
+  - Экраны `TeamDashboardPage` (сборка по слотам, статы, прогресс-бар трека, магазин карточек и перков) и `AdminConsolePage` (переключение игровых сеттингов на лету, смена дня, открытие/закрытие магазина, начисление валюты, движение по треку, отчёт валидатора баланса).

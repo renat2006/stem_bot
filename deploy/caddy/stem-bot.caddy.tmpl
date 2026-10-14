@@ -1,0 +1,51 @@
+${APP_DOMAINS} {
+	encode zstd gzip
+
+	log {
+		output file /var/log/caddy/stem-bot.log {
+			mode 0640
+			roll_size 20MiB
+			roll_keep 5
+			roll_keep_for 336h
+		}
+		format filter {
+			wrap json
+			fields {
+				request>headers>X-Telegram-Bot-Api-Secret-Token delete
+				request>headers>Authorization delete
+				request>headers>Cookie delete
+			}
+		}
+	}
+
+	request_body {
+		max_size 1MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+		Cross-Origin-Resource-Policy "same-origin"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'self' https://web.telegram.org https://*.telegram.org"
+		-Server
+		-X-Powered-By
+	}
+
+	@hashed path /assets/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+
+	@html path / /index.html
+	header @html Cache-Control "no-cache"
+
+	@foreignWebhook {
+		path /telegram/webhook
+		not remote_ip 149.154.160.0/20 91.108.4.0/22
+	}
+	respond @foreignWebhook 403
+
+	reverse_proxy 127.0.0.1:${APP_PORT} {
+		header_up X-Real-IP {remote_host}
+	}
+}

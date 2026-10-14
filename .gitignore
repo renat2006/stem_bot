@@ -1,5 +1,10 @@
-# Dependencies
+# Dependencies & Package Caches
 node_modules/
+.npm/
+.npm-cache/
+.cache/
+.vite/
+*.tsbuildinfo
 .pnp
 .pnp.js
 

@@ -1,32 +1,56 @@
-# STEM Bot & Telegram Mini App
+# STEM Game Constructor (`stem_bot`)
 
-Репозиторий для командной разработки Telegram-бота и Telegram Web App (Mini App).
+[![CI](https://github.com/renat2006/stem_bot/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/renat2006/stem_bot/actions/workflows/ci.yml)
+[![Deploy](https://github.com/renat2006/stem_bot/actions/workflows/deploy.yml/badge.svg)](https://github.com/renat2006/stem_bot/actions/workflows/deploy.yml)
+[![Release](https://img.shields.io/github/v/release/renat2006/stem_bot?include_prereleases&sort=semver)](https://github.com/renat2006/stem_bot/releases)
 
-## Процесс командной работы (Git Flow)
+Конструктор игровых систем для образовательных событий STEM: настраиваемое игровое ядро + Telegram Mini App + Telegram-бот. Основа — игра «НейроФауна» Летней школы STEM.
 
-1. **`main`** — Production ветка (всегда стабильна).
-2. **`dev`** — Основная ветка разработки. Все новые фичи отводятся от `dev` и вливаются обратно в `dev` через Pull Request.
-3. **Именование веток:**
-   - `feat/<short-name>` — новая функциональность
-   - `fix/<short-name>` — исправление бага
-   - `refactor/<short-name>` — рефакторинг без изменения логики
-   - `chore/<short-name>` — инфраструктура, конфиги, зависимости
-4. **Коммиты:** используем [Conventional Commits](https://www.conventionalcommits.org/) (`feat: ...`, `fix: ...`, `chore: ...`).
+## Структура
 
-## Быстрый старт для разработчиков
+| Пакет | Что внутри |
+| :--- | :--- |
+| `packages/shared` | Zod-схемы `GameTemplate`, расчёт характеристик, валидатор баланса, пресеты сеттингов |
+| `apps/server` | API на Hono (модули `game`, `team`, `admin`: `routes.ts` + `service.ts`), бот на grammY, проверка `initData` |
+| `apps/web` | Mini App: React 19, Vite 8, Tailwind v4 на токенах темы Telegram, Feature-Sliced Design |
+| `docs/` | состояние проекта, архитектура, бриф, правила оригинала, исследования |
+
+## Быстрый старт
+
+Требуется Node.js ≥ 22.12 (`.nvmrc`).
 
 ```bash
-# Клонирование и переход на ветку разработки
-git clone https://github.com/renat2006/stem_bot.git
-cd stem_bot
-git checkout dev
-
-# Создание ветки под задачу
-git checkout -b feat/my-feature
+npm install
+cp .env.example .env
+npm run dev
 ```
 
-## AI-Ассистенты и окружение
+Сервер — `http://localhost:3001`, Mini App — `http://localhost:5173` (прокси `/api`). Без `BOT_TOKEN` бот не стартует, API работает в dev-режиме без подписи Telegram.
 
-В репозитории настроена конфигурация для AI-агентов (`AGENTS.md`, `CLAUDE.md`, `.devin/`):
-- `/twa-audit` — проверка безопасности (`initData`), нативного UX и производительности Telegram Mini App.
-- `/pr-check` — автоматическая проверка линтеров, типов, тестов и отсутствия секретов перед PR.
+## Проверки
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
+
+`npm run format` — автоисправление форматирования (Biome).
+
+## Деплой
+
+Push в `main` выкатывает прод автоматически, публикация Release — версию с артефактами; откат — workflow **Rollback**. Подробно: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
+## Документация
+
+- [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) — что готово, известные проблемы, бэклог по ролям (**начинать отсюда**)
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — архитектура и правила слоёв
+- [`docs/BRIEF_AND_LEGACY_AUDIT.md`](docs/BRIEF_AND_LEGACY_AUDIT.md) — бриф заказчика, команда, разбор старого бота
+- [`docs/legacy/NEUROFAUNA_RULES.md`](docs/legacy/NEUROFAUNA_RULES.md) — полные правила оригинала + данные
+- [`docs/research/`](docs/research) — платформа TMA, безопасность, геймдизайн и баланс
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — релизы, секреты, сервер, DNS, Telegram
+
+## Процесс
+
+`main` — релизы (только PR), `dev` — интеграция, задачи в `feat/*`, `fix/*`, `refactor/*`, `chore/*` от `dev`. Коммиты — Conventional Commits. Правила для разработчиков и AI-агентов — [`AGENTS.md`](AGENTS.md), скиллы — `.claude/skills/`.

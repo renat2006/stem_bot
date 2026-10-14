@@ -1,0 +1,27 @@
+{
+  "name": "stem-bot-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:server": "npm run dev --workspace=@stem/server",
+    "dev:web": "npm run dev --workspace=@stem/web",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "biome check . && npm run lint --workspaces --if-present",
+    "format": "biome check --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "typescript": "^5.9.3",
+    "zod": "^4.6.7"
+  },
+  "engines": {
+    "node": ">=22.12"
+  }
+}

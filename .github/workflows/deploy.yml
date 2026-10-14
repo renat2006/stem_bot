@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [main, chore/deploy]
   release:
     types: [published]
   workflow_dispatch:

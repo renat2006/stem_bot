@@ -1,0 +1,22 @@
+{
+  "id": "startup",
+  "version": 1,
+  "rig": "campus",
+  "palette": {
+    "outline": "#1A1A2E",
+    "paper": "#F5F3FF",
+    "violet": "#6C4CF5",
+    "mint": "#3DD6A0",
+    "coral": "#FF6B6B",
+    "sun": "#FFC93C",
+    "glow": "#B7A8FF"
+  },
+  "rigOverrides": [],
+  "parts": [],
+  "perks": {},
+  "stats": {},
+  "currency": "",
+  "cells": {},
+  "covers": {},
+  "emptyStates": {}
+}

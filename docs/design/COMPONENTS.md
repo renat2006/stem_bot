@@ -93,3 +93,16 @@ inline-flex, gap 5, radius 6, фон `sf2`, моно 600; размер S — 11.
 
 ## Native chrome (не рисовать в коде)
 `BackButton`, `MainButton` (цвет = `ac`, текст = `acfg`, неактивная — `setParams({is_active:false, color: sf2, text_color: mu})`), `HapticFeedback`, `showConfirm` для необратимых действий.
+
+
+## AssemblyStage (визуальный движок, этап 1)
+
+`entities/assembly`: template, equipped, size hero/card/token, preview `{slotId, cardId}`, interactive, onSlotTap, teamName. Hero занимает ширину контейнера и показывает бирку вида; card — 160 px; token — 40 px. Геометрия и порядок слоёв из рига `@stem/art`; незнакомые слоты — полка снизу. Сцена получает текстовое описание с названиями деталей и пустых слотов; отдельные кнопки сокетов находятся вне role img. Легенда характеристик остаётся под сценой.
+
+Idle: общий цикл 6 с, bob/sway/pulse/flap только transform; установка/удаление 280 мс + medium haptic. Анимации отключены при prefers-reduced-motion и эвристике слабого Android. Для точного performanceClass нужен API, отсутствующий в установленном SDK v3.
+
+## PartSticker и useArtPack
+
+Деталь SVG по данным карточки, белая обводка внутри процедурного изображения. В рынке — 64 px lazy; в сцене — коробка сокета. При наличии ассета — WebP из манифеста; ошибка загрузки переключает на SVG. Манифесты лениво импортируются и кешируются; установленные hero-изображения preload. Растровая обводка/тир-свечение/голография относятся к следующему этапу.
+
+Эталоны и снимки светлой/тёмной темы: [visual-engine/README.md](visual-engine/README.md).

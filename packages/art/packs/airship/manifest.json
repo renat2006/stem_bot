@@ -1,0 +1,22 @@
+{
+  "id": "airship",
+  "version": 1,
+  "rig": "airship",
+  "palette": {
+    "outline": "#14202B",
+    "blue": "#1F4E79",
+    "paper": "#E9EEF2",
+    "brass": "#C8963E",
+    "copper": "#B5653A",
+    "orange": "#FF7A1A",
+    "glow": "#5EE6FF"
+  },
+  "rigOverrides": [],
+  "parts": [],
+  "perks": {},
+  "stats": {},
+  "currency": "",
+  "cells": {},
+  "covers": {},
+  "emptyStates": {}
+}

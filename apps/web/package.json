@@ -14,7 +14,8 @@
     "@stem/shared": "*",
     "@tma.js/sdk-react": "^3.0.23",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "@stem/art": "*"
   },
   "devDependencies": {
     "@feature-sliced/steiger-plugin": "^0.8.0",

@@ -6,6 +6,7 @@ import {
   previewCardEffect,
 } from "@stem/shared";
 import { useState } from "react";
+import { AssemblyStage, PartSticker } from "../../../entities/assembly/index.js";
 import { StatDeltaList } from "../../../entities/card/index.js";
 import type { TeamWithStats } from "../../../entities/game/index.js";
 import { getThresholdsForStat, StatMeter, StepBlocks } from "../../../entities/team/index.js";
@@ -219,7 +220,8 @@ export function Shop({
                 </div>
 
                 <div className="flex w-full items-start justify-between gap-2.5">
-                  <span className="text-[17px] leading-snug font-semibold text-fg">{card.name}</span>
+                  <PartSticker card={card} template={template} thumbnail />
+                  <span className="flex-1 text-[17px] leading-snug font-semibold text-fg">{card.name}</span>
                   <span className="flex shrink-0 items-center gap-1.5 font-mono text-xl leading-none font-semibold text-fg">
                     {card.price}
                     <Coin size={16} />
@@ -330,6 +332,16 @@ export function Shop({
                 {selectedCard.price}
                 <Coin size={20} />
               </span>
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-sm text-mu">Примерка · как станет</span>
+              <AssemblyStage
+                template={template}
+                equipped={team.equippedCards}
+                size="card"
+                preview={{ slotId: selectedCard.slotId, cardId: selectedCard.id }}
+              />
             </div>
 
             <div className="grid grid-cols-[1fr_28px_1fr] items-center gap-2">

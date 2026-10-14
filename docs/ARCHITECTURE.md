@@ -3,6 +3,7 @@
 ## 1. Монорепозиторий (npm workspaces)
 
 ```
+packages/art      визуальный SDK: контракты, риги, SVG-fallback, имена и композиция сборки
 packages/shared   игровое ядро: схемы, расчёты, баланс, пресеты (без I/O)
 apps/server       Hono API + grammY бот, доменные модули
 apps/web          Telegram Mini App (React, FSD)
@@ -73,3 +74,13 @@ shared/     api (request/postJson с tma-заголовком), lib (Telegram SD
 2. БД (Drizzle + SQLite/PostgreSQL): команды, экземпляры карт, история валюты, админы, коды регистрации, сессии мероприятий (мультитенантность).
 3. Роли и привязка игрока к команде по `initData.user.id`.
 4. Генератор шаблонов (structured output по `GameTemplateSchema`) с repair-циклом через валидатор и симуляцию.
+
+## 6. Визуальный SDK (`packages/art`, этап 1)
+
+Пакет `@stem/art` зависит от типов `@stem/shared`; игровое ядро не зависит от графики. Шаблон задаёт `artPackId` и `objectRig` (creature/airship/campus, default creature). Zod валидирует манифест, палитру без хромакея, уникальность cardId и локальные пути с хешем.
+
+`composeAssembly` выдаёт упорядоченные слои, геометрию и полку неизвестных слотов; preview подменяет один слот без мутации оборудования. `proceduralPart` формирует детерминированный SVG по card.id, слоту, статам, тиру и палитре. `speciesName` строит тематическое имя сборки.
+
+FSD-слайс `entities/assembly` экспортирует AssemblyStage, PartSticker, useArtPack. Сцена — DOM-слои и SVG через image data URL, без Canvas-рантайма. Три JSON-манифеста лениво импортируются и кешируются; отсутствующие данные/ошибка изображения дают процедурный слой. Сцены размещены в slot-build, shop, proposals-inbox, teams-board и track-screen.
+
+Production-ассеты и их CLI/раздача, UI-спрайт, эффекты тиров и экспорт PNG ещё не реализованы. Контрольная точка продолжения — утверждение эталонов в `docs/design/visual-engine/README.md`.

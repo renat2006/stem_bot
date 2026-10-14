@@ -1,4 +1,5 @@
 import type { GameTemplate } from "@stem/shared";
+import { AssemblyStage } from "../../../entities/assembly/index.js";
 import type { TeamMemberInfo, TeamWithStats } from "../../../entities/game/index.js";
 import { CreateTeamForm, TeamAdminActions } from "../../../features/manage-team/index.js";
 import type { RunAction } from "../../../shared/lib/index.js";
@@ -63,6 +64,14 @@ export function TeamsBoard({ teams, members, template, purchaseLimit, run }: Tea
                 ))}
               </div>
 
+              <div className="mt-3 flex justify-center">
+                <AssemblyStage
+                  template={template}
+                  equipped={team.equippedCards}
+                  size="card"
+                  teamName={team.name}
+                />
+              </div>
               <TeamAdminActions teamId={team.id} members={members[team.id] ?? []} run={run} />
             </li>
           ))}

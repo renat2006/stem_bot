@@ -77,6 +77,8 @@ export const GameTemplateSchema = z.object({
   eventTag: z.string().default("STEM-ШКОЛА"),
   eventKey: z.enum(["neurofauna", "startup", "airship"]).default("neurofauna"),
   objectName: z.string().default("Существо"),
+  artPackId: z.string().min(1).optional(),
+  objectRig: z.enum(["creature", "airship", "campus"]).default("creature"),
   currencyName: z.string().min(1),
   currencyIcon: z.string().min(1),
   totalDays: z.number().int().min(1),

@@ -18,4 +18,5 @@ triggers:
 3. Проверь соблюдение FSD-архитектуры (`app` → `pages` → `widgets` → `features` → `entities` → `shared`) и отсутствие лишних комментариев, мёртвого кода или мусорных файлов.
 4. Если есть `package.json`, запусти проверки (`npm run lint --if-present`, `npm run typecheck --if-present`, `npm test --if-present`).
 5. Если есть `pyproject.toml`, запусти `uv run ruff check .` и `uv run pytest`.
-6. Сформируй краткое резюме изменений в формате Conventional Commits (`feat:`, `fix:`, `refactor:`, `chore:`) без водяных знаков.
+6. Проверь, обновлены ли `CHANGELOG.md` и `docs/PROJECT_STATE.md`, если добавлена новая функциональность или изменился статус задач.
+7. Сформируй краткое резюме изменений в формате Conventional Commits (`feat:`, `fix:`, `refactor:`, `chore:`) без водяных знаков.

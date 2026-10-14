@@ -1,5 +1,10 @@
 # Agent Instructions (stem_bot)
 
+## Context & Handoff (READ FIRST)
+- Перед началом любой задачи прочитай **`docs/PROJECT_STATE.md`** (текущее состояние проекта, что готово и бэклог по ролям) и **`CHANGELOG.md`**.
+- Архитектура, разбор брифа и гайдлайны лежат в **`docs/ARCHITECTURE.md`**, **`docs/BRIEF_AND_LEGACY_AUDIT.md`** и **`docs/TWA_DESIGN_AND_SECURITY.md`**.
+- После завершения фичи или этапа обязательно обновляй **`CHANGELOG.md`** и **`docs/PROJECT_STATE.md`** (или вызывай скилл `/handoff`), чтобы следующий разработчик или агент мог бесшовно продолжить работу.
+
 ## Workflow & Branching
 - **`main`** — стабильная production-ветка (только через PR).
 - **`dev`** — основная ветка интеграции для командной разработки.
@@ -27,7 +32,7 @@
   - Монтировать `miniApp`, `viewport` (`bindCssVars`, `expand`, `requestFullscreen`), `swipeBehavior.disableVertical()` (чтобы свайп внутри игры не закрывал аппку).
   - Использовать нативные контролы: `mainButton`, `secondaryButton`, `backButton`, `hapticFeedback`, `deviceStorage` / `secureStorage` (Bot API 9.0+).
   - Учитывать CSS-переменные отступов `--tg-viewport-safe-area-inset-*` и `--tg-viewport-content-safe-area-inset-*`.
-- **Dev Tools**: использовать локальные скиллы `/twa-audit` и `/pr-check`.
+- **Dev Tools**: использовать локальные скиллы `/twa-audit`, `/pr-check` и `/handoff`.
 
 ## Commit Rules
 - Писать чистые коммит-сообщения в формате Conventional Commits без каких-либо водяных знаков, ссылок на AI и строк `Co-Authored-By`.

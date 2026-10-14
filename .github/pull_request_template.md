@@ -7,7 +7,7 @@ Closes #
 
 ## Как проверить (Test Plan)
 - [ ] Проверено локально (UI / Bot флоу)
-- [ ] Линтер и проверка типов проходят (`lint`, `typecheck`)
+- [ ] `npm run lint`, `npm run typecheck`, `npm test`, `npm run build` проходят
 - [ ] Проверена валидация Telegram `initData` (если затронут API/Auth)
 - [ ] Проверена адаптивность в мобильном WebView Telegram (Safe Area, тема)
 

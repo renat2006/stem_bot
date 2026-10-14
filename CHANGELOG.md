@@ -5,6 +5,24 @@
 
 ## [Unreleased]
 
+### Changed (2026-10-14) — приведение репозитория в порядок
+- **Зависимости**: Vite 8, `@vitejs/plugin-react` 6, Zod 4, `@hono/node-server` 2, TypeScript 5.9; Node.js ≥ 22.12 (`.nvmrc`).
+- **Сервер**: бизнес-логика вынесена в `modules/*/service.ts`, роуты валидируют вход через `@hono/zod-validator` (400 вместо 500), единый `DomainError` + `app.onError`, типизированный Hono env для проверенного initData, `bot.catch`, fallback для callback-запросов, graceful shutdown.
+- **Mini App**: переразложен по Feature-Sliced Design (`shared/entities/features/widgets/pages`), цвета переведены на токены `--tg-theme-*` с fallback `light-dark()` (корректные светлая и тёмная темы), SDK инициализируется до рендера, `miniApp.ready()` после монтирования, haptics на ошибки, убран лишний `telegram-web-app.js`.
+- **CI**: lint → typecheck → test → build → `npm audit --omit=dev`; Python-джоба удалена.
+- **Документация**: `README`, `ARCHITECTURE` синхронизированы с кодом; `PROJECT_STATE` с честными статусами и известными проблемами; `CLAUDE.md` импортирует `AGENTS.md`.
+
+### Added (2026-10-14)
+- **Тулинг**: Biome (lint + format), Steiger (границы FSD), Vitest + характеризационные тесты ядра.
+- **Агентские скиллы** (`.claude/skills`, симлинк для Devin): `tma-security`, `tma-frontend`, `grammy-bot`, `game-engine`; обновлены `twa-audit`, `pr-check`, `handoff`. MCP `context7` (`.mcp.json`), `.claude/launch.json` для превью.
+- **Эталон оригинала**: `docs/legacy/NEUROFAUNA_RULES.md` + `neurofauna-data.json` (78 карт, 15 свойств, 16 клеток, формула шага).
+- **Исследования**: `docs/research/TMA_PLATFORM.md` (Bot API 8.0–10.3, статус пакетов, гайдлайны), `SECURITY.md` (модель угроз, TENET, бэклог), `GAME_DESIGN.md` (геймификация, баланс, симуляция, генерация).
+
+### Removed (2026-10-14)
+- `docs/TWA_DESIGN_AND_SECURITY.md` — содержимое перенесено в `docs/research/`.
+
+## [0.1.0] — 2026-10-14 (каркас)
+
 ### Added (2026-10-14)
 - **Инфраструктура и Git Flow**:
   - Настроены ветки `main` и `dev`, автоудаление смерженных веток, шаблоны Pull Request и Issues (`.github/`), адаптивный CI/CD пайплайн (`.github/workflows/ci.yml`), `.gitignore` и `.editorconfig`.

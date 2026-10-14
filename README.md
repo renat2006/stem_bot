@@ -1,38 +1,47 @@
 # STEM Game Constructor (`stem_bot`)
 
-Универсальный конструктор игровых систем (аналоговый SDK + Telegram Mini App + Telegram Bot) для образовательных мероприятий STEM.
+Конструктор игровых систем для образовательных событий STEM: настраиваемое игровое ядро + Telegram Mini App + Telegram-бот. Основа — игра «НейроФауна» Летней школы STEM.
 
-## Стек и структура монорепо
+## Структура
 
-- **`packages/shared`** — единые Zod-схемы (`GameTemplate`, `CardItem`, `PerkProperty`, `Team`), пресеты сеттингов (*«НейроФауна»* и *«АэроТех: Нейро-Дирижабли»*), расчёт характеристик и валидатор экономического баланса (`validateGameBalance`).
-- **`apps/server`** — Backend API на **Hono** + Telegram-бот на **grammY** + проверка подписи `Telegram.WebApp.initData`. Доменная модульная структура (`modules/game`, `modules/team`, `modules/admin`, `bot/`).
-- **`apps/web`** — Telegram Mini App на **React 19 + Vite 6 + TypeScript + Tailwind CSS v4** по канонам **FSD (Feature-Sliced Design)** (`app` → `pages` → `widgets` → `features` → `entities` → `shared`).
-- **`docs/`**:
-  - `docs/BRIEF_AND_LEGACY_AUDIT.md` — выжимка брифа заказчика, RACI команды и разбор узких мест старого бота `neurofauna_bot`.
-  - `docs/ARCHITECTURE.md` — описание архитектуры конструктора игр и правил FSD.
+| Пакет | Что внутри |
+| :--- | :--- |
+| `packages/shared` | Zod-схемы `GameTemplate`, расчёт характеристик, валидатор баланса, пресеты сеттингов |
+| `apps/server` | API на Hono (модули `game`, `team`, `admin`: `routes.ts` + `service.ts`), бот на grammY, проверка `initData` |
+| `apps/web` | Mini App: React 19, Vite 8, Tailwind v4 на токенах темы Telegram, Feature-Sliced Design |
+| `docs/` | состояние проекта, архитектура, бриф, правила оригинала, исследования |
 
 ## Быстрый старт
 
+Требуется Node.js ≥ 22.12 (`.nvmrc`).
+
 ```bash
-git clone https://github.com/renat2006/stem_bot.git
-cd stem_bot
-git checkout dev
 npm install
+cp .env.example .env
+npm run dev
+```
 
-# Запуск Backend API (порт 3001):
-npm run dev:server
+Сервер — `http://localhost:3001`, Mini App — `http://localhost:5173` (прокси `/api`). Без `BOT_TOKEN` бот не стартует, API работает в dev-режиме без подписи Telegram.
 
-# Запуск Telegram Mini App (порт 5173):
-npm run dev:web
+## Проверки
 
-# Проверка типов и сборка всех пакетов:
+```bash
+npm run lint
 npm run typecheck
+npm test
 npm run build
 ```
 
-## Процесс командной работы (Git Flow)
+`npm run format` — автоисправление форматирования (Biome).
 
-1. **`main`** — Production-ветка (только через PR).
-2. **`dev`** — Основная ветка интеграции команды.
-3. **Ветки под задачи (от `dev`):** `feat/<name>`, `fix/<name>`, `refactor/<name>`, `chore/<name>`.
-4. **Коммиты:** чистые [Conventional Commits](https://www.conventionalcommits.org/) без лишнего шума и водяных знаков.
+## Документация
+
+- [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) — что готово, известные проблемы, бэклог по ролям (**начинать отсюда**)
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — архитектура и правила слоёв
+- [`docs/BRIEF_AND_LEGACY_AUDIT.md`](docs/BRIEF_AND_LEGACY_AUDIT.md) — бриф заказчика, команда, разбор старого бота
+- [`docs/legacy/NEUROFAUNA_RULES.md`](docs/legacy/NEUROFAUNA_RULES.md) — полные правила оригинала + данные
+- [`docs/research/`](docs/research) — платформа TMA, безопасность, геймдизайн и баланс
+
+## Процесс
+
+`main` — релизы (только PR), `dev` — интеграция, задачи в `feat/*`, `fix/*`, `refactor/*`, `chore/*` от `dev`. Коммиты — Conventional Commits. Правила для разработчиков и AI-агентов — [`AGENTS.md`](AGENTS.md), скиллы — `.claude/skills/`.

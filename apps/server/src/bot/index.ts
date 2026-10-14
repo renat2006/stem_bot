@@ -14,5 +14,11 @@ export function createTelegramBot(token: string, webAppUrl: string): Bot {
     );
   });
 
+  bot.on("callback_query:data", (ctx) => ctx.answerCallbackQuery());
+
+  bot.catch(({ ctx, error }) => {
+    console.error(`Bot update ${ctx.update.update_id} failed`, error);
+  });
+
   return bot;
 }

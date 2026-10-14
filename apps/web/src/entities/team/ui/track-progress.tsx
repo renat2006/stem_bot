@@ -14,47 +14,51 @@ export function TrackProgress({
   rivalPositions = [],
 }: TrackProgressProps) {
   const target = Math.min(max, position + stepForecast);
+  const currentPct = Math.min(100, Math.max(3, (position / max) * 100));
+  const targetPct = Math.min(100, Math.max(currentPct, (target / max) * 100));
+  const uniqueRivalPositions = Array.from(new Set(rivalPositions)).filter(
+    (pos) => pos >= 1 && pos <= max && pos !== position,
+  );
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-end gap-[2px]">
-        {Array.from({ length: max }, (_, idx) => {
-          const cellNum = idx + 1;
-          const isMe = cellNum === position;
-          const isPassed = cellNum <= position;
-          const isForecast = cellNum > position && cellNum <= target;
-          const rivalsHere = rivalPositions.filter((pos) => pos === cellNum).length;
+      <div className="relative pt-3 pb-1">
+        <div className="relative h-3.5 w-full overflow-hidden rounded-full bg-sf2">
+          {stepForecast > 0 && (
+            <div
+              className="absolute inset-y-0 left-0 rounded-full border-[1.5px] border-ac bg-ac/25 transition-all"
+              style={{ width: `${targetPct}%` }}
+            />
+          )}
+          <div
+            className="absolute inset-y-0 left-0 rounded-full bg-ac transition-all"
+            style={{ width: `${currentPct}%` }}
+          />
+        </div>
 
+        {uniqueRivalPositions.map((pos) => {
+          const leftPct = Math.min(98, Math.max(2, (pos / max) * 100));
           return (
-            <div key={cellNum} className="flex flex-1 flex-col items-center gap-1">
-              <div className="flex min-h-[12px] flex-col items-center justify-end gap-[2px]">
-                {[1, 2].slice(0, Math.min(rivalsHere, 2)).map((dotId) => (
-                  <span key={`rival-${cellNum}-${dotId}`} className="h-[5px] w-[5px] rounded-full bg-mu" />
-                ))}
-                {isMe && (
-                  <span
-                    className="h-[9px] w-[9px] rounded-full bg-ac"
-                    style={{ boxShadow: "0 0 0 2px var(--sf)" }}
-                  />
-                )}
-              </div>
-              <div
-                className={`w-full rounded-[2px] ${isMe ? "h-3" : "h-2"}`}
-                style={{
-                  background: isPassed ? "var(--ac)" : isForecast ? "transparent" : "var(--sf2)",
-                  boxShadow: isForecast ? "inset 0 0 0 1.5px var(--ac)" : "none",
-                }}
-              />
-            </div>
+            <span
+              key={`rival-pos-${pos}`}
+              title={`Соперник: клетка ${pos}`}
+              className="absolute top-0 h-2 w-2 -translate-x-1/2 rounded-full bg-mu"
+              style={{ left: `${leftPct}%` }}
+            />
           );
         })}
+
+        <span
+          className="absolute top-2 h-5 w-5 -translate-x-1/2 rounded-full border-2 border-sf bg-ac shadow-xs transition-all"
+          style={{ left: `${currentPct}%` }}
+        />
       </div>
-      <div className="flex items-center justify-between font-mono text-[11px] text-mu">
-        <span>старт · {label.toLowerCase()}</span>
+
+      <div className="flex items-center justify-between font-mono text-xs text-mu">
+        <span>{label}</span>
         <span className="font-semibold text-fg">
-          клетка {position} {stepForecast > 0 ? `→ ${target}` : ""}
+          клетка {position} {stepForecast > 0 ? `→ ${target}` : ""} из {max}
         </span>
-        <span>финиш {max}</span>
       </div>
     </div>
   );

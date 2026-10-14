@@ -1,6 +1,6 @@
 import type { GameState } from "@stem/shared";
 import type { RunAction } from "../../../shared/lib/index.js";
-import { Button, Section } from "../../../shared/ui/index.js";
+import { Button, ModuleCard } from "../../../shared/ui/index.js";
 import { updateGameState } from "../api/control-shift-api.js";
 
 interface ShiftControlsProps {
@@ -14,30 +14,30 @@ export function ShiftControls({ gameState, totalDays, run }: ShiftControlsProps)
   const days = Array.from({ length: totalDays }, (_, idx) => idx + 1);
 
   return (
-    <Section
-      title="Управление сменой и магазином"
-      aside={
+    <ModuleCard
+      title="Управление сменой и рынком"
+      badge={
         <Button
           variant={shopOpen ? "destructive" : "positive"}
           onClick={() => run(() => updateGameState({ purchasePhaseActive: !shopOpen }))}
         >
-          {shopOpen ? "Закрыть магазин" : "Открыть магазин"}
+          {shopOpen ? "Закрыть рынок" : "Открыть рынок"}
         </Button>
       }
     >
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-hint">День смены:</span>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[13px] font-medium text-mu">Активный день / окно:</span>
         {days.map((day) => (
           <Button
             key={day}
             variant={gameState.currentDay === day ? "primary" : "ghost"}
-            className="h-8 w-8 px-0"
+            className="min-w-[42px]"
             onClick={() => run(() => updateGameState({ currentDay: day }))}
           >
             {day}
           </Button>
         ))}
       </div>
-    </Section>
+    </ModuleCard>
   );
 }

@@ -37,11 +37,11 @@
 :root,
 [data-tg="light"] {
   color-scheme: light;
-  --bg: var(--tg-theme-bg-color, #f4f5f6);
-  --sf: var(--tg-theme-section-bg-color, #ffffff);
-  --sf2: var(--tg-theme-secondary-bg-color, #eceef0);
+  --bg: var(--tg-theme-secondary-bg-color, #f4f5f6);
+  --sf: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color, #ffffff));
+  --sf2: var(--tg-theme-bg-color, #eceef0);
   --fg: var(--tg-theme-text-color, #14171a);
-  --mu: var(--tg-theme-hint-color, #58616b);
+  --mu: var(--tg-theme-subtitle-text-color, var(--tg-theme-hint-color, #58616b));
   --ln: var(--tg-theme-section-separator-color, #dde1e5);
   --tg: var(--tg-theme-header-bg-color, #ffffff);
   --pos: oklch(0.48 0.13 150);
@@ -57,11 +57,11 @@
 
 [data-tg="dark"] {
   color-scheme: dark;
-  --bg: var(--tg-theme-bg-color, #0f1214);
-  --sf: var(--tg-theme-section-bg-color, #181c1f);
-  --sf2: var(--tg-theme-secondary-bg-color, #23282c);
+  --bg: var(--tg-theme-secondary-bg-color, #0f1214);
+  --sf: var(--tg-theme-section-bg-color, var(--tg-theme-bg-color, #181c1f));
+  --sf2: var(--tg-theme-bg-color, #23282c);
   --fg: var(--tg-theme-text-color, #eef1f3);
-  --mu: var(--tg-theme-hint-color, #9aa3ad);
+  --mu: var(--tg-theme-subtitle-text-color, var(--tg-theme-hint-color, #9aa3ad));
   --ln: var(--tg-theme-section-separator-color, #2e353a);
   --tg: var(--tg-theme-header-bg-color, #14181b);
   --pos: oklch(0.78 0.14 150);

@@ -51,13 +51,13 @@ export function StatMeter({
   }
 
   return (
-    <div className="flex items-end gap-[2px]">
+    <div className="flex w-full items-end gap-[3px]">
       {cells.map((v) => {
         if (v === 0) {
           return (
-            <div key="zero" className="flex flex-col items-center gap-[3px]">
-              <span className="h-3 text-[9px]" />
-              <div className="h-[22px] w-[2px] shrink-0 rounded-[1px] bg-mu" />
+            <div key="zero" className="flex flex-col items-center">
+              <span className="h-4" />
+              <div className="h-[22px] w-[2px] shrink-0 rounded-full bg-mu" />
             </div>
           );
         }
@@ -79,22 +79,23 @@ export function StatMeter({
         } else if (nowFilled && !afterFilled) {
           bg = "transparent";
           boxShadow = "inset 0 0 0 1.5px var(--neg)";
-          opacity = 0.8;
+          opacity = 0.85;
         }
 
         const outline = mark ? `1.5px solid ${mark.danger ? "var(--warn)" : "var(--ac)"}` : undefined;
+        const badgeText = mark ? (mark.label.length > 4 ? `≥${v}` : mark.label) : "";
 
         return (
-          <div key={v} className="flex flex-1 flex-col items-center gap-[3px]">
+          <div key={v} className="relative flex flex-1 flex-col items-center gap-1">
             <span
-              className={`h-3 whitespace-nowrap font-mono text-[9px] leading-3 font-semibold ${
+              className={`h-3.5 font-mono text-[10px] leading-none font-semibold ${
                 mark ? (mark.danger ? "text-warn" : "text-ac") : "text-transparent"
               }`}
             >
-              {mark?.label ?? "."}
+              {badgeText || "."}
             </span>
             <div
-              className="h-[14px] w-full rounded-[2px]"
+              className="h-4 w-full rounded-[3px]"
               style={{
                 background: bg,
                 boxShadow,
@@ -122,42 +123,54 @@ export function StepBlocks({
   const statMap = new Map(stats.map((s) => [s.id, s]));
 
   return (
-    <div className="flex items-stretch gap-1.5">
-      {step.parts.map((part) => {
-        const refPart = referenceStep?.parts.find((r) => r.key === part.key);
-        const changed = referenceStep !== undefined && refPart !== undefined && refPart.met !== part.met;
-        const stat = part.statId ? statMap.get(part.statId) : undefined;
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        {step.parts.map((part) => {
+          const refPart = referenceStep?.parts.find((r) => r.key === part.key);
+          const changed = referenceStep !== undefined && refPart !== undefined && refPart.met !== part.met;
+          const stat = part.statId ? statMap.get(part.statId) : undefined;
+          const isBase = part.key === "base";
+          const topText = isBase ? `+${part.value}` : part.met ? `+${part.value}` : "0";
 
-        const isBase = part.key === "base";
-        const topText = isBase ? String(part.value) : part.met ? `+${part.value}` : "0";
+          let borderClass = "border-[1.5px] border-transparent";
+          if (part.met && changed) borderClass = "border-[1.5px] border-pos";
+          else if (!part.met && changed) borderClass = "border-[1.5px] border-dashed border-warn";
+          else if (!part.met) borderClass = "border-[1.5px] border-dashed border-ln";
 
-        let borderClass = "border-[1.5px] border-transparent";
-        if (part.met && changed) borderClass = "border-[1.5px] border-pos";
-        else if (!part.met && changed) borderClass = "border-[1.5px] border-dashed border-warn";
-        else if (!part.met) borderClass = "border-[1.5px] border-dashed border-ln";
+          const titleText = isBase
+            ? "Базовый шаг"
+            : part.isPerk
+              ? part.label
+              : stat
+                ? `${stat.label} ${part.label}`
+                : part.label;
 
-        return (
-          <div
-            key={part.key}
-            className={`flex min-w-0 flex-1 flex-col gap-1 rounded-[10px] px-[7px] py-2 ${
-              part.met ? "bg-sf2 opacity-100" : "bg-transparent opacity-75"
-            } ${borderClass}`}
-          >
-            <span className="font-mono text-[17px] leading-none font-semibold text-fg">{topText}</span>
-            <span className="flex items-center gap-1 truncate text-[10.5px] leading-tight text-mu">
-              {part.isPerk ? (
-                <span className="inline-block h-[9px] w-[9px] shrink-0 rotate-45 border-[1.5px] border-ac" />
-              ) : stat ? (
-                <StatGlyph shape={stat.shape} color={stat.color} size={9} />
-              ) : null}
-              <span className="truncate">{part.label}</span>
-            </span>
-          </div>
-        );
-      })}
-      <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-[10px] bg-fg px-[7px] py-2 text-bg">
-        <span className="font-mono text-[17px] leading-none font-semibold">= {step.total}</span>
-        <span className="text-[10.5px] leading-tight opacity-80">шаг</span>
+          return (
+            <div
+              key={part.key}
+              className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 ${
+                part.met ? "bg-sf2 opacity-100" : "bg-transparent opacity-75"
+              } ${borderClass}`}
+            >
+              <span className="flex min-w-0 items-center gap-2 text-xs font-medium text-fg">
+                {part.isPerk ? (
+                  <span className="inline-block h-2.5 w-2.5 shrink-0 rotate-45 border-[1.5px] border-ac" />
+                ) : stat ? (
+                  <StatGlyph shape={stat.shape} color={stat.color} size={11} />
+                ) : (
+                  <span className="inline-block h-2 w-2 shrink-0 rounded-[2px] bg-ac" />
+                )}
+                <span className="truncate">{titleText}</span>
+              </span>
+              <span className="shrink-0 font-mono text-base font-semibold text-fg">{topText}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center justify-between rounded-xl bg-fg px-3.5 py-2.5 text-bg">
+        <span className="text-xs font-medium opacity-85">Итого за этот ход</span>
+        <span className="font-mono text-lg leading-none font-semibold">= {step.total} шаг</span>
       </div>
     </div>
   );
@@ -172,15 +185,15 @@ interface StatGridProps {
 
 export function StatGrid({ stats, values, template, activePerkId = null }: StatGridProps) {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3.5">
       {stats.map((stat) => {
         const val = values[stat.id] ?? 0;
         const marks = template ? getThresholdsForStat(template, activePerkId, stat.id) : [];
         return (
-          <div key={stat.id} className="grid grid-cols-[108px_minmax(0,1fr)] items-end gap-2.5">
-            <div className="flex flex-col gap-0.5">
-              <span className="flex items-center gap-1.5 text-xs text-mu">
-                <StatGlyph shape={stat.shape} color={stat.color} size={11} />
+          <div key={stat.id} className="flex flex-col gap-1.5">
+            <div className="flex items-baseline justify-between">
+              <span className="flex items-center gap-2 text-[13.5px] font-medium text-fg">
+                <StatGlyph shape={stat.shape} color={stat.color} size={12} />
                 {stat.label}
               </span>
               <span className="font-mono text-2xl leading-none font-semibold text-fg">

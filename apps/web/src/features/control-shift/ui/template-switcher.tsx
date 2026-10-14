@@ -1,6 +1,6 @@
 import type { TemplateSummary } from "../../../entities/game/index.js";
 import type { RunAction } from "../../../shared/lib/index.js";
-import { Badge, Section } from "../../../shared/ui/index.js";
+import { Badge, ModuleCard } from "../../../shared/ui/index.js";
 import { switchTemplate } from "../api/control-shift-api.js";
 
 interface TemplateSwitcherProps {
@@ -11,7 +11,7 @@ interface TemplateSwitcherProps {
 
 export function TemplateSwitcher({ templates, activeId, run }: TemplateSwitcherProps) {
   return (
-    <Section title="Игровой сеттинг">
+    <ModuleCard title="Сеттинг события (Конструктор)">
       <div className="grid gap-2">
         {templates.map((item) => {
           const active = item.id === activeId;
@@ -21,21 +21,21 @@ export function TemplateSwitcher({ templates, activeId, run }: TemplateSwitcherP
               type="button"
               disabled={active}
               onClick={() => run(() => switchTemplate(item.id))}
-              className={`flex items-center justify-between rounded-xl p-3 text-left transition ${
-                active ? "bg-accent/15 ring-1 ring-accent" : "bg-secondary"
+              className={`flex min-h-[56px] items-center justify-between gap-3 rounded-xl border p-3.5 text-left transition ${
+                active ? "border-ac bg-ac/15" : "border-ln bg-sf2"
               }`}
             >
-              <div>
-                <p className="text-sm font-semibold text-text">
+              <div className="min-w-0">
+                <p className="text-[15px] font-semibold text-fg">
                   {item.currencyIcon} {item.title}
                 </p>
-                <p className="text-xs text-hint">{item.theme}</p>
+                <p className="mt-0.5 text-xs text-mu">{item.theme}</p>
               </div>
               <Badge tone={active ? "accent" : "neutral"}>{active ? "Активен" : "Выбрать"}</Badge>
             </button>
           );
         })}
       </div>
-    </Section>
+    </ModuleCard>
   );
 }

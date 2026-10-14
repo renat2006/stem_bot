@@ -8,12 +8,15 @@ interface SectionProps {
 
 export function Section({ title, aside, children }: SectionProps) {
   return (
-    <section className="rounded-2xl bg-surface p-4">
-      <header className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-text">{title}</h3>
+    <section className="overflow-hidden rounded-2xl border border-ln bg-sf">
+      <header className="flex min-h-[44px] items-center justify-between gap-2 border-b border-ln px-4 py-2">
+        <div className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-ac" />
+          <h3 className="text-[15px] font-semibold text-fg">{title}</h3>
+        </div>
         {aside}
       </header>
-      <div className="mt-3">{children}</div>
+      <div className="p-4">{children}</div>
     </section>
   );
 }

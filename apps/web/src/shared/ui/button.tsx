@@ -1,11 +1,11 @@
 import type { ButtonHTMLAttributes } from "react";
 
 const VARIANTS = {
-  primary: "bg-button text-button-text",
-  ghost: "text-text ring-1 ring-inset ring-separator",
-  positive: "bg-positive/15 text-positive",
-  destructive: "bg-destructive/15 text-destructive",
-  accent: "bg-accent/15 text-accent",
+  primary: "bg-ac text-acfg",
+  ghost: "bg-sf text-fg border border-ln",
+  positive: "bg-pos/15 text-pos border border-pos/30",
+  destructive: "bg-neg/15 text-neg border border-neg/30",
+  accent: "bg-ac/15 text-ac border border-ac/30",
 } as const;
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -16,7 +16,7 @@ export function Button({ variant = "primary", className = "", ...props }: Button
   return (
     <button
       type="button"
-      className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${VARIANTS[variant]} ${className}`}
+      className={`inline-flex min-h-[40px] items-center justify-center whitespace-nowrap rounded-xl px-3.5 py-2 text-[13px] font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${VARIANTS[variant]} ${className}`}
       {...props}
     />
   );

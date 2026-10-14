@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Exec(git status)",
+      "Exec(git diff)",
+      "Exec(git log)",
+      "Exec(git branch)",
+      "Exec(gh pr view)",
+      "Exec(gh issue list)",
+      "Exec(npm run)",
+      "Exec(npx tsc)",
+      "Exec(uv run)"
+    ],
+    "deny": [
+      "Exec(sudo)"
+    ]
+  },
+  "read_config_from": {
+    "agents_standard": true,
+    "cursor": true,
+    "windsurf": true,
+    "claude": true
+  }
+}

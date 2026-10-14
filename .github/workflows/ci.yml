@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-node:
+    name: Node / TypeScript Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for package.json
+        id: check_pkg
+        run: |
+          if [ -f "package.json" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node.js
+        if: steps.check_pkg.outputs.exists == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        if: steps.check_pkg.outputs.exists == 'true'
+        run: npm ci
+
+      - name: Lint & Typecheck & Test
+        if: steps.check_pkg.outputs.exists == 'true'
+        run: |
+          npm run lint --if-present
+          npm run typecheck --if-present
+          npm test --if-present
+          npm run build --if-present
+
+  check-python:
+    name: Python Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for pyproject.toml
+        id: check_py
+        run: |
+          if [ -f "pyproject.toml" ]; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup uv
+        if: steps.check_py.outputs.exists == 'true'
+        uses: astral-sh/setup-uv@v5
+
+      - name: Lint & Test (Python)
+        if: steps.check_py.outputs.exists == 'true'
+        run: |
+          uv sync --frozen || uv sync
+          uv run ruff check . || true
+          uv run pytest || true

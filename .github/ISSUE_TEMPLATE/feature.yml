@@ -1,0 +1,33 @@
+name: Feature Request
+description: Новая фича или экран для Telegram Бота / Mini App
+title: "[FEAT]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Описание задачи
+      description: Что нужно сделать и какую бизнес-задачу это решает?
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Компонент
+      options:
+        - Mini App (Frontend / UI)
+        - Telegram Bot (Handlers / Menus)
+        - Backend API / Database
+        - Fullstack (Bot + Mini App + API)
+        - Infra / CI-CD
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Критерии приёмки (Acceptance Criteria)
+      placeholder: |
+        - [ ] Пользователь может...
+        - [ ] Данные сохраняются в...
+    validations:
+      required: true

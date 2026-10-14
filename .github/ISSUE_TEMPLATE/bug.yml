@@ -1,0 +1,34 @@
+name: Bug Report
+description: Ошибка в работе Telegram Бота, Mini App или API
+title: "[BUG]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Что сломалось?
+      description: Краткое описание бага
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Где воспроизводится?
+      options:
+        - Telegram iOS
+        - Telegram Android
+        - Telegram Desktop (macOS / Windows)
+        - Telegram Web / Browser
+        - Bot Chat / Backend API
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Шаги для воспроизведения
+      placeholder: |
+        1. Открыть бота / запустить Mini App
+        2. Нажать на...
+        3. Ошибка...
+    validations:
+      required: true

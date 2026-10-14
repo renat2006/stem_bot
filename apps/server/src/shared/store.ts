@@ -5,6 +5,7 @@ import {
   NEUROFAUNA_TEMPLATE,
   type Team,
 } from "@stem/shared";
+import { DomainError } from "./errors.js";
 
 class MemoryStore {
   templates: Map<string, GameTemplate> = new Map(DEFAULT_TEMPLATES.map((t) => [t.id, t]));
@@ -70,7 +71,7 @@ class MemoryStore {
   switchTemplate(templateId: string): GameTemplate {
     const next = this.templates.get(templateId);
     if (!next) {
-      throw new Error(`Template ${templateId} not found`);
+      throw new DomainError(`Шаблон ${templateId} не найден`, 404);
     }
     this.gameState = {
       activeTemplateId: next.id,

@@ -214,3 +214,66 @@
     animation: none;
   }
 }
+
+.part-sticker--printed {
+  overflow: visible;
+  filter: drop-shadow(1px 0 0 #f5efdf) drop-shadow(-1px 0 0 #f5efdf) drop-shadow(0 1px 0 #f5efdf)
+    drop-shadow(0 -1px 0 #f5efdf);
+}
+.assembly-ghost {
+  opacity: 0.18;
+}
+.assembly-stage--token .assembly-ghost {
+  opacity: 0.08;
+}
+
+.assembly-life {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 90%;
+}
+.assembly-stage[data-rig="creature"] .assembly-life {
+  animation: specimen-breathe 5.8s ease-in-out infinite;
+}
+.assembly-socket[data-plane="near"],
+.assembly-socket[data-plane="far"] {
+  animation-name: specimen-limb;
+  animation-duration: 5.8s;
+}
+@keyframes specimen-breathe {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-0.2deg);
+  }
+  50% {
+    transform: translateY(-1px) rotate(0.2deg);
+  }
+}
+@keyframes specimen-limb {
+  0%,
+  100% {
+    transform: rotate(calc(var(--assembly-angle, 0deg) - 0.7deg));
+  }
+  50% {
+    transform: rotate(calc(var(--assembly-angle, 0deg) + 0.7deg));
+  }
+}
+.assembly-stage--token[data-rig] .assembly-life,
+.assembly-stage--token .assembly-socket {
+  animation: none;
+}
+
+.assembly-life > .assembly-motion--sway[data-plane="single"] {
+  animation: specimen-limb 5.8s ease-in-out infinite;
+}
+
+.assembly-stage[data-low-power] .assembly-life,
+.assembly-stage[data-low-power] .assembly-socket {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .assembly-stage[data-rig] .assembly-life,
+  .assembly-stage[data-rig] .assembly-socket {
+    animation: none;
+  }
+}

@@ -1,5 +1,5 @@
 import type { GameState, GameTemplate } from "@stem/shared";
-import { AssemblyStage } from "../../../entities/assembly/index.js";
+import { AssemblyStage, PackSymbol } from "../../../entities/assembly/index.js";
 import { StatDeltaList } from "../../../entities/card/index.js";
 import type { TeamWithStats } from "../../../entities/game/index.js";
 import { formatStatValue, ModuleCard, StatGlyph } from "../../../shared/ui/index.js";
@@ -23,14 +23,8 @@ export function SlotBuild({ team, template, gameState, onSelectEmptySlot, onHelp
 
   return (
     <ModuleCard title="Сборка" subtitle={buildLine} onHelp={onHelp} noPadding>
-      <div
-        className="space-y-2.5 p-3.5"
-        style={{
-          backgroundImage: "radial-gradient(var(--ln) 1px, transparent 1px)",
-          backgroundSize: "12px 12px",
-        }}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-fg px-3.5 py-2.5 text-bg">
+      <div className="space-y-2.5 p-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-ln bg-sf2 px-3.5 py-2.5 text-fg">
           <div className="flex items-center gap-2">
             <span className="font-mono text-xs font-semibold tracking-[0.06em] uppercase opacity-80">
               {template.objectName}
@@ -99,7 +93,13 @@ export function SlotBuild({ team, template, gameState, onSelectEmptySlot, onHelp
 
         {activePerk && (
           <div className="flex items-center gap-3 rounded-xl border border-ln bg-sf p-3">
-            <span className="h-3.5 w-3.5 shrink-0 rotate-45 border-2 border-ac" />
+            <PackSymbol
+              template={template}
+              kind="perk"
+              id={activePerk.id}
+              label={activePerk.name}
+              size={36}
+            />
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <div className="flex items-center justify-between gap-2">
                 <span className="truncate text-[13.5px] font-semibold text-fg">{activePerk.name}</span>

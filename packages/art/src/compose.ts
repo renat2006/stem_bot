@@ -1,4 +1,5 @@
 import type { CardItem, GameTemplate } from "@stem/shared";
+import { buildDrawables, resolveAnchor } from "./projection.js";
 import { RIGS } from "./rigs/index.js";
 import { type ArtPack, type SlotSocket, SlotSocketSchema } from "./schema.js";
 
@@ -33,7 +34,12 @@ export function composeAssembly(
       ? SlotSocketSchema.parse({ ...base, ...override })
       : SlotSocketSchema.parse({
           slotId: slot.id,
-          box: [(shelfIndex++ % 5) * 200, 1020 + Math.floor((shelfIndex - 1) / 5) * 200, 180, 180],
+          box: [
+            (shelfIndex++ % 5) * 200,
+            rig.frame[1] + rig.frame[3] + 20 + Math.floor((shelfIndex - 1) / 5) * 200,
+            180,
+            180,
+          ],
           align: "center",
           z: 0,
         });
@@ -51,9 +57,61 @@ export function composeAssembly(
       onShelf: !base,
     };
   });
+  const resolved = new Set<string>();
+  const resolving = new Set<string>();
+  const place = (layer: AssemblyLayer) => {
+    if (resolved.has(layer.slotId) || resolving.has(layer.slotId)) return;
+    resolving.add(layer.slotId);
+    const asset = pack?.parts.find((part) => part.cardId === layer.card?.id);
+    if (asset?.contentBox) {
+      const [, , naturalWidth, naturalHeight] = asset.contentBox;
+      const [x, y, width, height] = layer.socket.box;
+      const scale = Math.min(width / naturalWidth, height / naturalHeight);
+      const fittedWidth = naturalWidth * scale;
+      const fittedHeight = naturalHeight * scale;
+      layer.socket.box = [
+        x + (width - fittedWidth) / 2,
+        y + (height - fittedHeight) / 2,
+        fittedWidth,
+        fittedHeight,
+      ];
+    }
+    const attachment = layer.socket.attach;
+    const parent = attachment
+      ? layers.find((candidate) => candidate.slotId === attachment.parentSlotId)
+      : undefined;
+    if (attachment && parent && parent !== layer && !resolving.has(parent.slotId)) {
+      place(parent);
+      const [px, py, pw, ph] = parent.socket.box;
+      const [, , width, height] = layer.socket.box;
+      const parentAsset = pack?.parts.find((part) => part.cardId === parent.card?.id);
+      const parentPoint = resolveAnchor(
+        parentAsset,
+        attachment.parentAnchor,
+        attachment.parentPoint,
+        parent.socket.mirror,
+      );
+      const partPoint = resolveAnchor(
+        asset,
+        attachment.partAnchor,
+        attachment.partPoint,
+        layer.socket.mirror,
+      );
+      layer.socket.box = [
+        px + pw * parentPoint[0] - width * partPoint[0],
+        py + ph * parentPoint[1] - height * partPoint[1],
+        width,
+        height,
+      ];
+    }
+    resolving.delete(layer.slotId);
+    resolved.add(layer.slotId);
+  };
+  for (const layer of layers) place(layer);
   return {
     rig,
+    drawables: buildDrawables(layers, pack, rig),
     layers: layers.sort((a, b) => a.socket.z - b.socket.z),
-    height: 1000 + Math.ceil(shelfIndex / 5) * 220,
+    height: rig.frame[3] + Math.ceil(shelfIndex / 5) * 220,
   };
 }

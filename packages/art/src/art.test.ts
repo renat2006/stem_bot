@@ -88,7 +88,7 @@ describe("composition", () => {
       scene.layers.map((l) => l.socket.z).sort((a, b) => a - b),
     );
     expect(scene.layers.find((l) => l.slotId === "custom")?.onShelf).toBe(true);
-    expect(scene.height).toBe(1220);
+    expect(scene.height).toBe(scene.rig.frame[3] + 220);
   });
   it("previews exactly one slot without mutating equipment", () => {
     const equipped = { head: "lion-head", body: "lion-body" };

@@ -26,7 +26,7 @@ export function AssemblyStage({
   teamName,
 }: AssemblyStageProps) {
   const pack = useArtPack(template.artPackId);
-  const { rig, layers, height } = composeAssembly(template, equipped, pack, preview);
+  const { rig, layers, drawables, height } = composeAssembly(template, equipped, pack, preview);
   const equipmentKey = JSON.stringify(template.slots.map((slot) => [slot.id, equipped[slot.id] ?? null]));
   const previousTemplateId = useRef(template.id);
   const previous = useRef(equipped);
@@ -62,11 +62,14 @@ export function AssemblyStage({
     if (size !== "hero" || !pack) return;
     const links = pack.parts
       .filter((part) => Object.values(equipped).includes(part.cardId))
-      .map((part) => {
+      .flatMap((part) =>
+        part.fragments.length ? part.fragments.map((fragment) => fragment.src) : [part.src],
+      )
+      .map((src) => {
         const link = document.createElement("link");
         link.rel = "preload";
         link.as = "image";
-        link.href = `/art/${pack.id}/${part.src}`;
+        link.href = `/art/${pack.id}/${src}`;
         document.head.append(link);
         return link;
       });
@@ -83,29 +86,37 @@ export function AssemblyStage({
     .map((layer) => layer.label)
     .join(", ");
   const label = `${template.objectName}${teamName ? ` команды «${teamName}»` : ""}: ${filled || "деталей пока нет"}${empty ? `; пустые: ${empty}` : ""}`;
-  const boxStyle = (layer: AssemblyLayer): CSSProperties => ({
-    left: `${layer.socket.box[0] / 10}%`,
-    top: `${(layer.socket.box[1] / height) * 100}%`,
-    width: `${layer.socket.box[2] / 10}%`,
-    height: `${(layer.socket.box[3] / height) * 100}%`,
-    zIndex: layer.socket.z + 1,
-    transformOrigin: `${layer.socket.pivot[0] * 100}% ${layer.socket.pivot[1] * 100}%`,
-    animationDelay: `${layer.socket.motion === "bob" ? 0 : layer.socket.z * -0.4}s`,
-  });
+  const boxStyle = (layer: AssemblyLayer): CSSProperties =>
+    ({
+      "--assembly-angle": `${layer.socket.rotation}deg`,
+      transform: `rotate(${layer.socket.rotation}deg)`,
+      left: `${((layer.socket.box[0] - rig.frame[0]) / rig.frame[2]) * 100}%`,
+      top: `${((layer.socket.box[1] - rig.frame[1]) / height) * 100}%`,
+      width: `${(layer.socket.box[2] / rig.frame[2]) * 100}%`,
+      height: `${(layer.socket.box[3] / height) * 100}%`,
+      zIndex: layer.socket.z + 1,
+      transformOrigin: `${layer.socket.pivot[0] * 100}% ${layer.socket.pivot[1] * 100}%`,
+      animationDelay: `${layer.socket.motion === "bob" ? 0 : layer.socket.z * -0.4}s`,
+    }) as CSSProperties;
   return (
     <figure
       className={`assembly-stage assembly-stage--${size}`}
       data-low-power={lowPower || undefined}
+      data-rig={rig.id}
       aria-label={label}
     >
       <div
         className="assembly-canvas"
         role="img"
         aria-label={label}
-        style={{ aspectRatio: `1000 / ${height}` }}
+        style={{ aspectRatio: `${rig.frame[2]} / ${height}` }}
       >
-        <svg className="assembly-ghost" viewBox={`0 0 1000 ${height}`} aria-hidden="true">
-          <ellipse {...rig.shadow} className="assembly-shadow" />
+        <svg
+          className="assembly-ghost"
+          viewBox={`${rig.frame[0]} ${rig.frame[1]} ${rig.frame[2]} ${height}`}
+          aria-hidden="true"
+        >
+          <ellipse {...rig.shadow} cy={rig.frame[1] + rig.frame[3] - 45} className="assembly-shadow" />
           {rig.id === "campus" && (
             <path d="M70 650 L500 420 L940 650 L500 900Z" className="assembly-plinth" />
           )}
@@ -115,49 +126,63 @@ export function AssemblyStage({
           <path d={rig.ghostPath} />
           <path d="M25 90 V25 H90 M910 25 H975 V90 M25 910 V975 H90 M910 975 H975 V910" />
         </svg>
-        {layers.map((layer) => {
-          const oldCard = template.cards.find((card) => card.id === departing[layer.slotId]);
-          const outgoingCard = oldCard ?? layer.previousCard;
-          return (
-            <div
-              key={layer.slotId}
-              className={`assembly-socket assembly-motion--${layer.socket.motion}`}
-              data-preview={layer.isPreview || undefined}
-              data-shelf={layer.onShelf || undefined}
-              style={boxStyle(layer)}
-            >
-              {outgoingCard && (
-                <div className={oldCard ? "assembly-outgoing" : "assembly-replaced"}>
-                  <PartSticker card={outgoingCard} template={template} pack={pack} />
-                </div>
-              )}
-              {layer.card ? (
-                <div
-                  key={layer.card.id}
-                  className={arriving.includes(layer.slotId) ? "assembly-incoming" : "assembly-part"}
-                  style={{ transform: layer.socket.mirror ? "scaleX(-1)" : undefined }}
-                  data-align={layer.socket.align}
-                >
-                  <PartSticker
-                    card={layer.card}
-                    template={template}
-                    pack={pack}
-                    thumbnail={size === "token"}
-                  />
-                </div>
-              ) : (
-                size !== "token" && (
-                  <span className="assembly-empty" aria-hidden="true">
-                    +
-                  </span>
-                )
-              )}
-            </div>
-          );
-        })}
+        <div className="assembly-life">
+          {drawables.map((layer) => {
+            const oldCard = template.cards.find((card) => card.id === departing[layer.slotId]);
+            const outgoingCard = oldCard ?? layer.previousCard;
+            return (
+              <div
+                key={layer.id}
+                data-plane={layer.plane}
+                className={`assembly-socket assembly-motion--${layer.socket.motion}`}
+                data-preview={layer.isPreview || undefined}
+                data-shelf={layer.onShelf || undefined}
+                style={{
+                  ...boxStyle(layer),
+                  opacity: layer.opacity,
+                  animationDelay: layer.plane === "far" ? "-2.9s" : "0s",
+                }}
+              >
+                {outgoingCard && (
+                  <div className={oldCard ? "assembly-outgoing" : "assembly-replaced"}>
+                    <PartSticker
+                      card={outgoingCard}
+                      template={template}
+                      pack={pack}
+                      mirrored={layer.socket.mirror}
+                      fragmentId={layer.fragmentId}
+                    />
+                  </div>
+                )}
+                {layer.card ? (
+                  <div
+                    key={layer.card.id}
+                    className={arriving.includes(layer.slotId) ? "assembly-incoming" : "assembly-part"}
+                    data-align={layer.socket.align}
+                  >
+                    <PartSticker
+                      card={layer.card}
+                      template={template}
+                      pack={pack}
+                      thumbnail={size === "token"}
+                      mirrored={layer.socket.mirror}
+                      fragmentId={layer.fragmentId}
+                    />
+                  </div>
+                ) : (
+                  size !== "token" && (
+                    <span className="assembly-empty" aria-hidden="true">
+                      +
+                    </span>
+                  )
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
       {interactive && size !== "token" && (
-        <div className="assembly-controls" style={{ aspectRatio: `1000 / ${height}` }}>
+        <div className="assembly-controls" style={{ aspectRatio: `${rig.frame[2]} / ${height}` }}>
           {layers
             .filter((layer) => !layer.card)
             .map((layer) => (

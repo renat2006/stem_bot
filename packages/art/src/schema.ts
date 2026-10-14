@@ -8,24 +8,66 @@ export const SlotSocketSchema = z.object({
   motion: z.enum(["none", "bob", "sway", "pulse", "flap"]).default("none"),
   pivot: z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)]).default([0.5, 0.5]),
   mirror: z.boolean().default(false),
+  rotation: z.number().min(-180).max(180).default(0),
+  attach: z
+    .object({
+      parentSlotId: z.string().min(1),
+      parentAnchor: z.string().optional(),
+      partAnchor: z.string().optional(),
+      parentPoint: z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)]),
+      partPoint: z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)]),
+    })
+    .optional(),
 });
 
 export const RigSchema = z.object({
   id: z.enum(["creature", "airship", "campus"]),
   viewBox: z.literal("0 0 1000 1000"),
+  frame: z
+    .tuple([z.number(), z.number(), z.number().positive(), z.number().positive()])
+    .default([0, 0, 1000, 1000]),
+  groundY: z.number().optional(),
   ghostPath: z.string(),
   sockets: z.array(SlotSocketSchema),
   shadow: z.object({ cx: z.number(), cy: z.number(), rx: z.number(), ry: z.number() }),
 });
 
 const AssetPathSchema = z.string().regex(/^assets\/[a-zA-Z0-9_-]+\.[a-f0-9]{8,}\.webp$/);
+const PointSchema = z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)]);
+const ContentBoxSchema = z.tuple([
+  z.number().nonnegative(),
+  z.number().nonnegative(),
+  z.number().positive(),
+  z.number().positive(),
+]);
+export const PartFragmentSchema = z.object({
+  id: z.string().min(1),
+  src: AssetPathSchema,
+  thumb: AssetPathSchema,
+  width: z.number().positive(),
+  height: z.number().positive(),
+  contentBox: ContentBoxSchema,
+  anchor: PointSchema.default([0.5, 0.05]),
+  contact: PointSchema.default([0.5, 0.97]),
+  paired: z.boolean().default(true),
+  grounded: z.boolean().default(true),
+  restAngle: z.number().min(-180).max(180).default(0),
+});
 export const PartAssetSchema = z.object({
   cardId: z.string().min(1),
+  anchors: z.record(z.string(), PointSchema).default({}),
+  fragments: z
+    .array(PartFragmentSchema)
+    .default([])
+    .refine((items) => new Set(items.map((item) => item.id)).size === items.length, "Duplicate fragment"),
   src: AssetPathSchema,
   thumb: AssetPathSchema,
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   promptId: z.string().min(1),
+  contentBox: z
+    .tuple([z.number().nonnegative(), z.number().nonnegative(), z.number().positive(), z.number().positive()])
+    .optional(),
 });
 
 export const ArtPackSchema = z.object({

@@ -1,5 +1,6 @@
 import type { GameTemplate } from "@stem/shared";
 import { useState } from "react";
+import { AssemblyStage } from "../../../entities/assembly/index.js";
 import { StatDeltaList } from "../../../entities/card/index.js";
 import type { TeamWithStats } from "../../../entities/game/index.js";
 import { getThresholdsForStat, StatMeter, StepBlocks } from "../../../entities/team/index.js";
@@ -77,10 +78,12 @@ export function Onboarding({
               <StatDeltaList stats={template.stats} deltas={sampleCard.stats} />
             </div>
             <span className="font-mono text-lg text-ac">→</span>
-            <div className="flex h-28 w-28 flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-ac p-2.5 text-center">
-              <span className="font-mono text-[11px] uppercase text-ac">СЛОТ</span>
-              <span className="text-xs text-mu">старая карта уходит</span>
-            </div>
+            <AssemblyStage
+              template={template}
+              equipped={team.equippedCards}
+              size="card"
+              preview={{ slotId: sampleCard.slotId, cardId: sampleCard.id }}
+            />
           </div>
         )}
         {step === 2 && sampleStat && (

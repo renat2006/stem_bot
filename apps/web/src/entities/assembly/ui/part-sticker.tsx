@@ -8,22 +8,49 @@ export function PartSticker({
   template,
   pack,
   thumbnail = false,
+  mirrored = false,
+  fragmentId,
 }: {
   card: CardItem;
   template: GameTemplate;
   pack?: ArtPack | null;
   thumbnail?: boolean;
+  mirrored?: boolean;
+  fragmentId?: string;
 }) {
   const loadedPack = useArtPack(pack ? undefined : template.artPackId);
   const activePack = pack ?? loadedPack;
-  const asset = activePack?.parts.find((part) => part.cardId === card.id);
+  const whole = activePack?.parts.find((part) => part.cardId === card.id);
+  const asset = whole?.fragments.find((fragment) => fragment.id === fragmentId) ?? whole;
   const src = asset ? `/art/${activePack?.id}/${thumbnail ? asset.thumb : asset.src}` : undefined;
   const [failedSrc, setFailedSrc] = useState<string>();
   const useAsset = Boolean(src && failedSrc !== src);
   const fallback = `data:image/svg+xml,${encodeURIComponent(proceduralPart(card, template, activePack))}`;
+  if (useAsset && asset?.contentBox && !thumbnail) {
+    return (
+      <svg
+        className="part-sticker part-sticker--printed"
+        viewBox={asset.contentBox.join(" ")}
+        style={{ transform: mirrored ? "scaleX(-1)" : undefined }}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label={card.name}
+        data-tier={card.tier}
+      >
+        <image
+          href={src}
+          width={asset.width}
+          height={asset.height}
+          onError={() => {
+            if (src) setFailedSrc(src);
+          }}
+        />
+      </svg>
+    );
+  }
   return (
     <img
-      className="part-sticker"
+      className={`part-sticker${useAsset ? " part-sticker--printed" : ""}`}
       src={useAsset ? src : fallback}
       alt={card.name}
       decoding="async"
@@ -31,6 +58,7 @@ export function PartSticker({
       width={thumbnail ? 64 : 200}
       height={thumbnail ? 64 : 200}
       style={{
+        transform: mirrored ? "scaleX(-1)" : undefined,
         objectFit: useAsset ? "contain" : "fill",
         ...(thumbnail ? { width: 64, height: 64, maxWidth: "100%", maxHeight: "100%", flexShrink: 0 } : {}),
       }}

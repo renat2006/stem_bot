@@ -6,7 +6,12 @@ import {
   previewCardEffect,
 } from "@stem/shared";
 import { useState } from "react";
-import { AssemblyStage, PartSticker } from "../../../entities/assembly/index.js";
+import {
+  AssemblyStage,
+  PackIllustration,
+  PackSymbol,
+  PartSticker,
+} from "../../../entities/assembly/index.js";
 import { StatDeltaList } from "../../../entities/card/index.js";
 import type { TeamWithStats } from "../../../entities/game/index.js";
 import { getThresholdsForStat, StatMeter, StepBlocks } from "../../../entities/team/index.js";
@@ -163,6 +168,7 @@ export function Shop({
         </button>
       </div>
 
+      {!isOpen && <PackIllustration template={template} kind="marketClosed" label="Рынок пока закрыт" />}
       {filteredCards.length === 0 ? (
         <div className="flex flex-col items-center gap-2.5 rounded-2xl border border-dashed border-ln px-4 py-6 text-center">
           <span className="font-semibold text-fg">Под фильтр ничего нет</span>
@@ -281,7 +287,8 @@ export function Shop({
                   key={perk.id}
                   className="flex items-center justify-between gap-3 rounded-xl bg-sf2 p-3.5"
                 >
-                  <div className="space-y-1">
+                  <PackSymbol template={template} kind="perk" id={perk.id} label={perk.name} size={40} />
+                  <div className="flex-1 space-y-1">
                     <p className="text-sm font-semibold text-fg">{perk.name}</p>
                     <p className="text-xs leading-snug text-mu">{perk.effectText}</p>
                   </div>

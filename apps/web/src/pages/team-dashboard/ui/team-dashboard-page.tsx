@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import type { GameSnapshot, TeamWithStats } from "../../../entities/game/index.js";
 import { undoLastPurchase } from "../../../features/purchase/index.js";
 import { type RunAction, useCountdown, useTelegramBackButton } from "../../../shared/lib/index.js";
-import { BottomSheet, ToastWithUndo } from "../../../shared/ui/index.js";
+import { BottomSheet, Icon, type IconName, ToastWithUndo } from "../../../shared/ui/index.js";
 import { Shop } from "../../../widgets/shop/index.js";
 import { buildRulesSections, type HelpKey } from "../lib/rules-sections.js";
 import { HomeScreen } from "./home-screen.js";
@@ -14,11 +14,11 @@ import { TrackScreen } from "./track-screen.js";
 
 type Screen = "home" | "market" | "track" | "rules";
 
-const TABS: Array<{ id: Screen; label: string }> = [
-  { id: "home", label: "Команда" },
-  { id: "market", label: "Рынок" },
-  { id: "track", label: "Трек" },
-  { id: "rules", label: "Правила" },
+const TABS: Array<{ id: Screen; label: string; icon: IconName }> = [
+  { id: "home", label: "Команда", icon: "team" },
+  { id: "market", label: "Рынок", icon: "market" },
+  { id: "track", label: "Трек", icon: "track" },
+  { id: "rules", label: "Правила", icon: "rules" },
 ];
 const ONBOARDED_KEY = "stem_onboarded";
 
@@ -92,10 +92,11 @@ export function TeamDashboardPage({ snapshot, team, clockOffsetMs, run }: TeamDa
               key={t.id}
               type="button"
               onClick={() => setScreen(t.id)}
-              className={`min-h-[40px] rounded-[9px] text-[13.5px] font-medium transition ${
+              className={`flex min-h-[48px] flex-col items-center justify-center gap-1 rounded-[9px] text-[13.5px] font-medium transition ${
                 screen === t.id ? "bg-sf font-semibold text-fg shadow-xs" : "text-mu"
               }`}
             >
+              <Icon name={t.icon} size={17} />
               {t.label}
             </button>
           ))}

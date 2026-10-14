@@ -1,3 +1,4 @@
+import { PackIllustration } from "../../../entities/assembly/index.js";
 import type { GameSnapshot } from "../../../entities/game/index.js";
 import { JoinForm } from "../../../features/join-team/index.js";
 import type { RunAction } from "../../../shared/lib/index.js";
@@ -12,6 +13,7 @@ export function JoinPage({ snapshot, run, onJoined }: JoinPageProps) {
   const { template, viewer } = snapshot;
   return (
     <div className="space-y-4 pt-1">
+      <PackIllustration template={template} kind="hero" label={`Полевой бестиарий · ${template.title}`} />
       <div
         className="flex min-h-[132px] items-end rounded-2xl border border-ln p-4"
         style={{ background: "repeating-linear-gradient(135deg, var(--sf2) 0 8px, var(--sf) 8px 16px)" }}

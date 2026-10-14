@@ -3,6 +3,8 @@ import { type Rig, RigSchema } from "../schema.js";
 export const RIGS: Record<Rig["id"], Rig> = {
   creature: RigSchema.parse({
     id: "creature",
+    frame: [0, 140, 1000, 720],
+    groundY: 810,
     viewBox: "0 0 1000 1000",
     ghostPath:
       "M250 510 Q230 380 440 380 L660 390 Q650 230 800 220 Q940 230 930 400 L750 490 L710 840 L650 840 L620 620 L440 620 L380 840 L320 840 L330 580 Q80 550 70 380 Q150 460 250 510Z",

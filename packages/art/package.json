@@ -12,13 +12,19 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "art:prompts": "tsx scripts/prompts.ts",
+    "art:ingest": "tsx scripts/ingest.ts",
+    "art:validate": "tsx scripts/validate.ts",
+    "art:sheet": "tsx scripts/sheet.ts"
   },
   "dependencies": {
     "@stem/shared": "*",
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "vitest": "^5.0.4"
+    "sharp": "^0.35.5",
+    "vitest": "^5.0.4",
+    "tsx": "^4.19.2"
   }
 }

@@ -23,11 +23,12 @@
 | Mini App: экран команды, админ-пульт | прототип UI, FSD, тема Telegram | `apps/web/src` |
 | Тулинг и CI | готово: Biome, Steiger, Vitest, audit | `biome.json`, `.github/workflows/ci.yml` |
 | Агентские скиллы и MCP | готово | `.claude/skills/`, `.mcp.json` |
+| Продакшн-деплой (Docker, GHCR, Actions, Caddy, откат) | готово | `Dockerfile`, `deploy/`, `.github/workflows/deploy.yml`, `docs/DEPLOYMENT.md` |
+| Проверка ролей админа | готово | `apps/server/src/shared/telegram-auth.ts` |
 
 ## 3. Известные проблемы
 
 **Безопасность (P0)** — подробно `docs/research/SECURITY.md`:
-- `/api/admin/*` доступен любому пользователю (нет проверки ролей).
 - Команда игрока берётся из `body.teamId`, а не из `initData.user.id`.
 - В dev-режиме запросы без подписи проходят без всякой идентичности.
 
@@ -40,13 +41,12 @@
 
 **Данные и инфраструктура**:
 - Всё в памяти процесса: перезапуск сбрасывает игру; нет истории валюты, админов, регистрации команд, мультисессий.
-- CORS открыт для всех origin.
 - Dev-зависимость `steiger` тянет уязвимую `braces` (DoS через glob, только dev-инструмент; прод-аудит чистый).
 
 ## 4. Бэклог
 
 ### P0 — Безопасность и идентичность (Ренат)
-- [ ] Middleware `requireAdmin` (`ADMIN_IDS`/`SUPER_ADMIN_IDS` из проверенного initData) на `/api/admin/*`.
+- [x] Middleware `requireAdmin` (`ADMIN_IDS`/`SUPER_ADMIN_IDS` из проверенного initData) на `/api/admin/*`.
 - [ ] Привязка капитана/участников к команде по `user.id`; убрать `teamId` из тел запросов игрока.
 - [ ] Явный dev-пользователь вместо пропуска авторизации.
 
@@ -74,9 +74,11 @@
 - [ ] Генератор `GameTemplate` через structured output + repair-цикл через валидатор и симуляцию.
 
 ### Техдолг
-- [ ] CORS allowlist и rate limit мутаций.
+- [ ] Rate limit мутаций (CORS уже ограничен публичным origin).
 - [ ] Миграция на `@tma.js/init-data@4` и `@tma.js/sdk-react@4` после stable.
-- [ ] Вебхук бота с `secret_token` для prod, `@grammyjs/auto-retry` для рассылок.
+- [ ] `@grammyjs/auto-retry` для рассылок (вебхук с `secret_token` уже в проде).
+- [ ] DNS-запись `stem-bot.renat.site`, `BOT_TOKEN` и `ADMIN_IDS` в окружении production (владелец).
+- [ ] Защита ветки `main` (только PR, обязательный CI).
 
 ## 5. Открытые вопросы к заказчику и PM
 1. Дата сдачи и критерии приёмки.

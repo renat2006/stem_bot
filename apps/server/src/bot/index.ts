@@ -22,3 +22,17 @@ export function createTelegramBot(token: string, webAppUrl: string): Bot {
 
   return bot;
 }
+
+export async function configureBotDelivery(bot: Bot, webhook: { url: string; secret: string } | null) {
+  await bot.init();
+  if (webhook) {
+    await bot.api.setWebhook(webhook.url, {
+      secret_token: webhook.secret,
+      allowed_updates: ["message", "callback_query"],
+      drop_pending_updates: false,
+    });
+    return;
+  }
+  await bot.api.deleteWebhook();
+  void bot.start({ allowed_updates: ["message", "callback_query"] });
+}

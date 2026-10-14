@@ -1,0 +1,15 @@
+changelog:
+  exclude:
+    authors:
+      - dependabot
+  categories:
+    - title: Новое
+      labels: [feature, enhancement]
+    - title: Исправления
+      labels: [bug, fix]
+    - title: Безопасность
+      labels: [security]
+    - title: Инфраструктура и зависимости
+      labels: [chore, ci, dependencies]
+    - title: Прочее
+      labels: ["*"]

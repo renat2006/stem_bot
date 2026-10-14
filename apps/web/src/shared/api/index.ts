@@ -1,1 +1,1 @@
-export { postJson, request } from "./request.js";
+export { authHeaders, postJson, request } from "./request.js";

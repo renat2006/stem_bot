@@ -1,11 +1,11 @@
-import type { GameState } from "@stem/shared";
+import type { LiveState, ShiftPhase } from "@stem/shared";
 import { postJson } from "../../../shared/api/index.js";
 
-export type GameStatePatch = Partial<
-  Pick<GameState, "currentDay" | "currentPhase" | "purchasePhaseActive" | "dailyPurchaseLimit">
->;
-
-export const updateGameState = (patch: GameStatePatch) => postJson("/api/admin/game-state", patch);
-export const resetShift = () => postJson("/api/admin/reset-shift", {});
-export const loadDemoMidgame = () => postJson("/api/admin/load-demo", {});
-export const switchTemplate = (templateId: string) => postJson("/api/admin/switch-template", { templateId });
+export const setPhase = (phase: ShiftPhase, minutes: number | null = null) =>
+  postJson<LiveState>("/api/admin/phase", { phase, minutes });
+export const nextDay = () => postJson<LiveState>("/api/admin/next-day");
+export const applyTurn = () => postJson<LiveState>("/api/admin/apply-turn");
+export const updatePurchaseLimit = (purchaseLimit: number | null) =>
+  postJson<LiveState>("/api/admin/settings", { purchaseLimit });
+export const resetEvent = (templateId: string | undefined, demoTeams: boolean) =>
+  postJson<LiveState>("/api/admin/reset", { templateId, demoTeams });

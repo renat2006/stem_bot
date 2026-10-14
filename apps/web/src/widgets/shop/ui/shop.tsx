@@ -9,7 +9,7 @@ import { useState } from "react";
 import { StatDeltaList } from "../../../entities/card/index.js";
 import type { TeamWithStats } from "../../../entities/game/index.js";
 import { getThresholdsForStat, StatMeter, StepBlocks } from "../../../entities/team/index.js";
-import { buyCard, buyPerk, proposeCardToCaptain } from "../../../features/purchase/index.js";
+import { buyCard, buyPerk, proposeCard } from "../../../features/purchase/index.js";
 import { type RunAction, useTelegramBackButton } from "../../../shared/lib/index.js";
 import {
   BottomSheet,
@@ -286,7 +286,7 @@ export function Shop({
                   <button
                     type="button"
                     disabled={!canBuyPerk}
-                    onClick={() => run(() => buyPerk(team.id, perk.id))}
+                    onClick={() => run(() => buyPerk(perk.id))}
                     className="flex min-h-[42px] shrink-0 items-center gap-1.5 rounded-xl bg-ac px-3.5 font-mono text-xs font-semibold text-acfg disabled:opacity-40"
                   >
                     {active ? (
@@ -469,13 +469,15 @@ export function Shop({
                 setSelectedCardId(null);
                 if (selectedBuyState.kind === "propose") {
                   void run(async () => {
-                    await proposeCardToCaptain(team.id, cardToAct.id);
+                    const result = await proposeCard(cardToAct.id);
                     onCardProposed?.(cardToAct);
+                    return result;
                   });
                 } else {
                   void run(async () => {
-                    await buyCard(team.id, cardToAct.id);
+                    const result = await buyCard(cardToAct.id);
                     onCardBought?.(cardToAct);
+                    return result;
                   });
                 }
               }}

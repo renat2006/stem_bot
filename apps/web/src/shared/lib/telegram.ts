@@ -5,6 +5,7 @@ import {
   initData,
   isTMA,
   miniApp,
+  retrieveLaunchParams,
   retrieveRawInitData,
   swipeBehavior,
   themeParams,
@@ -43,6 +44,15 @@ export function detectInitialTheme(): "light" | "dark" {
     return themeParams.isDark() ? "dark" : "light";
   }
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+export function getStartParam(): string | null {
+  try {
+    const value = retrieveLaunchParams().tgWebAppStartParam;
+    return typeof value === "string" && value ? value : null;
+  } catch {
+    return null;
+  }
 }
 
 export function initTelegramSdk() {

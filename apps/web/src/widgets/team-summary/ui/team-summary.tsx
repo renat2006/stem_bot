@@ -8,7 +8,8 @@ interface TeamSummaryProps {
   gameState?: GameState;
   teamRank?: number;
   totalTeams?: number;
-  secondsLeft?: number;
+  secondsLeft?: number | null;
+  isCaptain?: boolean;
 }
 
 const PHASES: Array<{ id: ShiftPhase; label: string }> = [
@@ -24,7 +25,8 @@ export function TeamSummary({
   gameState,
   teamRank = 1,
   totalTeams = 4,
-  secondsLeft = 522,
+  secondsLeft = null,
+  isCaptain = true,
 }: TeamSummaryProps) {
   const limit = gameState?.dailyPurchaseLimit ?? template.dailyPurchaseLimit ?? 2;
   const leftBuys = Math.max(0, limit - team.purchasesToday);
@@ -34,15 +36,18 @@ export function TeamSummary({
   const day = gameState?.currentDay ?? 1;
   const point = gameState?.currentPoint ?? day;
   const duration = Math.max(60, template.phaseDurationSeconds || 1800);
-  const mm = Math.floor(secondsLeft / 60);
-  const ss = secondsLeft % 60;
-  const timerStr = `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
-  const pct = Math.max(0, Math.min(100, (secondsLeft / duration) * 100));
+  const hasTimer = secondsLeft !== null;
+  const remaining = secondsLeft ?? 0;
+  const timerStr = hasTimer
+    ? `${String(Math.floor(remaining / 60)).padStart(2, "0")}:${String(remaining % 60).padStart(2, "0")}`
+    : `Д${day}`;
+  const pct = hasTimer ? Math.max(0, Math.min(100, (remaining / duration) * 100)) : 100;
 
+  const phaseMode = hasTimer ? "ОКНО ПО ТАЙМЕРУ" : "ПО КНОПКЕ ВЕДУЩЕГО";
   const phaseLine =
     template.totalDays > 1
-      ? `ДЕНЬ ${day}/${template.totalDays} · ТОЧКА ${point}/${template.totalPoints} · ${template.phaseMode}`
-      : `ОКНО ${point}/${template.totalPoints} · ${template.phaseMode}`;
+      ? `ДЕНЬ ${day}/${template.totalDays} · ${phaseMode}`
+      : `ОКНО ${point}/${template.totalPoints} · ${phaseMode}`;
 
   let nowTitle = "Ожидание фазы";
   let nowSub = `Дальше ${template.nextPhaseLabel}`;
@@ -50,7 +55,11 @@ export function TeamSummary({
     nowTitle = `Начисление ${template.currencyName}`;
     nowSub = "Ассистенты оценивают учебный блок · дальше откроется рынок";
   } else if (currentPhase === "market") {
-    nowTitle = leftBuys > 0 ? `Купите до ${leftBuys} карт` : "Покупки сделаны";
+    nowTitle = !isCaptain
+      ? "Предложите карты капитану"
+      : leftBuys > 0
+        ? `Купите до ${leftBuys} карт`
+        : "Покупки сделаны";
     nowSub = `Рынок открыт · дальше ${template.nextPhaseLabel}`;
   } else if (currentPhase === "turn") {
     nowTitle = `Ход: +${team.computedStats.step.total} шаг`;
@@ -66,11 +75,13 @@ export function TeamSummary({
         <div className="flex items-center gap-3.5">
           <div
             className="relative h-[68px] w-[68px] shrink-0 rounded-full"
-            style={{ background: `conic-gradient(var(--warn) ${pct}%, var(--sf2) 0)` }}
+            style={{
+              background: `conic-gradient(${hasTimer ? "var(--warn)" : "var(--ac)"} ${pct}%, var(--sf2) 0)`,
+            }}
           >
             <div className="absolute inset-[5px] flex flex-col items-center justify-center rounded-full bg-sf">
               <span className="font-mono text-base leading-none font-semibold text-fg">{timerStr}</span>
-              <span className="mt-1 text-[11px] text-mu">таймер</span>
+              <span className="mt-1 text-[11px] text-mu">{hasTimer ? "осталось" : "день"}</span>
             </div>
           </div>
 

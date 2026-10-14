@@ -1,7 +1,7 @@
-import type { parse } from "@tma.js/init-data-node";
+import type { Identity } from "./identity.js";
 
 export interface AppEnv {
   Variables: {
-    tmaInitData?: ReturnType<typeof parse>;
+    identity?: Identity;
   };
 }

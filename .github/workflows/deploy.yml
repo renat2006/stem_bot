@@ -26,6 +26,7 @@ jobs:
     name: Build image
     needs: verify
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: write
@@ -60,6 +61,10 @@ jobs:
             org.opencontainers.image.version=${{ steps.vars.outputs.version }}
 
       - uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-config-inline: |
+            [registry."docker.io"]
+              mirrors = ["mirror.gcr.io"]
 
       - uses: docker/login-action@v3
         with:
@@ -102,6 +107,7 @@ jobs:
     if: github.event_name == 'release'
     needs: verify
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
     steps:
@@ -130,6 +136,7 @@ jobs:
     name: Deploy to production
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment:
       name: production
       url: ${{ vars.PUBLIC_URL }}
@@ -145,11 +152,13 @@ jobs:
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
           ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
           SUPER_ADMIN_IDS: ${{ secrets.SUPER_ADMIN_IDS }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           PUBLIC_URL: ${{ vars.PUBLIC_URL }}
           APP_DOMAINS: ${{ vars.APP_DOMAINS }}
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           umask 077
+          [ -n "$POSTGRES_PASSWORD" ] || { echo "POSTGRES_PASSWORD secret is missing" >&2; exit 1; }
           mkdir -p bundle
           cp -R deploy/compose.yml deploy/caddy deploy/scripts bundle/
           {
@@ -161,7 +170,13 @@ jobs:
             echo "WEBHOOK_SECRET=$WEBHOOK_SECRET"
             echo "ADMIN_IDS=$ADMIN_IDS"
             echo "SUPER_ADMIN_IDS=$SUPER_ADMIN_IDS"
+            echo "DATABASE_URL=postgres://stembot:$POSTGRES_PASSWORD@db:5432/stembot"
           } >bundle/runtime.env
+          {
+            echo "POSTGRES_USER=stembot"
+            echo "POSTGRES_DB=stembot"
+            echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD"
+          } >bundle/db.env
           printf '%s' "$GHCR_TOKEN" >bundle/.ghcr-token
           tar -czf bundle.tgz -C bundle .
           rm -rf bundle

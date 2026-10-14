@@ -1,5 +1,6 @@
 export { Badge } from "./badge.js";
 export { Button } from "./button.js";
+export { ConfirmButton } from "./confirm-button.js";
 export {
   BottomSheet,
   BuySlots,

@@ -18,7 +18,10 @@ GitHub Actions ──ssh (ключ с forced-command)──► stembot@серв�
 Caddy (хост, :443) ── stem-bot.renat.site, stem-bot.195-209-218-212.sslip.io ──► 127.0.0.1:18200
 ```
 
-Контейнер: distroless Node 22, non-root, read-only FS, `cap_drop: ALL`, `no-new-privileges`, лимиты памяти/CPU/PID, порт только на `127.0.0.1`. Один процесс отдаёт API, Mini App и вебхук бота.
+Сервисы compose-проекта `stem-bot`:
+- `app` — distroless Node 22, non-root, read-only FS, `cap_drop: ALL`, `no-new-privileges`, лимиты памяти/CPU/PID, порт только на `127.0.0.1`. Один процесс отдаёт API, WebSocket, Mini App и вебхук бота; миграции БД применяются при старте.
+- `db` — Postgres 17, данные в томе `stem-bot_pgdata`, наружу не опубликован, отдельный `db.env` (токен бота в контейнер БД не попадает).
+- `backup` — ежедневный `pg_dump` в `/srv/stem-bot/backups/daily-*.dump`, хранение 14 дней. Перед каждым деплоем дополнительно `predeploy-*.dump` (последние 10).
 
 ## Как выпустить релиз
 
@@ -36,6 +39,7 @@ Caddy (хост, :443) ── stem-bot.renat.site, stem-bot.195-209-218-212.ssli
 | `DEPLOY_KNOWN_HOSTS` | secret | закреплённые ключи хоста |
 | `DEPLOY_HOST` | secret | адрес сервера |
 | `WEBHOOK_SECRET` | secret | секрет вебхука Telegram (`X-Telegram-Bot-Api-Secret-Token`) |
+| `POSTGRES_PASSWORD` | secret | пароль БД; из него собираются `DATABASE_URL` и `db.env` |
 | `BOT_TOKEN` | secret | токен бота от @BotFather — **задаёт владелец** |
 | `ADMIN_IDS` / `SUPER_ADMIN_IDS` | secret | Telegram user ID админов через запятую — **задаёт владелец** |
 | `DEPLOY_USER` | var | `stembot` |
@@ -62,6 +66,20 @@ gh secret set ADMIN_IDS --env production
 ```bash
 ssh ubuntu@195.209.218.212 'sudo cat /srv/stem-bot/state/current.env; sudo tail -n 20 /srv/stem-bot/state/deploy.log; docker ps --filter name=stem-bot'
 ```
+
+## База данных
+
+Восстановление из бэкапа:
+
+```bash
+ssh ubuntu@195.209.218.212 'ls -lt /srv/stem-bot/backups | head'
+```
+
+```bash
+ssh ubuntu@195.209.218.212 'cd /srv/stem-bot/state/current && sudo -u stembot BASE=/srv/stem-bot docker compose exec -T db sh -c "PGPASSWORD=\$POSTGRES_PASSWORD pg_restore -U stembot -d stembot --clean --if-exists" < /srv/stem-bot/backups/<файл>.dump'
+```
+
+Миграции только добавляющие: откат приложения на прошлую версию работает поверх новой схемы. Новая миграция: изменить `apps/server/src/db/schema.ts` → `npm run db:generate -w @stem/server` → закоммитить `apps/server/drizzle/`.
 
 ## DNS
 

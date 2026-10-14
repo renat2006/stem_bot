@@ -4,23 +4,30 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch --env-file-if-exists=../../.env src/index.ts",
     "start": "node --enable-source-maps dist/index.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "build": "esbuild src/index.ts --bundle --platform=node --target=node22 --format=esm --sourcemap --legal-comments=none --outfile=dist/index.mjs --banner:js=\"import{createRequire}from'node:module';const require=createRequire(import.meta.url);\""
+    "build": "esbuild src/index.ts --bundle --external:@electric-sql/pglite --external:drizzle-orm/pglite --external:drizzle-orm/pglite/migrator --platform=node --target=node22 --format=esm --sourcemap --legal-comments=none --outfile=dist/index.mjs --banner:js=\"import{createRequire}from'node:module';const require=createRequire(import.meta.url);\"",
+    "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.10",
     "@hono/node-server": "^2.1.5",
     "@hono/zod-validator": "^0.9.1",
     "@stem/shared": "*",
     "@tma.js/init-data-node": "^2.0.8",
+    "drizzle-orm": "^0.45.4",
     "grammy": "^1.46.0",
     "hono": "^4.13.13",
+    "postgres": "^3.4.9",
+    "ws": "^8.22.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^22.13.4",
+    "@types/ws": "^8.18.2",
+    "drizzle-kit": "^0.31.11",
     "esbuild": "^0.28.2",
     "tsx": "^4.19.2",
     "vitest": "^5.0.4"

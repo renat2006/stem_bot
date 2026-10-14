@@ -248,7 +248,9 @@ export function evaluateBuyState(params: {
       ok: true,
       kind: "propose",
       label: "Предложить капитану",
-      blockHead: `Покупает капитан @${team.captainUsername}`,
+      blockHead: team.captainUsername
+        ? `Покупает капитан ${team.captainUsername}`
+        : "Покупает капитан команды",
       blockText: "Ему придёт карта с прогнозом шага, купить можно в одно касание.",
     };
   }

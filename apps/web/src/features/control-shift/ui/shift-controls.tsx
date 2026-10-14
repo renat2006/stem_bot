@@ -1,73 +1,128 @@
 import type { GameState, ShiftPhase } from "@stem/shared";
-import type { RunAction } from "../../../shared/lib/index.js";
-import { Button, ModuleCard } from "../../../shared/ui/index.js";
-import { loadDemoMidgame, resetShift, updateGameState } from "../api/control-shift-api.js";
+import { type RunAction, useCountdown } from "../../../shared/lib/index.js";
+import { Button, ConfirmButton, ModuleCard } from "../../../shared/ui/index.js";
+import { applyTurn, nextDay, setPhase, updatePurchaseLimit } from "../api/control-shift-api.js";
 
 interface ShiftControlsProps {
   gameState: GameState;
   totalDays: number;
+  clockOffsetMs: number;
   run: RunAction;
 }
 
-const PHASES: Array<{ id: ShiftPhase; label: string }> = [
-  { id: "scoring", label: "1. Начисление" },
-  { id: "market", label: "2. Рынок" },
-  { id: "turn", label: "3. Ход" },
-  { id: "summary", label: "4. Итоги" },
+const PHASES: Array<{ id: ShiftPhase; label: string; hint: string }> = [
+  { id: "scoring", label: "Начисление", hint: "Оцените учебный блок команд" },
+  { id: "market", label: "Рынок", hint: "Команды покупают карты" },
+  { id: "turn", label: "Ход", hint: "Примените шаг по треку" },
+  { id: "summary", label: "Итоги", hint: "Рейтинг дня зафиксирован" },
 ];
+const MARKET_MINUTES = [5, 10, 15, 30];
 
-export function ShiftControls({ gameState, totalDays, run }: ShiftControlsProps) {
-  const days = Array.from({ length: totalDays }, (_, idx) => idx + 1);
-  const currentPhase = gameState.currentPhase ?? (gameState.purchasePhaseActive ? "market" : "scoring");
+function formatTimer(seconds: number) {
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+export function ShiftControls({ gameState, totalDays, clockOffsetMs, run }: ShiftControlsProps) {
+  const seconds = useCountdown(gameState.phaseEndsAt, clockOffsetMs);
+  const current = PHASES.find((p) => p.id === gameState.currentPhase) ?? PHASES[0];
+  const limit = gameState.dailyPurchaseLimit;
 
   return (
-    <ModuleCard title="Управление сменой и фазами">
+    <ModuleCard
+      title={`День ${gameState.currentDay} из ${totalDays}`}
+      subtitle={current ? `${current.label}: ${current.hint}` : undefined}
+      badge={
+        gameState.phaseEndsAt ? (
+          <span className={`font-mono text-sm font-semibold ${seconds > 0 ? "text-fg" : "text-neg"}`}>
+            {seconds > 0 ? formatTimer(seconds) : "время вышло"}
+          </span>
+        ) : undefined
+      }
+    >
       <div className="space-y-3.5">
-        <div className="space-y-1.5">
-          <span className="font-mono text-[11px] font-medium uppercase text-mu">Текущая фаза раунда</span>
-          <div className="grid grid-cols-2 gap-1.5">
-            {PHASES.map((phase) => {
-              const active = currentPhase === phase.id;
-              return (
-                <Button
-                  key={phase.id}
-                  variant={active ? "primary" : "ghost"}
-                  onClick={() => run(() => updateGameState({ currentPhase: phase.id }))}
-                >
-                  {phase.label}
-                </Button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 border-t border-ln pt-3">
-          <span className="text-[13px] font-medium text-mu">День смены:</span>
-          {days.map((day) => (
-            <Button
-              key={day}
-              variant={gameState.currentDay === day ? "primary" : "ghost"}
-              className="min-w-[40px]"
-              onClick={() => run(() => updateGameState({ currentDay: day }))}
+        <div className="grid grid-cols-4 gap-1 rounded-xl bg-sf2 p-1">
+          {PHASES.map((phase) => (
+            <button
+              key={phase.id}
+              type="button"
+              onClick={() => run(() => setPhase(phase.id))}
+              className={`min-h-[40px] rounded-[9px] text-xs font-medium ${
+                gameState.currentPhase === phase.id ? "bg-sf font-semibold text-fg shadow-xs" : "text-mu"
+              }`}
             >
-              {day}
-            </Button>
+              {phase.label}
+            </button>
           ))}
         </div>
 
-        <div className="flex flex-wrap gap-2 border-t border-ln pt-3">
-          <Button
-            variant="destructive"
-            onClick={() => {
-              localStorage.removeItem("konstrukt_onboarded");
-              void run(() => resetShift());
-            }}
+        {gameState.currentPhase === "scoring" && (
+          <div className="space-y-1.5">
+            <span className="text-[13px] font-medium text-mu">Открыть рынок на:</span>
+            <div className="grid grid-cols-5 gap-1.5">
+              {MARKET_MINUTES.map((minutes) => (
+                <Button key={minutes} variant="accent" onClick={() => run(() => setPhase("market", minutes))}>
+                  {minutes} мин
+                </Button>
+              ))}
+              <Button variant="ghost" onClick={() => run(() => setPhase("market"))}>
+                ∞
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {gameState.currentPhase === "market" && (
+          <div className="grid grid-cols-2 gap-1.5">
+            <Button
+              variant="ghost"
+              onClick={() => run(() => setPhase("market", Math.ceil(seconds / 60) + 5))}
+            >
+              Продлить на 5 мин
+            </Button>
+            <Button onClick={() => run(() => setPhase("turn"))}>Закрыть рынок → ход</Button>
+          </div>
+        )}
+
+        {gameState.currentPhase === "turn" && (
+          <ConfirmButton
+            variant="primary"
+            className="w-full"
+            confirmLabel="Подтвердить: сдвинуть все команды"
+            onConfirm={() => run(() => applyTurn())}
           >
-            Начать смену с нуля (День 1)
-          </Button>
-          <Button variant="accent" onClick={() => run(() => loadDemoMidgame())}>
-            Загрузить демо (День 3)
-          </Button>
+            Применить шаг по треку ко всем командам
+          </ConfirmButton>
+        )}
+
+        {gameState.currentPhase === "summary" && (
+          <ConfirmButton
+            variant="primary"
+            className="w-full"
+            confirmLabel={`Подтвердить переход к дню ${gameState.currentDay + 1}`}
+            onConfirm={() => run(() => nextDay())}
+          >
+            {gameState.currentDay < totalDays ? `Начать день ${gameState.currentDay + 1}` : "Смена завершена"}
+          </ConfirmButton>
+        )}
+
+        <div className="flex items-center justify-between gap-2 border-t border-ln pt-3">
+          <span className="text-[13px] text-mu">Лимит покупок за точку</span>
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="ghost"
+              disabled={limit === 0}
+              onClick={() => run(() => updatePurchaseLimit(Math.max(0, (limit ?? 3) - 1)))}
+            >
+              −
+            </Button>
+            <span className="w-10 text-center font-mono text-sm font-semibold text-fg">{limit ?? "∞"}</span>
+            <Button
+              variant="ghost"
+              onClick={() => run(() => updatePurchaseLimit(limit === null ? null : limit + 1))}
+            >
+              +
+            </Button>
+          </div>
         </div>
       </div>
     </ModuleCard>

@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
 
 const PLACEHOLDER_TOKEN = "your_telegram_bot_token_here";
@@ -31,11 +32,25 @@ const EnvSchema = z
     ADMIN_IDS: idList,
     SUPER_ADMIN_IDS: idList,
     WEB_DIST_DIR: z.string().optional(),
+    DATABASE_URL: z.string().optional(),
+    PGLITE_DIR: z.string().default(".data/pglite"),
+    MIGRATIONS_DIR: z.string().default(fileURLToPath(new URL("../../drizzle", import.meta.url))),
+    BOT_POLLING: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
+    SEED_DEMO_TEAMS: z
+      .enum(["true", "false"])
+      .optional()
+      .transform((value) => (value === undefined ? undefined : value === "true")),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== "production") return;
     if (!env.PUBLIC_URL)
       ctx.addIssue({ code: "custom", path: ["PUBLIC_URL"], message: "required in production" });
+    if (!env.DATABASE_URL) {
+      ctx.addIssue({ code: "custom", path: ["DATABASE_URL"], message: "required in production" });
+    }
     if (!env.BOT_TOKEN) return;
     if (!env.WEBHOOK_SECRET) {
       ctx.addIssue({
@@ -65,6 +80,7 @@ function loadConfig() {
     isProduction: env.NODE_ENV === "production",
     webAppUrl: env.WEBAPP_URL ?? env.PUBLIC_URL ?? "http://localhost:5173",
     adminIds: new Set([...env.ADMIN_IDS, ...env.SUPER_ADMIN_IDS]),
+    seedDemoTeams: env.SEED_DEMO_TEAMS ?? env.NODE_ENV !== "production",
   };
 }
 

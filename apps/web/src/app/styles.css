@@ -1,6 +1,23 @@
 @import "tailwindcss";
 
+@theme inline {
+  --color-bg: var(--tg-theme-bg-color, light-dark(#ffffff, #17212b));
+  --color-secondary: var(--tg-theme-secondary-bg-color, light-dark(#f0f0f5, #0e1621));
+  --color-surface: var(--tg-theme-section-bg-color, light-dark(#ffffff, #17212b));
+  --color-separator: var(--tg-theme-section-separator-color, light-dark(#e3e3e8, #2b3947));
+  --color-text: var(--tg-theme-text-color, light-dark(#000000, #f5f5f5));
+  --color-subtitle: var(--tg-theme-subtitle-text-color, light-dark(#707579, #a0acb6));
+  --color-hint: var(--tg-theme-hint-color, light-dark(#999999, #708499));
+  --color-accent: var(--tg-theme-accent-text-color, light-dark(#2481cc, #6ab2f2));
+  --color-button: var(--tg-theme-button-color, light-dark(#2481cc, #5288c1));
+  --color-button-text: var(--tg-theme-button-text-color, #ffffff);
+  --color-destructive: var(--tg-theme-destructive-text-color, light-dark(#e53935, #ec3942));
+  --color-positive: light-dark(#2e9d4f, #5bc77a);
+  --color-warning: light-dark(#c77700, #f0b44c);
+}
+
 :root {
+  color-scheme: light dark;
   --app-safe-top: calc(
     var(--tg-viewport-safe-area-inset-top, 0px) +
     var(--tg-viewport-content-safe-area-inset-top, 0px)

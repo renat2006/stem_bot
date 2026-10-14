@@ -1,129 +1,89 @@
-import { useEffect, useState } from "react";
-import { AdminConsolePage } from "../pages/admin-console.js";
-import { TeamDashboardPage } from "../pages/team-dashboard.js";
-import { api, type GameSnapshotResponse, useTelegram } from "../shared/index.js";
+import { useState } from "react";
+import { useGameSnapshot } from "../entities/game/index.js";
+import { AdminConsolePage } from "../pages/admin-console/index.js";
+import { TeamDashboardPage } from "../pages/team-dashboard/index.js";
+import { type RunAction, useTelegram } from "../shared/lib/index.js";
+import { Button } from "../shared/ui/index.js";
+
+type Tab = "team" | "admin";
+
+const TABS: Array<{ id: Tab; label: string }> = [
+  { id: "team", label: "Игрок" },
+  { id: "admin", label: "Админ" },
+];
 
 export function App() {
-  const { hapticSuccess, hapticTap } = useTelegram();
-  const [snapshot, setSnapshot] = useState<GameSnapshotResponse | null>(null);
-  const [activeTab, setActiveTab] = useState<"team" | "admin">("team");
-  const [selectedTeamId, setSelectedTeamId] = useState<string>("team-alpha");
-  const [error, setError] = useState<string | null>(null);
-
-  const loadSnapshot = async () => {
-    try {
-      const data = await api.getState();
-      setSnapshot(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Ошибка загрузки");
-    }
-  };
-
-  useEffect(() => {
-    void loadSnapshot();
-  }, []);
+  const { hapticSuccess, hapticError, hapticTap } = useTelegram();
+  const { snapshot, error, setError, reload } = useGameSnapshot();
+  const [tab, setTab] = useState<Tab>("team");
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
 
   if (!snapshot) {
     return (
-      <div className="flex min-h-screen items-center justify-center p-4 text-sm text-slate-400">
+      <div className="flex min-h-screen items-center justify-center p-4 text-sm text-hint">
         {error ?? "Загрузка STEM Конструктора..."}
       </div>
     );
   }
 
-  const currentTeam = snapshot.teams.find((t) => t.id === selectedTeamId) ?? snapshot.teams[0];
-
-  const handleAction = async (fn: () => Promise<unknown>) => {
+  const run: RunAction = async (action) => {
     try {
       setError(null);
-      await fn();
+      await action();
       hapticSuccess();
-      await loadSnapshot();
+      await reload();
     } catch (err) {
+      hapticError();
       setError(err instanceof Error ? err.message : "Ошибка операции");
     }
   };
+
+  const team = snapshot.teams.find((t) => t.id === selectedTeamId) ?? snapshot.teams[0];
 
   return (
     <div className="mx-auto max-w-md px-4 py-4 pb-12">
       <header className="mb-4 flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-wider text-indigo-400">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-accent">
             STEM Game SDK · День {snapshot.gameState.currentDay}
           </p>
-          <h1 className="text-base font-bold text-white">{snapshot.template.title}</h1>
+          <h1 className="text-base font-bold text-text">{snapshot.template.title}</h1>
         </div>
-
-        <div className="flex rounded-xl border border-slate-800 bg-slate-900 p-1">
-          <button
-            onClick={() => {
-              hapticTap();
-              setActiveTab("team");
-            }}
-            className={`rounded-lg px-2.5 py-1 text-xs font-medium transition ${
-              activeTab === "team" ? "bg-indigo-600 text-white" : "text-slate-400"
-            }`}
-          >
-            Игрок
-          </button>
-          <button
-            onClick={() => {
-              hapticTap();
-              setActiveTab("admin");
-            }}
-            className={`rounded-lg px-2.5 py-1 text-xs font-medium transition ${
-              activeTab === "admin" ? "bg-indigo-600 text-white" : "text-slate-400"
-            }`}
-          >
-            Админ
-          </button>
-        </div>
+        <nav className="flex gap-1 rounded-xl bg-surface p-1">
+          {TABS.map(({ id, label }) => (
+            <Button
+              key={id}
+              variant={tab === id ? "primary" : "ghost"}
+              onClick={() => {
+                hapticTap();
+                setTab(id);
+              }}
+            >
+              {label}
+            </Button>
+          ))}
+        </nav>
       </header>
 
-      {error && (
-        <div className="mb-3 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-300">
-          {error}
-        </div>
-      )}
+      {error && <div className="mb-3 rounded-xl bg-destructive/10 p-3 text-xs text-destructive">{error}</div>}
 
-      {activeTab === "team" && currentTeam ? (
+      {tab === "team" && team ? (
         <>
           <div className="mb-3 flex gap-1.5">
             {snapshot.teams.map((t) => (
-              <button
+              <Button
                 key={t.id}
+                variant={t.id === team.id ? "accent" : "ghost"}
                 onClick={() => setSelectedTeamId(t.id)}
-                className={`rounded-lg px-2.5 py-1 text-xs font-medium ${
-                  t.id === currentTeam.id ? "bg-slate-800 text-white" : "text-slate-500 hover:text-slate-300"
-                }`}
               >
                 {t.name}
-              </button>
+              </Button>
             ))}
           </div>
-
-          <TeamDashboardPage
-            team={currentTeam}
-            template={snapshot.template}
-            currentDay={snapshot.gameState.currentDay}
-            purchasePhaseActive={snapshot.gameState.purchasePhaseActive}
-            onBuyCard={(cardId) => handleAction(() => api.buyCard(currentTeam.id, cardId))}
-            onBuyPerk={(perkId) => handleAction(() => api.buyPerk(currentTeam.id, perkId))}
-          />
+          <TeamDashboardPage snapshot={snapshot} team={team} run={run} />
         </>
       ) : (
-        <AdminConsolePage
-          gameState={snapshot.gameState}
-          template={snapshot.template}
-          availableTemplates={snapshot.availableTemplates}
-          balanceReport={snapshot.balanceReport}
-          teams={snapshot.teams}
-          onReward={(teamId, amount) => handleAction(() => api.rewardTeam(teamId, amount))}
-          onMoveTrack={(teamId, delta) => handleAction(() => api.moveTrack(teamId, delta))}
-          onUpdateState={(patch) => handleAction(() => api.updateGameState(patch))}
-          onSwitchTemplate={(templateId) => handleAction(() => api.switchTemplate(templateId))}
-        />
+        <AdminConsolePage snapshot={snapshot} run={run} />
       )}
     </div>
   );

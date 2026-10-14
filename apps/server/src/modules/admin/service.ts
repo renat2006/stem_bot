@@ -18,18 +18,37 @@ export function moveTeamOnTrack(teamId: string, delta: number) {
 }
 
 export type GameStatePatch = Partial<
-  Pick<GameState, "currentDay" | "purchasePhaseActive" | "dailyPurchaseLimit">
+  Pick<GameState, "currentDay" | "currentPhase" | "purchasePhaseActive" | "dailyPurchaseLimit">
 >;
 
 export function updateGameState(patch: GameStatePatch) {
   const dayChanged = patch.currentDay !== undefined && patch.currentDay !== store.gameState.currentDay;
   const defined = Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined));
-  store.gameState = { ...store.gameState, ...defined };
+
+  const nextState: GameState = { ...store.gameState, ...defined };
+  if (patch.currentPhase !== undefined) {
+    nextState.purchasePhaseActive = patch.currentPhase === "market";
+  } else if (patch.purchasePhaseActive !== undefined) {
+    nextState.currentPhase = patch.purchasePhaseActive ? "market" : "scoring";
+  }
+  if (dayChanged && patch.currentDay !== undefined) {
+    nextState.currentPoint = patch.currentDay;
+  }
+
+  store.gameState = nextState;
 
   if (dayChanged) {
     for (const [id, team] of store.teams) store.teams.set(id, { ...team, purchasesToday: 0 });
   }
   return store.gameState;
+}
+
+export function resetShift() {
+  return { gameState: store.resetShift() };
+}
+
+export function loadDemoMidgame() {
+  return { gameState: store.loadDemoMidgame() };
 }
 
 export function switchTemplate(templateId: string) {

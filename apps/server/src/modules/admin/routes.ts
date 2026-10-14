@@ -1,14 +1,23 @@
+import { ShiftPhaseSchema } from "@stem/shared";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "../../shared/app-env.js";
 import { requireAdmin } from "../../shared/telegram-auth.js";
 import { validateJson } from "../../shared/validate-json.js";
-import { moveTeamOnTrack, rewardTeam, switchTemplate, updateGameState } from "./service.js";
+import {
+  loadDemoMidgame,
+  moveTeamOnTrack,
+  resetShift,
+  rewardTeam,
+  switchTemplate,
+  updateGameState,
+} from "./service.js";
 
 const RewardInput = z.object({ teamId: z.string(), amount: z.number().int() });
 const TrackInput = z.object({ teamId: z.string(), delta: z.number().int() });
 const GameStateInput = z.object({
   currentDay: z.number().int().min(1).optional(),
+  currentPhase: ShiftPhaseSchema.optional(),
   purchasePhaseActive: z.boolean().optional(),
   dailyPurchaseLimit: z.number().int().nullable().optional(),
 });
@@ -27,6 +36,8 @@ export const adminRouter = new Hono<AppEnv>()
   .post("/game-state", validateJson(GameStateInput), (c) =>
     c.json({ gameState: updateGameState(c.req.valid("json")) }),
   )
+  .post("/reset-shift", (c) => c.json(resetShift()))
+  .post("/load-demo", (c) => c.json(loadDemoMidgame()))
   .post("/switch-template", validateJson(SwitchTemplateInput), (c) =>
     c.json(switchTemplate(c.req.valid("json").templateId)),
   );

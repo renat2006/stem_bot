@@ -28,27 +28,29 @@ apps/web          Telegram Mini App (React, FSD)
 
 ## 3. Сервер (`apps/server`)
 
+Сервер — единственный источник истины. Подробно о синхронизации — `docs/research/REALTIME.md`.
+
 ```
-src/index.ts                 Hono app, onError, запуск бота, graceful shutdown
-src/shared/telegram-auth.ts  middleware проверки initData → c.get("tmaInitData")
-src/shared/validate-json.ts  Zod-валидация тела запроса (400 { error, issues })
-src/shared/errors.ts         DomainError(message, status)
-src/shared/store.ts          in-memory хранилище (заменить на БД)
-src/modules/<domain>/routes.ts   HTTP: валидация входа → вызов сервиса → JSON
-src/modules/<domain>/service.ts  бизнес-логика, бросает DomainError
-src/bot/index.ts             grammY: /start, fallback callback, bot.catch
+src/index.ts                 подключение БД (Postgres или PGlite), сид события, Hono, WebSocket, бот
+src/db/schema.ts             Drizzle-схема: events, teams, members, card_stock, proposals, ledger, commands
+src/db/client.ts             postgres-js (prod) / PGlite (dev, тесты) + миграции из drizzle/
+src/modules/event/           граф события, снимок для зрителя, mutateEvent() (транзакция, версия, журнал, идемпотентность), сид
+src/modules/team/            вход по коду, покупка капитаном, отмена, предложения, свойства
+src/modules/admin/           начисления, фазы с таймером, ход, новый день, команды, капитаны, перезапуск
+src/realtime/hub.ts          комнаты по событию, склейка изменений 30 мс, рассылка снимков по зрителям
+src/realtime/ws-server.ts    /api/ws: авторизация первым сообщением, Origin, heartbeat, лимиты
+src/shared/identity.ts       Telegram initData → Identity; dev-пользователи вне прода
+src/bot/                     grammY: /start, вебхук (prod) или polling только с BOT_POLLING=true
 ```
 
-API (`/api/*`, заголовок `Authorization: tma <initData>`):
+API (`Authorization: tma <initData>`, мутации с `Idempotency-Key`, каждая возвращает свежее `LiveState`):
 
-| Метод | Путь | Назначение |
+| Метод | Путь | Кто |
 | :--- | :--- | :--- |
-| GET | `/api/health` | проверка живости (без авторизации) |
-| GET | `/api/game/state` | снапшот: состояние, активный шаблон, список шаблонов, отчёт баланса, команды со статами |
-| POST | `/api/team/buy-card` · `/buy-perk` | покупка карты/свойства |
-| POST | `/api/admin/reward` · `/move-track` · `/game-state` · `/switch-template` | управление игрой |
-
-Безопасность и известные дыры (роли, `teamId` из body) — `docs/research/SECURITY.md`.
+| GET | `/api/health` · `/api/game/state` | все |
+| WS | `/api/ws` | все (сообщения `snapshot`, `rules`, `state`, `pong`) |
+| POST | `/api/team/join` · `/buy-card` · `/undo-purchase` · `/propose` · `/proposals/:id` · `/buy-perk` | участник (покупки — капитан) |
+| POST | `/api/admin/reward` · `/track` · `/phase` · `/settings` · `/next-day` · `/apply-turn` · `/teams` · `/captain` · `/remove-member` · `/reset` | админ |
 
 ## 4. Mini App (`apps/web`, Feature-Sliced Design)
 
@@ -57,7 +59,7 @@ app/        main.tsx (init SDK до рендера), App.tsx (вкладки, Ru
 pages/      team-dashboard, admin-console
 widgets/    team-summary, slot-build, shop, teams-board, balance-report
 features/   purchase, manage-team, control-shift   (UI + API действия)
-entities/   game (снапшот, типы, useGameSnapshot), team (StatGrid, TrackProgress), card (StatDeltaList)
+entities/   game (LiveConnection: WS + реконнект + опрос, useLiveGame), team, card
 shared/     api (request/postJson с tma-заголовком), lib (Telegram SDK, RunAction), ui (Button, Badge, Section)
 ```
 

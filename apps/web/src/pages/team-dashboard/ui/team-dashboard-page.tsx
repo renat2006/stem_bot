@@ -36,10 +36,11 @@ const SUB_TABS: Array<{ id: Exclude<ParticipantScreen, "join" | "onb">; label: s
 interface TeamDashboardPageProps {
   snapshot: GameSnapshot;
   team: TeamWithStats;
+  debugMode?: boolean;
   run: RunAction;
 }
 
-export function TeamDashboardPage({ snapshot, team, run }: TeamDashboardPageProps) {
+export function TeamDashboardPage({ snapshot, team, debugMode = false, run }: TeamDashboardPageProps) {
   const { template, gameState, teams } = snapshot;
   const [screen, setScreen] = useState<ParticipantScreen>("home");
   const [role, setRole] = useState<"captain" | "member">("captain");
@@ -195,39 +196,41 @@ export function TeamDashboardPage({ snapshot, team, run }: TeamDashboardPageProp
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-ln bg-sf px-2.5 py-1.5">
-        <div className="flex gap-1 rounded-lg bg-sf2 p-0.5">
+      {debugMode && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-ln bg-sf px-2.5 py-1.5">
+          <div className="flex gap-1 rounded-lg bg-sf2 p-0.5">
+            <button
+              type="button"
+              onClick={() => setRole("captain")}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium ${
+                role === "captain" ? "bg-fg text-bg" : "text-mu"
+              }`}
+            >
+              Капитан @{team.captainUsername}
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole("member")}
+              className={`rounded-md px-2.5 py-1 text-xs font-medium ${
+                role === "member" ? "bg-fg text-bg" : "text-mu"
+              }`}
+            >
+              Участник
+            </button>
+          </div>
+
           <button
             type="button"
-            onClick={() => setRole("captain")}
-            className={`rounded-md px-2.5 py-1 text-xs font-medium ${
-              role === "captain" ? "bg-fg text-bg" : "text-mu"
-            }`}
+            onClick={() => {
+              setScreen("join");
+              setOnbStep(0);
+            }}
+            className="px-2 py-1 font-mono text-[11px] font-medium text-ac"
           >
-            Капитан @{team.captainUsername}
-          </button>
-          <button
-            type="button"
-            onClick={() => setRole("member")}
-            className={`rounded-md px-2.5 py-1 text-xs font-medium ${
-              role === "member" ? "bg-fg text-bg" : "text-mu"
-            }`}
-          >
-            Участник
+            Вход и онбординг →
           </button>
         </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            setScreen("join");
-            setOnbStep(0);
-          }}
-          className="px-2 py-1 font-mono text-[11px] font-medium text-ac"
-        >
-          Вход и онбординг →
-        </button>
-      </div>
+      )}
 
       {!isPreGame && (
         <div className="sticky top-0 z-20 -mx-1 bg-bg py-1">

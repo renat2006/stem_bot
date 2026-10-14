@@ -101,15 +101,18 @@ export const GameTemplateSchema = z.object({
   extraModule: ExtraModuleSchema.optional(),
 });
 
+export const ShiftPhaseSchema = z.enum(["scoring", "market", "turn", "summary"]);
+
 export const GameStateSchema = z.object({
   activeTemplateId: z.string(),
   currentDay: z.number().int().min(1),
   currentPoint: z.number().int().min(1).default(1),
+  currentPhase: ShiftPhaseSchema.default("scoring"),
   purchasePhaseActive: z.boolean(),
   dailyPurchaseLimit: z.number().int().nullable(),
   secondsLeft: z.number().int().nonnegative().default(522),
-  rulesVersion: z.number().int().min(1).default(4),
-  rulesUpdatedNote: z.string().default("Версия 4 · 15:58 · рынок открыт"),
+  rulesVersion: z.number().int().min(1).default(1),
+  rulesUpdatedNote: z.string().default("Версия 1 · Старт смены"),
   cardStockLeft: z.record(z.string(), z.number().int().nonnegative()).default({}),
   cardSoldTo: z.record(z.string(), z.string()).default({}),
 });
@@ -139,6 +142,7 @@ export type StepThreshold = z.infer<typeof StepThresholdSchema>;
 export type ExtraModule = z.infer<typeof ExtraModuleSchema>;
 export type BoardCell = z.infer<typeof BoardCellSchema>;
 export type EventFact = z.infer<typeof EventFactSchema>;
+export type ShiftPhase = z.infer<typeof ShiftPhaseSchema>;
 export type GameTemplate = z.infer<typeof GameTemplateSchema>;
 export type GameState = z.infer<typeof GameStateSchema>;
 export type Team = z.infer<typeof TeamSchema>;

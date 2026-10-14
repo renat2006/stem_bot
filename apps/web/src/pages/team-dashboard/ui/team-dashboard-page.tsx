@@ -42,10 +42,13 @@ interface TeamDashboardPageProps {
 
 export function TeamDashboardPage({ snapshot, team, debugMode = false, run }: TeamDashboardPageProps) {
   const { template, gameState, teams } = snapshot;
-  const [screen, setScreen] = useState<ParticipantScreen>("home");
+  const [screen, setScreen] = useState<ParticipantScreen>(() => {
+    if (typeof window === "undefined") return "home";
+    return localStorage.getItem("konstrukt_onboarded") === "1" ? "home" : "join";
+  });
   const [role, setRole] = useState<"captain" | "member">("captain");
   const [onbStep, setOnbStep] = useState(0);
-  const [joinName, setJoinName] = useState("Егор");
+  const [joinName, setJoinName] = useState("");
   const [joinCodeInput, setJoinCodeInput] = useState(team.joinCode);
   const [marketSlotFilter, setMarketSlotFilter] = useState<string>("all");
   const [rulesSearch, setRulesSearch] = useState("");
@@ -454,7 +457,10 @@ export function TeamDashboardPage({ snapshot, team, debugMode = false, run }: Te
           <div className="flex items-center justify-between gap-3">
             <button
               type="button"
-              onClick={() => setScreen("home")}
+              onClick={() => {
+                localStorage.setItem("konstrukt_onboarded", "1");
+                setScreen("home");
+              }}
               className="min-h-[44px] text-sm font-medium text-ac"
             >
               Пропустить
@@ -462,8 +468,12 @@ export function TeamDashboardPage({ snapshot, team, debugMode = false, run }: Te
             <button
               type="button"
               onClick={() => {
-                if (onbStep < 2) setOnbStep((s) => s + 1);
-                else setScreen("home");
+                if (onbStep < 2) {
+                  setOnbStep((s) => s + 1);
+                } else {
+                  localStorage.setItem("konstrukt_onboarded", "1");
+                  setScreen("home");
+                }
               }}
               className="h-11 rounded-xl bg-ac px-6 text-sm font-semibold text-acfg"
             >

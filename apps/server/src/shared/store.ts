@@ -28,21 +28,69 @@ export interface ProposalMessage {
   createdAt: string;
 }
 
-function buildInitialStock(template: GameTemplate): {
+function buildCleanStock(template: GameTemplate): {
   cardStockLeft: Record<string, number>;
   cardSoldTo: Record<string, string>;
 } {
   const cardStockLeft: Record<string, number> = {};
-  const cardSoldTo: Record<string, string> = {};
   for (const card of template.cards) {
-    if (card.id === "rat-back") {
-      cardStockLeft[card.id] = 0;
-      cardSoldTo[card.id] = "Тайга-04";
-    } else {
-      cardStockLeft[card.id] = card.stock;
-    }
+    cardStockLeft[card.id] = card.stock;
   }
-  return { cardStockLeft, cardSoldTo };
+  return { cardStockLeft, cardSoldTo: {} };
+}
+
+function createInitialTeams(template: GameTemplate): Map<string, Team> {
+  const emptySlots = Object.fromEntries(template.slots.map((s) => [s.id, null]));
+  const roster: Array<Pick<Team, "id" | "name" | "monogram" | "joinCode" | "captainUsername" | "members">> = [
+    {
+      id: "team-alpha",
+      name: "Химера-01",
+      monogram: "Х1",
+      joinCode: "HX01",
+      captainUsername: "egor",
+      members: ["Е", "О", "М", "Д"],
+    },
+    {
+      id: "team-beta",
+      name: "Тайга-04",
+      monogram: "Т4",
+      joinCode: "TG04",
+      captainUsername: "renat",
+      members: ["Р", "А", "К", "В"],
+    },
+    {
+      id: "team-gamma",
+      name: "Альфа-07",
+      monogram: "А7",
+      joinCode: "AL07",
+      captainUsername: "leon",
+      members: ["Л", "Д", "С"],
+    },
+    {
+      id: "team-delta",
+      name: "Кракен-02",
+      monogram: "К2",
+      joinCode: "KR02",
+      captainUsername: "danya",
+      members: ["Д", "В", "И"],
+    },
+  ];
+
+  return new Map(
+    roster.map((item) => [
+      item.id,
+      {
+        ...item,
+        currency: 0,
+        trackPosition: 1,
+        boardPosition: 1,
+        purchasesToday: 0,
+        equippedCards: { ...emptySlots },
+        activePerkId: null,
+        statModifiers: {},
+      },
+    ]),
+  );
 }
 
 class MemoryStore {
@@ -50,124 +98,96 @@ class MemoryStore {
 
   gameState: GameState = {
     activeTemplateId: NEUROFAUNA_TEMPLATE.id,
-    currentDay: 3,
-    currentPoint: 3,
-    purchasePhaseActive: true,
+    currentDay: 1,
+    currentPoint: 1,
+    currentPhase: "scoring",
+    purchasePhaseActive: false,
     dailyPurchaseLimit: NEUROFAUNA_TEMPLATE.dailyPurchaseLimit,
-    secondsLeft: 522,
-    rulesVersion: 4,
-    rulesUpdatedNote: "Версия 4 · 15:58 · рынок продлён до 16:15",
-    ...buildInitialStock(NEUROFAUNA_TEMPLATE),
+    secondsLeft: NEUROFAUNA_TEMPLATE.phaseDurationSeconds,
+    rulesVersion: 1,
+    rulesUpdatedNote: "Версия 1 · День 1 · ожидание начисления за учебный блок",
+    ...buildCleanStock(NEUROFAUNA_TEMPLATE),
   };
 
   lastPurchaseByTeam: Map<string, PurchaseUndoSnapshot> = new Map();
   proposals: ProposalMessage[] = [];
-
-  teams: Map<string, Team> = new Map([
-    [
-      "team-alpha",
-      {
-        id: "team-alpha",
-        name: "Химера-01",
-        monogram: "Х1",
-        joinCode: "HX01",
-        captainUsername: "egor",
-        members: ["Е", "О", "М", "Д"],
-        currency: 12,
-        trackPosition: 11,
-        boardPosition: 3,
-        purchasesToday: 0,
-        equippedCards: {
-          head: "lion-head",
-          body: "shark-body",
-          front: "scorpion-claws",
-          back: null,
-          tail: "crocodile-tail",
-          special: "wasp-sting",
-        },
-        activePerkId: "massive",
-        statModifiers: {},
-      },
-    ],
-    [
-      "team-beta",
-      {
-        id: "team-beta",
-        name: "Тайга-04",
-        monogram: "Т4",
-        joinCode: "TG04",
-        captainUsername: "renat",
-        members: ["Р", "А", "К", "В"],
-        currency: 9,
-        trackPosition: 15,
-        boardPosition: 4,
-        purchasesToday: 1,
-        equippedCards: {
-          head: "mammoth-tusks",
-          body: "lion-body",
-          front: null,
-          back: "rat-back",
-          tail: null,
-          special: "turtle-shell",
-        },
-        activePerkId: "lightning",
-        statModifiers: {},
-      },
-    ],
-    [
-      "team-gamma",
-      {
-        id: "team-gamma",
-        name: "Альфа-07",
-        monogram: "А7",
-        joinCode: "AL07",
-        captainUsername: "leon",
-        members: ["Л", "Д", "С"],
-        currency: 10,
-        trackPosition: 13,
-        boardPosition: 2,
-        purchasesToday: 1,
-        equippedCards: {
-          head: "lion-head",
-          body: "lion-body",
-          front: "eagle-claws",
-          back: "lion-back",
-          tail: null,
-          special: null,
-        },
-        activePerkId: null,
-        statModifiers: {},
-      },
-    ],
-    [
-      "team-delta",
-      {
-        id: "team-delta",
-        name: "Кракен-02",
-        monogram: "К2",
-        joinCode: "KR02",
-        captainUsername: "danya",
-        members: ["Д", "В", "И"],
-        currency: 8,
-        trackPosition: 10,
-        boardPosition: 5,
-        purchasesToday: 0,
-        equippedCards: {
-          head: null,
-          body: "shark-body",
-          front: "chameleon-front",
-          back: null,
-          tail: "cheetah-tail",
-          special: "turtle-shell",
-        },
-        activePerkId: null,
-        statModifiers: {},
-      },
-    ],
-  ]);
+  teams: Map<string, Team> = createInitialTeams(NEUROFAUNA_TEMPLATE);
 
   getActiveTemplate(): GameTemplate {
     return this.templates.get(this.gameState.activeTemplateId) ?? NEUROFAUNA_TEMPLATE;
+  }
+
+  resetShift(): GameState {
+    const template = this.getActiveTemplate();
+    this.gameState = {
+      activeTemplateId: template.id,
+      currentDay: 1,
+      currentPoint: 1,
+      currentPhase: "scoring",
+      purchasePhaseActive: false,
+      dailyPurchaseLimit: template.dailyPurchaseLimit,
+      secondsLeft: template.phaseDurationSeconds,
+      rulesVersion: 1,
+      rulesUpdatedNote: `Версия 1 · Старт смены «${template.title}»`,
+      ...buildCleanStock(template),
+    };
+    this.lastPurchaseByTeam.clear();
+    this.proposals = [];
+    this.teams = createInitialTeams(template);
+    return this.gameState;
+  }
+
+  loadDemoMidgame(): GameState {
+    const template = this.getActiveTemplate();
+    const stock = buildCleanStock(template);
+    if (template.id === "neurofauna-classic") {
+      stock.cardStockLeft["rat-back"] = 0;
+      stock.cardSoldTo["rat-back"] = "Тайга-04";
+    }
+
+    this.gameState = {
+      activeTemplateId: template.id,
+      currentDay: Math.min(3, template.totalDays),
+      currentPoint: Math.min(3, template.totalPoints),
+      currentPhase: "market",
+      purchasePhaseActive: true,
+      dailyPurchaseLimit: template.dailyPurchaseLimit,
+      secondsLeft: 522,
+      rulesVersion: 4,
+      rulesUpdatedNote: "Версия 4 · 15:58 · рынок открыт до 16:15",
+      ...stock,
+    };
+    this.lastPurchaseByTeam.clear();
+    this.proposals = [];
+
+    const emptySlots = Object.fromEntries(template.slots.map((s) => [s.id, null]));
+    const firstCards = template.cards.slice(0, 4);
+    let idx = 0;
+    for (const [id, team] of this.teams.entries()) {
+      const equipped: Record<string, string | null> = { ...emptySlots };
+      if (template.id === "neurofauna-classic" && idx === 0) {
+        equipped.head = "lion-head";
+        equipped.body = "shark-body";
+        equipped.front = "scorpion-claws";
+        equipped.tail = "crocodile-tail";
+        equipped.special = "wasp-sting";
+      } else {
+        for (const c of firstCards.slice(0, idx === 0 ? 4 : 2)) {
+          if (equipped[c.slotId] === null) equipped[c.slotId] = c.id;
+        }
+      }
+      this.teams.set(id, {
+        ...team,
+        currency: idx === 0 ? 12 : 9,
+        trackPosition: Math.min(template.trackMax, idx === 0 ? 11 : 15 - idx * 2),
+        purchasesToday: idx === 1 ? 1 : 0,
+        equippedCards: equipped,
+        activePerkId: idx === 0 ? (template.perks[1]?.id ?? template.perks[0]?.id ?? null) : null,
+        statModifiers: {},
+      });
+      idx++;
+    }
+    return this.gameState;
   }
 
   switchTemplate(templateId: string): GameTemplate {
@@ -177,38 +197,19 @@ class MemoryStore {
     }
     this.gameState = {
       activeTemplateId: next.id,
-      currentDay: Math.min(3, next.totalDays),
-      currentPoint: Math.min(2, next.totalPoints),
-      purchasePhaseActive: true,
+      currentDay: 1,
+      currentPoint: 1,
+      currentPhase: "scoring",
+      purchasePhaseActive: false,
       dailyPurchaseLimit: next.dailyPurchaseLimit,
-      secondsLeft: Math.min(900, next.phaseDurationSeconds),
-      rulesVersion: this.gameState.rulesVersion + 1,
-      rulesUpdatedNote: `Версия ${this.gameState.rulesVersion + 1} · сеттинг «${next.title}» активирован`,
-      ...buildInitialStock(next),
+      secondsLeft: next.phaseDurationSeconds,
+      rulesVersion: 1,
+      rulesUpdatedNote: `Версия 1 · Сеттинг «${next.title}» готов к старту`,
+      ...buildCleanStock(next),
     };
     this.lastPurchaseByTeam.clear();
     this.proposals = [];
-
-    const emptySlots = Object.fromEntries(next.slots.map((s) => [s.id, null]));
-    const firstCards = next.cards.slice(0, 4);
-    let idx = 0;
-    for (const [id, team] of this.teams.entries()) {
-      const sampleEquipped: Record<string, string | null> = { ...emptySlots };
-      if (idx === 0) {
-        for (const c of firstCards) {
-          if (sampleEquipped[c.slotId] === null) sampleEquipped[c.slotId] = c.id;
-        }
-      }
-      this.teams.set(id, {
-        ...team,
-        trackPosition: Math.min(team.trackPosition, next.trackMax - 2),
-        purchasesToday: 0,
-        equippedCards: sampleEquipped,
-        activePerkId: next.perks[0]?.id ?? null,
-        statModifiers: {},
-      });
-      idx++;
-    }
+    this.teams = createInitialTeams(next);
     return next;
   }
 }

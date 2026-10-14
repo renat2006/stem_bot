@@ -1,4 +1,4 @@
-import type { GameState, GameTemplate } from "@stem/shared";
+import type { GameState, GameTemplate, ShiftPhase } from "@stem/shared";
 import type { TeamWithStats } from "../../../entities/game/index.js";
 import { BuySlots, Coin } from "../../../shared/ui/index.js";
 
@@ -11,7 +11,12 @@ interface TeamSummaryProps {
   secondsLeft?: number;
 }
 
-const PHASES = ["Начисление", "Рынок", "Ход", "Итоги"];
+const PHASES: Array<{ id: ShiftPhase; label: string }> = [
+  { id: "scoring", label: "Начисление" },
+  { id: "market", label: "Рынок" },
+  { id: "turn", label: "Ход" },
+  { id: "summary", label: "Итоги" },
+];
 
 export function TeamSummary({
   team,
@@ -23,7 +28,9 @@ export function TeamSummary({
 }: TeamSummaryProps) {
   const limit = gameState?.dailyPurchaseLimit ?? template.dailyPurchaseLimit ?? 2;
   const leftBuys = Math.max(0, limit - team.purchasesToday);
-  const isOpen = gameState?.purchasePhaseActive ?? true;
+  const currentPhase: ShiftPhase =
+    gameState?.currentPhase ?? (gameState?.purchasePhaseActive ? "market" : "scoring");
+  const activeIdx = PHASES.findIndex((p) => p.id === currentPhase);
   const day = gameState?.currentDay ?? 1;
   const point = gameState?.currentPoint ?? day;
   const duration = Math.max(60, template.phaseDurationSeconds || 1800);
@@ -37,11 +44,21 @@ export function TeamSummary({
       ? `ДЕНЬ ${day}/${template.totalDays} · ТОЧКА ${point}/${template.totalPoints} · ${template.phaseMode}`
       : `ОКНО ${point}/${template.totalPoints} · ${template.phaseMode}`;
 
-  const nowTitle = !isOpen ? "Рынок закрыт" : leftBuys > 0 ? `Купите до ${leftBuys} карт` : "Покупки сделаны";
-
-  const nowSub = isOpen
-    ? `Рынок открыт · дальше ${template.nextPhaseLabel}`
-    : `Дальше ${template.nextPhaseLabel}`;
+  let nowTitle = "Ожидание фазы";
+  let nowSub = `Дальше ${template.nextPhaseLabel}`;
+  if (currentPhase === "scoring") {
+    nowTitle = `Начисление ${template.currencyName}`;
+    nowSub = "Ассистенты оценивают учебный блок · дальше откроется рынок";
+  } else if (currentPhase === "market") {
+    nowTitle = leftBuys > 0 ? `Купите до ${leftBuys} карт` : "Покупки сделаны";
+    nowSub = `Рынок открыт · дальше ${template.nextPhaseLabel}`;
+  } else if (currentPhase === "turn") {
+    nowTitle = `Ход: +${team.computedStats.step.total} шаг`;
+    nowSub = `Бросок кубика и движение по треку «${template.trackName}»`;
+  } else if (currentPhase === "summary") {
+    nowTitle = "Итоги раунда";
+    nowSub = "Фиксация позиций на общем табло";
+  }
 
   return (
     <div className="space-y-3">
@@ -53,24 +70,23 @@ export function TeamSummary({
           >
             <div className="absolute inset-[5px] flex flex-col items-center justify-center rounded-full bg-sf">
               <span className="font-mono text-base leading-none font-semibold text-fg">{timerStr}</span>
-              <span className="mt-1 text-[11px] text-mu">осталось</span>
+              <span className="mt-1 text-[11px] text-mu">таймер</span>
             </div>
           </div>
 
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="font-mono text-[11px] font-medium tracking-[0.06em] text-mu">{phaseLine}</span>
             <h2 className="text-xl leading-tight font-semibold text-fg">{nowTitle}</h2>
-            <p className="text-[13px] text-mu">{nowSub}</p>
+            <p className="text-[13px] leading-snug text-mu">{nowSub}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-4 gap-1.5">
-          {PHASES.map((label, idx) => {
-            const activeIdx = isOpen ? 1 : 2;
+          {PHASES.map((phase, idx) => {
             const isPast = idx < activeIdx;
             const isActive = idx === activeIdx;
             return (
-              <div key={label} className="flex flex-col gap-1">
+              <div key={phase.id} className="flex flex-col gap-1">
                 <div
                   className="h-1.5 rounded-[3px]"
                   style={{
@@ -79,7 +95,7 @@ export function TeamSummary({
                   }}
                 />
                 <span className={`text-xs ${isActive ? "font-semibold text-fg" : "font-normal text-mu"}`}>
-                  {label}
+                  {phase.label}
                 </span>
               </div>
             );

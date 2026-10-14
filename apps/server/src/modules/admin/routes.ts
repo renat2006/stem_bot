@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "../../shared/app-env.js";
+import { requireAdmin } from "../../shared/telegram-auth.js";
 import { validateJson } from "../../shared/validate-json.js";
 import { moveTeamOnTrack, rewardTeam, switchTemplate, updateGameState } from "./service.js";
 
@@ -14,6 +15,7 @@ const GameStateInput = z.object({
 const SwitchTemplateInput = z.object({ templateId: z.string() });
 
 export const adminRouter = new Hono<AppEnv>()
+  .use("*", requireAdmin)
   .post("/reward", validateJson(RewardInput), (c) => {
     const { teamId, amount } = c.req.valid("json");
     return c.json({ team: rewardTeam(teamId, amount) });

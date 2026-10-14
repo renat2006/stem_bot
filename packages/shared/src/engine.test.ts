@@ -1,14 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { calculateTeamStats, validateGameBalance } from "./engine.js";
-import { DEFAULT_TEMPLATES, NEURO_AIRSHIP_TEMPLATE, NEUROFAUNA_TEMPLATE } from "./presets.js";
+import { calculateTeamStats, evaluateBuyState, previewCardEffect, validateGameBalance } from "./engine.js";
+import {
+  DEFAULT_TEMPLATES,
+  NEURO_AIRSHIP_TEMPLATE,
+  NEUROFAUNA_TEMPLATE,
+  STARTUP_DAY_TEMPLATE,
+} from "./presets.js";
 import { GameTemplateSchema, type Team } from "./schema.js";
 
 function makeTeam(overrides: Partial<Team> = {}): Team {
   return {
     id: "t1",
     name: "Test",
+    monogram: "T1",
+    joinCode: "TX01",
     captainUsername: "captain",
-    currency: 0,
+    members: ["А", "Б"],
+    currency: 12,
     trackPosition: 1,
     boardPosition: 1,
     purchasesToday: 0,
@@ -36,7 +44,7 @@ describe("presets", () => {
   });
 });
 
-describe("calculateTeamStats", () => {
+describe("calculateTeamStats & step breakdown", () => {
   it("sums equipped cards, active perk and admin modifiers per stat", () => {
     const team = makeTeam({
       equippedCards: { head: "lion-head", body: "lion-body", back: null },
@@ -52,6 +60,23 @@ describe("calculateTeamStats", () => {
     expect(stats.total).toEqual({ speed: 2, strength: 3, survival: 1 });
   });
 
+  it("computes step breakdown from thresholds and perk bonus", () => {
+    const team = makeTeam({
+      equippedCards: {
+        head: "lion-head",
+        body: "shark-body",
+        front: "scorpion-claws",
+        tail: "crocodile-tail",
+        special: "wasp-sting",
+      },
+      activePerkId: "massive",
+    });
+
+    const stats = calculateTeamStats(team, NEUROFAUNA_TEMPLATE);
+    expect(stats.total.strength).toBeGreaterThanOrEqual(5);
+    expect(stats.step.total).toBe(4);
+  });
+
   it("flags unmet perk conditions", () => {
     const team = makeTeam({ activePerkId: "lightning" });
     expect(calculateTeamStats(team, NEUROFAUNA_TEMPLATE).perkConditionMet).toBe(false);
@@ -64,6 +89,59 @@ describe("calculateTeamStats", () => {
       strength: 0,
       survival: 0,
     });
+  });
+});
+
+describe("previewCardEffect & evaluateBuyState", () => {
+  it("detects lost step blocks when replacing a card lowers a threshold stat", () => {
+    const team = makeTeam({
+      equippedCards: {
+        head: "lion-head",
+        body: "shark-body",
+        front: "scorpion-claws",
+        tail: "crocodile-tail",
+        special: "wasp-sting",
+      },
+      activePerkId: "massive",
+    });
+    const reptileCard = NEUROFAUNA_TEMPLATE.cards.find((c) => c.id === "reptile-skin");
+    if (!reptileCard) throw new Error("reptile-skin card missing");
+    const preview = previewCardEffect(team, reptileCard, NEUROFAUNA_TEMPLATE);
+
+    expect(preview.replacedCard?.id).toBe("shark-body");
+    expect(preview.stepDelta).toBeLessThan(0);
+    expect(preview.lostParts.length).toBeGreaterThan(0);
+  });
+
+  it("prioritizes soldOut, limit, funds, propose and buy states", () => {
+    const team = makeTeam({ currency: 10, purchasesToday: 0 });
+    const card = STARTUP_DAY_TEMPLATE.cards[0];
+    if (!card) throw new Error("startup card missing");
+
+    expect(
+      evaluateBuyState({
+        template: STARTUP_DAY_TEMPLATE,
+        team,
+        card,
+        stockLeft: 0,
+        soldToTeam: "Тайга-04",
+        isOpen: true,
+        dailyLimit: 2,
+        isCaptain: true,
+      }).kind,
+    ).toBe("soldOut");
+
+    expect(
+      evaluateBuyState({
+        template: STARTUP_DAY_TEMPLATE,
+        team,
+        card,
+        stockLeft: 2,
+        isOpen: true,
+        dailyLimit: 2,
+        isCaptain: false,
+      }).kind,
+    ).toBe("propose");
   });
 });
 

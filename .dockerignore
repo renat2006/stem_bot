@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+.git
+.github
+.claude
+.devin
+.vite
+docs
+deploy
+*.md
+.env
+.env.*

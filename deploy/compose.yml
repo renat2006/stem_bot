@@ -1,0 +1,37 @@
+name: stem-bot
+
+services:
+  app:
+    image: ${APP_IMAGE}:${APP_TAG}
+    restart: unless-stopped
+    env_file:
+      - ${SHARED_DIR}/runtime.env
+    environment:
+      APP_VERSION: ${APP_VERSION}
+    ports:
+      - "127.0.0.1:${APP_PORT}:3001"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+    healthcheck:
+      test:
+        - CMD
+        - /nodejs/bin/node
+        - -e
+        - "fetch('http://127.0.0.1:3001/api/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
+      interval: 15s
+      timeout: 3s
+      start_period: 10s
+      retries: 3

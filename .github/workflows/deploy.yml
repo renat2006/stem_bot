@@ -1,0 +1,215 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ghcr.io/renat2006/stem-bot
+
+jobs:
+  verify:
+    name: Verify
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    name: Build image
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    outputs:
+      tag: ${{ steps.vars.outputs.tag }}
+      version: ${{ steps.vars.outputs.version }}
+      digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: vars
+        run: |
+          short="${GITHUB_SHA::12}"
+          if [ "${{ github.event_name }}" = "release" ]; then version="${{ github.event.release.tag_name }}"; else version="main-${GITHUB_SHA::7}"; fi
+          echo "tag=sha-$short" >>"$GITHUB_OUTPUT"
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=raw,value=${{ steps.vars.outputs.tag }}
+            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
+            type=semver,pattern={{version}},enable=${{ github.event_name == 'release' }}
+            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
+          labels: |
+            org.opencontainers.image.title=stem-bot
+            org.opencontainers.image.description=STEM game constructor: Telegram bot, Mini App and API
+            org.opencontainers.image.version=${{ steps.vars.outputs.version }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: APP_VERSION=${{ steps.vars.outputs.version }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+      - name: Summary
+        run: |
+          {
+            echo "### Image"
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Version | \`${{ steps.vars.outputs.version }}\` |"
+            echo "| Tags | \`$(echo '${{ steps.meta.outputs.tags }}' | tr '\n' ' ')\` |"
+            echo "| Digest | \`${{ steps.push.outputs.digest }}\` |"
+          } >>"$GITHUB_STEP_SUMMARY"
+
+  release-assets:
+    name: Release assets
+    if: github.event_name == 'release'
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Package
+        env:
+          VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          mkdir -p out
+          tar -czf "out/stem-bot-web-$VERSION.tar.gz" -C apps/web/dist .
+          tar -czf "out/stem-bot-server-$VERSION.tar.gz" -C apps/server/dist .
+          tar -czf "out/stem-bot-deploy-$VERSION.tar.gz" -C deploy compose.yml caddy scripts
+          (cd out && sha256sum -- ./* >SHA256SUMS)
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" out/* --clobber
+
+  deploy:
+    name: Deploy to production
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.PUBLIC_URL }}
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare release bundle
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
+          SUPER_ADMIN_IDS: ${{ secrets.SUPER_ADMIN_IDS }}
+          PUBLIC_URL: ${{ vars.PUBLIC_URL }}
+          APP_DOMAINS: ${{ vars.APP_DOMAINS }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          umask 077
+          mkdir -p bundle
+          cp -R deploy/compose.yml deploy/caddy deploy/scripts bundle/
+          {
+            echo "NODE_ENV=production"
+            echo "PUBLIC_URL=$PUBLIC_URL"
+            echo "WEBAPP_URL=$PUBLIC_URL"
+            echo "APP_DOMAINS=$APP_DOMAINS"
+            echo "BOT_TOKEN=$BOT_TOKEN"
+            echo "WEBHOOK_SECRET=$WEBHOOK_SECRET"
+            echo "ADMIN_IDS=$ADMIN_IDS"
+            echo "SUPER_ADMIN_IDS=$SUPER_ADMIN_IDS"
+          } >bundle/runtime.env
+          printf '%s' "$GHCR_TOKEN" >bundle/.ghcr-token
+          tar -czf bundle.tgz -C bundle .
+          rm -rf bundle
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" >~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" >~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+
+      - name: Deploy
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "deploy APP_TAG=${{ needs.build.outputs.tag }} APP_VERSION=${{ needs.build.outputs.version }} RELEASE_SHA=${GITHUB_SHA::12} GHCR_USER=${{ github.actor }} DEPLOY_ACTOR=${{ github.actor }}" \
+            <bundle.tgz
+          rm -f bundle.tgz
+
+      - name: Public smoke test
+        env:
+          PUBLIC_URL: ${{ vars.PUBLIC_URL }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          for _ in $(seq 1 30); do
+            body="$(curl -fsS --max-time 5 "$PUBLIC_URL/api/health" || true)"
+            if grep -q "\"version\":\"$VERSION\"" <<<"$body"; then echo "healthy: $body"; exit 0; fi
+            sleep 5
+          done
+          echo "public health check failed: $body" >&2
+          exit 1
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Deployment"
+            echo "- Version: \`${{ needs.build.outputs.version }}\`"
+            echo "- Image: \`${{ env.IMAGE }}@${{ needs.build.outputs.digest }}\`"
+            echo "- URL: ${{ vars.PUBLIC_URL }}"
+          } >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Cleanup
+        if: always()
+        run: rm -rf ~/.ssh/deploy_key bundle.tgz bundle

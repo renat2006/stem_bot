@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+SOURCE=/srv/stem-bot/rendered
+TARGET=/etc/caddy/apps.d
+FILE=stem-bot.caddy
+
+[ "$(readlink -f "${1:-}")" = "$SOURCE" ] || { echo "caddy-apply: unexpected source" >&2; exit 2; }
+[ -f "$SOURCE/$FILE" ] || { echo "caddy-apply: missing $FILE" >&2; exit 2; }
+grep -qE '^\s*(import|php_fastcgi|root|file_server|exec)\b' "$SOURCE/$FILE" && { echo "caddy-apply: forbidden directive" >&2; exit 2; }
+
+if cmp -s "$SOURCE/$FILE" "$TARGET/$FILE" 2>/dev/null; then
+  echo "caddy-apply: no changes"
+  exit 0
+fi
+
+backup="$(mktemp)"
+trap 'rm -f "$backup"' EXIT
+had_previous=0
+[ -f "$TARGET/$FILE" ] && cp -p "$TARGET/$FILE" "$backup" && had_previous=1
+
+install -m 644 -o root -g root "$SOURCE/$FILE" "$TARGET/$FILE"
+if ! runuser -u caddy -- caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null 2>&1; then
+  echo "caddy-apply: validation failed, restoring previous config" >&2
+  if [ "$had_previous" = 1 ]; then install -m 644 -o root -g root "$backup" "$TARGET/$FILE"; else rm -f "$TARGET/$FILE"; fi
+  exit 1
+fi
+
+systemctl reload caddy
+echo "caddy-apply: reloaded"

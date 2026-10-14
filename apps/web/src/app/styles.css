@@ -1,1 +1,18 @@
 @import "tailwindcss";
+
+:root {
+  --app-safe-top: calc(
+    var(--tg-viewport-safe-area-inset-top, 0px) +
+      var(--tg-viewport-content-safe-area-inset-top, 0px)
+  );
+  --app-safe-bottom: calc(
+    var(--tg-viewport-safe-area-inset-bottom, 0px) +
+      var(--tg-viewport-content-safe-area-inset-bottom, 0px)
+  );
+}
+
+body {
+  padding-top: var(--app-safe-top);
+  padding-bottom: var(--app-safe-bottom);
+  min-height: var(--tg-viewport-stable-height, 100dvh);
+}

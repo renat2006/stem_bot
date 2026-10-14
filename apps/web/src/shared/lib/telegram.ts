@@ -7,10 +7,20 @@ import {
   miniApp,
   retrieveRawInitData,
   swipeBehavior,
+  themeParams,
   viewport,
 } from "@tma.js/sdk-react";
 
 let initialized = false;
+
+export function getRawInitData(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return retrieveRawInitData() ?? "";
+  } catch {
+    return "";
+  }
+}
 
 export function initTelegramSdk() {
   if (initialized || typeof window === "undefined") return;
@@ -18,8 +28,17 @@ export function initTelegramSdk() {
 
   try {
     init();
+    if (themeParams.mount.isAvailable()) {
+      themeParams.mount();
+      if (themeParams.bindCssVars.isAvailable()) {
+        themeParams.bindCssVars();
+      }
+    }
     if (miniApp.mount.isAvailable()) {
       miniApp.mount();
+      if (miniApp.bindCssVars.isAvailable()) {
+        miniApp.bindCssVars();
+      }
       miniApp.ready();
     }
     if (viewport.mount.isAvailable()) {
@@ -46,17 +65,10 @@ export function useTelegram() {
     initTelegramSdk();
   }, []);
 
-  let rawInitData = "";
-  try {
-    rawInitData = retrieveRawInitData() ?? "";
-  } catch {
-    rawInitData = "";
-  }
-
   return {
     isTelegram: typeof window !== "undefined" && isTMA(),
     user: initData.user(),
-    initData: rawInitData,
+    initData: getRawInitData(),
     hapticSuccess: () => {
       if (hapticFeedback.notificationOccurred.isAvailable()) {
         hapticFeedback.notificationOccurred("success");

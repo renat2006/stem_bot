@@ -5,12 +5,14 @@ import { gameRouter } from "./modules/game/routes.js";
 import { teamRouter } from "./modules/team/routes.js";
 import { adminRouter } from "./modules/admin/routes.js";
 import { createTelegramBot } from "./bot/index.js";
+import { tmaAuthMiddleware } from "./shared/telegram-auth.js";
 
 const app = new Hono();
 
 app.use("/api/*", cors());
-
 app.get("/api/health", (c) => c.json({ status: "ok" }));
+
+app.use("/api/*", tmaAuthMiddleware);
 app.route("/api/game", gameRouter);
 app.route("/api/team", teamRouter);
 app.route("/api/admin", adminRouter);

@@ -5,6 +5,7 @@ import type {
   Team,
   TeamComputedStats,
 } from "@stem/shared";
+import { getRawInitData } from "../lib/telegram.js";
 
 export interface TeamWithStats extends Team {
   computedStats: TeamComputedStats;
@@ -25,9 +26,20 @@ export interface GameSnapshotResponse {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const rawInitData = getRawInitData();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (rawInitData) {
+    headers["Authorization"] = `tma ${rawInitData}`;
+  }
+
   const res = await fetch(path, {
-    headers: { "Content-Type": "application/json" },
     ...options,
+    headers: {
+      ...headers,
+      ...(options?.headers as Record<string, string> | undefined),
+    },
   });
   const data = await res.json();
   if (!res.ok) {

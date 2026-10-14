@@ -6,10 +6,17 @@ export interface TeamWithStats extends Team {
 
 export type TemplateSummary = Pick<GameTemplate, "id" | "title" | "theme" | "currencyName" | "currencyIcon">;
 
+export interface ViewerContext {
+  isAdmin: boolean;
+  teamId: string | null;
+  isProduction: boolean;
+}
+
 export interface GameSnapshot {
   gameState: GameState;
   template: GameTemplate;
   availableTemplates: TemplateSummary[];
   balanceReport: BalanceReport;
   teams: TeamWithStats[];
+  viewer?: ViewerContext;
 }

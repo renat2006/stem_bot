@@ -5,6 +5,20 @@
 
 ## [Unreleased]
 
+### Added (2026-10-14) — дизайн-система «Конструкт» (v2) и механики кабинета участника
+- **Дизайн-система «Конструкт» (`apps/web`, `docs/design/`)**:
+  - Подключены шрифты `IBM Plex Sans` + `IBM Plex Mono` (`tabular-nums`), трёхслойная система токенов (Telegram `light/dark`, оболочка `pos/neg/warn`, акцентные темы событий `neurofauna`, `startup`, `airship`) в `apps/web/src/app/styles.css`.
+  - Реализованы безрастровые CSS-примитивы: `StatGlyph` (5 геометрических форм `tri`, `up`, `sq`, `hex`, `dia`), `Coin`, `DeltaChip` (`StatDeltaList`), `StatMeter` (шкала от −4 до +7 с порогами и режимом сравнения До/После), `StepBlocks` (формула шага из блоков), `TierBars`, `BuySlots`, `ModuleCard`, `BottomSheet`, `ToastWithUndo`.
+  - Сохранены спецификации дизайн-ханд-оффа в `docs/design/` (`COMPONENTS.md`, `BOT_MESSAGES.md`, `HANDOFF_README.md`, `tokens.json`).
+- **Экраны кабинета участника C1–C8 (`apps/web/src/pages/team-dashboard`)**:
+  - **C1 Вход и 3-шаговый Онбординг** (`join`, `onb`) с интерактивными иллюстрациями критериев, замены слота и шкалы порогов.
+  - **C2 Команда** (`home`): кольцо таймера фазы `PhaseRing` + `PhaseRail`, карточка команды с местом в рейтинге и слотами покупок, интерактивная схема сборки по `grid-template-areas` с ядром (`core`), шкалы характеристик с порогами, блок шага + мини-трек с точками соперников, карточка дополнительного модуля («Поле событий: Засуха» / «Заказы: Пилот для банка»).
+  - **C3 Общий рынок & C4 BottomSheet карточки** (`market`): фильтры по слотам и «По карману», лестница тиров, индикаторы остатка (`stockDots`), превью влияния каждой карты на шаг хода; детальный BottomSheet сравнения «СЕЙЧАС → СТАНЕТ» со штриховкой прибавляемых/теряемых ячеек шкалы и предупреждением о сгорающих блоках шага.
+  - **C6 Трек и рейтинг** (`track`) с прогнозом хода и **C8 Правила** (`rules`) с живым поиском и автогенерацией правил из конфигурации `GameTemplate`.
+- **Игровое ядро и API (`packages/shared`, `apps/server`)**:
+  - В `@stem/shared` добавлены `calculateTeamStep`, `previewCardEffect`, `evaluateBuyState`, пороговые бонусы шага (`stepThresholds`), тиры и остатки карт (`tier`, `stock`), модуль `extraModule`, а также второй полноценный пресет **«Стартап за день»** (`STARTUP_DAY_TEMPLATE`, механика «Заказы» + рынок команд).
+  - На сервере (`@stem/server`) реализован учёт остатков карт на общем рынке (`cardStockLeft`, `cardSoldTo`), эндпоинт отмены покупки `POST /api/team/undo-purchase` и эндпоинт предложения карты капитану `POST /api/team/propose-card`, а также проверка `dayAvailable` при покупке свойства.
+
 ### Added (2026-10-14) — продакшн-деплой
 - **Docker-образ**: distroless Node 22, non-root, один процесс отдаёт API, Mini App и вебхук бота; сервер собирается esbuild в один бандл.
 - **Deploy workflow**: CI → сборка образа в GHCR (SBOM, build provenance) → деплой по SSH-ключу с forced-command → публичный smoke-тест; GitHub Release получает web/server/deploy-бандлы и `SHA256SUMS`; workflow **Rollback**.

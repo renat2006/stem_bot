@@ -1,23 +1,120 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @theme inline {
-  --color-bg: var(--tg-theme-bg-color, light-dark(#ffffff, #17212b));
-  --color-secondary: var(--tg-theme-secondary-bg-color, light-dark(#f0f0f5, #0e1621));
-  --color-surface: var(--tg-theme-section-bg-color, light-dark(#ffffff, #17212b));
-  --color-separator: var(--tg-theme-section-separator-color, light-dark(#e3e3e8, #2b3947));
-  --color-text: var(--tg-theme-text-color, light-dark(#000000, #f5f5f5));
-  --color-subtitle: var(--tg-theme-subtitle-text-color, light-dark(#707579, #a0acb6));
-  --color-hint: var(--tg-theme-hint-color, light-dark(#999999, #708499));
-  --color-accent: var(--tg-theme-accent-text-color, light-dark(#2481cc, #6ab2f2));
-  --color-button: var(--tg-theme-button-color, light-dark(#2481cc, #5288c1));
-  --color-button-text: var(--tg-theme-button-text-color, #ffffff);
-  --color-destructive: var(--tg-theme-destructive-text-color, light-dark(#e53935, #ec3942));
-  --color-positive: light-dark(#2e9d4f, #5bc77a);
-  --color-warning: light-dark(#c77700, #f0b44c);
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-bg: var(--bg);
+  --color-sf: var(--sf);
+  --color-sf2: var(--sf2);
+  --color-fg: var(--fg);
+  --color-mu: var(--mu);
+  --color-ln: var(--ln);
+  --color-tg: var(--tg);
+  --color-ac: var(--ac);
+  --color-ac2: var(--ac2);
+  --color-acfg: var(--acfg);
+  --color-coin: var(--coin);
+  --color-pos: var(--pos);
+  --color-neg: var(--neg);
+  --color-warn: var(--warn);
+
+  --color-secondary: var(--sf2);
+  --color-surface: var(--sf);
+  --color-separator: var(--ln);
+  --color-text: var(--fg);
+  --color-subtitle: var(--mu);
+  --color-hint: var(--mu);
+  --color-accent: var(--ac);
+  --color-button: var(--ac);
+  --color-button-text: var(--acfg);
+  --color-destructive: var(--neg);
+  --color-positive: var(--pos);
+  --color-warning: var(--warn);
+}
+
+:root,
+[data-tg="light"] {
+  color-scheme: light;
+  --bg: var(--tg-theme-bg-color, #f4f5f6);
+  --sf: var(--tg-theme-section-bg-color, #ffffff);
+  --sf2: var(--tg-theme-secondary-bg-color, #eceef0);
+  --fg: var(--tg-theme-text-color, #14171a);
+  --mu: var(--tg-theme-hint-color, #58616b);
+  --ln: var(--tg-theme-section-separator-color, #dde1e5);
+  --tg: var(--tg-theme-header-bg-color, #ffffff);
+  --pos: oklch(0.48 0.13 150);
+  --neg: oklch(0.52 0.18 25);
+  --warn: oklch(0.56 0.15 55);
+  --scrim: rgba(10, 14, 18, 0.42);
+  --coin2: rgba(255, 255, 255, 0.4);
+  --acfg: #ffffff;
+  --ac: oklch(0.5 0.13 150);
+  --ac2: oklch(0.76 0.14 150);
+  --coin: oklch(0.5 0.13 150);
+}
+
+[data-tg="dark"] {
+  color-scheme: dark;
+  --bg: var(--tg-theme-bg-color, #0f1214);
+  --sf: var(--tg-theme-section-bg-color, #181c1f);
+  --sf2: var(--tg-theme-secondary-bg-color, #23282c);
+  --fg: var(--tg-theme-text-color, #eef1f3);
+  --mu: var(--tg-theme-hint-color, #9aa3ad);
+  --ln: var(--tg-theme-section-separator-color, #2e353a);
+  --tg: var(--tg-theme-header-bg-color, #14181b);
+  --pos: oklch(0.78 0.14 150);
+  --neg: oklch(0.72 0.16 25);
+  --warn: oklch(0.8 0.14 65);
+  --scrim: rgba(0, 0, 0, 0.55);
+  --coin2: rgba(0, 0, 0, 0.25);
+  --acfg: #0b0f0d;
+  --ac: oklch(0.76 0.14 150);
+  --ac2: oklch(0.5 0.13 150);
+  --coin: oklch(0.76 0.14 150);
+}
+
+[data-event="neurofauna"][data-tg="light"],
+[data-event="neurofauna"]:not([data-tg]) {
+  --ac: oklch(0.5 0.13 150);
+  --ac2: oklch(0.76 0.14 150);
+  --coin: oklch(0.5 0.13 150);
+}
+
+[data-event="neurofauna"][data-tg="dark"] {
+  --ac: oklch(0.76 0.14 150);
+  --ac2: oklch(0.5 0.13 150);
+  --coin: oklch(0.76 0.14 150);
+}
+
+[data-event="startup"][data-tg="light"],
+[data-event="startup"]:not([data-tg]) {
+  --ac: oklch(0.5 0.16 270);
+  --ac2: oklch(0.76 0.12 270);
+  --coin: oklch(0.58 0.13 85);
+}
+
+[data-event="startup"][data-tg="dark"] {
+  --ac: oklch(0.76 0.12 270);
+  --ac2: oklch(0.5 0.16 270);
+  --coin: oklch(0.8 0.13 85);
+}
+
+[data-event="airship"][data-tg="light"],
+[data-event="airship"]:not([data-tg]) {
+  --ac: oklch(0.52 0.15 230);
+  --ac2: oklch(0.75 0.13 230);
+  --coin: oklch(0.58 0.14 80);
+}
+
+[data-event="airship"][data-tg="dark"] {
+  --ac: oklch(0.75 0.13 230);
+  --ac2: oklch(0.52 0.15 230);
+  --coin: oklch(0.8 0.14 80);
 }
 
 :root {
-  color-scheme: light dark;
   --app-safe-top: calc(
     var(--tg-viewport-safe-area-inset-top, 0px) +
     var(--tg-viewport-content-safe-area-inset-top, 0px)
@@ -28,8 +125,24 @@
   );
 }
 
+html {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
 body {
+  background: var(--bg);
+  color: var(--fg);
   padding-top: var(--app-safe-top);
   padding-bottom: var(--app-safe-bottom);
   min-height: var(--tg-viewport-stable-height, 100dvh);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none;
+    animation: none;
+  }
 }

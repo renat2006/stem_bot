@@ -12,19 +12,20 @@
 
 | Модуль | Статус | Где |
 | :--- | :--- | :--- |
-| Zod-схемы шаблона, команды, состояния | готово (модель неполная, см. §3) | `packages/shared/src/schema.ts` |
-| Расчёт статов команды | готово, покрыто тестами | `packages/shared/src/engine.ts` |
+| Zod-схемы шаблона, команды, состояния | готово (глифы, пороги шага, тиры, остатки, extraModule) | `packages/shared/src/schema.ts` |
+| Расчёт статов, формулы шага и превью До/После | готово (`calculateTeamStats`, `calculateTeamStep`, `previewCardEffect`, `evaluateBuyState`), 12 тестов | `packages/shared/src/engine.ts` |
 | Статический валидатор баланса | прототип (эвристика стат/цена) | `packages/shared/src/engine.ts` |
-| Пресеты НейроФауна, АэроТех | демо-данные, НейроФауна неполная и местами неточная | `packages/shared/src/presets.ts` |
+| Пресеты: НейроФауна, Стартап за день, АэроТех | 3 пресета с темами, порогами и доп. модулями (Поле событий / Заказы) | `packages/shared/src/presets.ts` |
 | Эталон правил оригинала + данные | готово | `docs/legacy/` |
-| API game/team/admin | прототип, in-memory, без ролей | `apps/server/src/modules/*` |
-| Проверка initData | готово (`init-data-node@2`, TTL 1 ч) | `apps/server/src/shared/telegram-auth.ts` |
-| Бот | только `/start` с кнопкой Mini App | `apps/server/src/bot/index.ts` |
-| Mini App: экран команды, админ-пульт | прототип UI, FSD, тема Telegram | `apps/web/src` |
+| Спецификация дизайн-системы «Конструкт» v2 | готово | `docs/design/` |
+| API game/team/admin + отмена покупки + предложение капитану | готово (in-memory, учёт остатков карт и `soldTo`) | `apps/server/src/modules/*` |
+| Проверка initData + `requireAdmin` | готово (`init-data-node@2`, TTL 1 ч) | `apps/server/src/shared/telegram-auth.ts` |
+| Бот | `/start` с кнопкой Mini App, webhook в prod | `apps/server/src/bot/index.ts` |
+| Mini App: Кабинет участника C1–C8 («Конструкт» v2) | готово (Вход, Онбординг, Команда, Схема сборки, Шкалы с порогами, Рынок, BottomSheet До/После, Undo-тост, Трек, Правила) | `apps/web/src` |
+| Mini App: Пульт админа | базовый прототип в стиле «Конструкт» | `apps/web/src/pages/admin-console` |
 | Тулинг и CI | готово: Biome, Steiger, Vitest, audit | `biome.json`, `.github/workflows/ci.yml` |
 | Агентские скиллы и MCP | готово | `.claude/skills/`, `.mcp.json` |
 | Продакшн-деплой (Docker, GHCR, Actions, Caddy, откат) | готово | `Dockerfile`, `deploy/`, `.github/workflows/deploy.yml`, `docs/DEPLOYMENT.md` |
-| Проверка ролей админа | готово | `apps/server/src/shared/telegram-auth.ts` |
 
 ## 3. Известные проблемы
 

@@ -20,10 +20,14 @@
 - **Никаких лишних комментариев**: код должен быть самодокументируемым за счёт точных имён типов, функций и переменных. Запрещено писать очевидные комментарии, JSDoc-воду, баннеры и закомментированный код.
 - **Минимализм и чистота репо**: не плодить пустые обёртки, лишние конфиги, временные файлы и неиспользуемые зависимости. Держать файлы компактными (ориентир до 150–200 строк), лаконичными и легко читаемыми.
 
-## Telegram Mini App (TWA) Standards
-- **Security**: Никогда не доверять `initDataUnsafe` на бэкенде. Все запросы от Mini App к API должны проходить валидацию подписи `initData` (HMAC-SHA256 с `BOT_TOKEN`).
-- **Native UX**: Использовать `@telegram-apps/sdk-react` (или официальный Telegram WebApp API), `BackButton`, `MainButton`, `HapticFeedback` и учёт Safe Area (`safe-area-inset-*`).
-- **Dev Tools**: Использовать локальные скиллы `/twa-audit` для проверки Mini App и `/pr-check` перед отправкой PR.
+## Telegram Mini App (TWA) Standards (Bot API 8.0–10.1 & `@tma.js/*` 2026)
+- **Актуальные пакеты**: использовать `@tma.js/sdk-react` v3 и `@tma.js/init-data-node` v2 (**НЕ** использовать устаревший скоуп `@telegram-apps/*`, который официально deprecated).
+- **Security**: никогда не доверять `initDataUnsafe` на бэкенде. Все запросы от Mini App к API должны проверяться через `@tma.js/init-data-node` (`validate` / `isValid` / `isValid3rd`).
+- **Native UX & Bot API 8.0–10.1**:
+  - Монтировать `miniApp`, `viewport` (`bindCssVars`, `expand`, `requestFullscreen`), `swipeBehavior.disableVertical()` (чтобы свайп внутри игры не закрывал аппку).
+  - Использовать нативные контролы: `mainButton`, `secondaryButton`, `backButton`, `hapticFeedback`, `deviceStorage` / `secureStorage` (Bot API 9.0+).
+  - Учитывать CSS-переменные отступов `--tg-viewport-safe-area-inset-*` и `--tg-viewport-content-safe-area-inset-*`.
+- **Dev Tools**: использовать локальные скиллы `/twa-audit` и `/pr-check`.
 
 ## Commit Rules
 - Писать чистые коммит-сообщения в формате Conventional Commits без каких-либо водяных знаков, ссылок на AI и строк `Co-Authored-By`.

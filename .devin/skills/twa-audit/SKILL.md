@@ -1,6 +1,6 @@
 ---
 name: twa-audit
-description: Аудит безопасности, UX и производительности Telegram Mini App (initData, SDK, Safe Area, MainButton, Haptics)
+description: Аудит Telegram Mini App по актуальным стандартам Bot API 8.0-10.1 и @tma.js/sdk-react v3
 allowed-tools:
   - read
   - grep
@@ -11,21 +11,21 @@ triggers:
   - model
 ---
 
-Проведи комплексный аудит Telegram Mini App (TWA) и Bot-интеграции по следующим критериям:
+Проведи комплексный аудит Telegram Mini App (TWA) и Bot-интеграции по актуальным стандартам Telegram Bot API (8.0 — 10.1) и `@tma.js/*`:
 
-1. **Безопасность (`initData` Validation)**:
-   - Убедись, что бэкенд НЕ доверяет `initDataUnsafe` напрямую от клиента.
-   - Проверь наличие серверной криптографической проверки HMAC-SHA256 подписи `initData` через токен бота (или библиотеку `@telegram-apps/init-data-node` / `aiogram.utils.web_app`).
-   - Проверь контроль свежести `auth_date` для защиты от replay-атак.
+1. **Актуальность SDK и пакетов**:
+   - Убедись, что используются актуальные пакеты `@tma.js/sdk-react` (v3+) и `@tma.js/init-data-node` (v2+), а НЕ устаревшие (deprecated) `@telegram-apps/*` или голый `window.Telegram.WebApp` без типизации.
 
-2. **Нативный UX Telegram**:
-   - Вызываются ли `WebApp.ready()` и `WebApp.expand()` при старте приложения?
-   - Используются ли нативные контролы (`MainButton`, `BackButton`, `HapticFeedback`) вместо кастомных дублирующих кнопок там, где это уместно?
-   - Учитываются ли CSS-переменные темы Telegram (`--tg-theme-*`) и безопасные зоны экрана (`safe-area-inset-*`, `contentSafeAreaInset`)?
+2. **Безопасность (`initData` Validation)**:
+   - Бэкенд НЕ должен доверять клиентским данным без проверки подписи через `@tma.js/init-data-node` (`validate` / `isValid` с проверкой `expiresIn`).
 
-3. **Производительность в WebView**:
-   - Нет ли блокирующих рендер тяжёлых бандлов при первом открытии?
-   - Настроен ли code-splitting / lazy-loading для второстепенных экранов?
-   - Корректно ли обрабатываются состояния загрузки (Skeleton / оптимистичные обновления)?
+3. **Нативный UX Telegram (Bot API 8.0–10.1)**:
+   - Вызываются ли `init()`, `miniApp.mount()`, `miniApp.ready()`, `viewport.mount()`, `viewport.expand()`, `viewport.bindCssVars()`?
+   - Отключены ли вертикальные свайпы закрытия (`swipeBehavior.disableVertical()`), чтобы скролл карточек и конструктора не сворачивал Mini App?
+   - Учитываются ли `safeAreaInsets` и `contentSafeAreaInsets` (`--tg-viewport-safe-area-inset-*`, `--tg-viewport-content-safe-area-inset-*`), особенно при использовании `viewport.requestFullscreen()`?
+   - Используются ли `mainButton` (`BottomButton`), `secondaryButton`, `backButton`, `hapticFeedback`, а при необходимости локального хранения — `deviceStorage` / `secureStorage` (Bot API 9.0+)?
 
-Выдай чёткий отчёт со списком найденных проблем (Severity: HIGH / MEDIUM / LOW), путями к файлам и конкретными исправлениями.
+4. **Чистота архитектуры (FSD) и производительность**:
+   - Соблюдается ли иерархия слоёв FSD (`app` → `pages` → `widgets` → `features` → `entities` → `shared`) без лишних комментариев и мусорного кода?
+
+Выдай краткий отчёт со списком найденных проблем (Severity: HIGH / MEDIUM / LOW), путями к файлам и конкретными исправлениями.

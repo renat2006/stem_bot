@@ -1,43 +1,76 @@
 import { useEffect } from "react";
+import {
+  hapticFeedback,
+  init,
+  initData,
+  isTMA,
+  miniApp,
+  retrieveRawInitData,
+  swipeBehavior,
+  viewport,
+} from "@tma.js/sdk-react";
 
-interface TelegramWebApp {
-  initData: string;
-  initDataUnsafe?: {
-    user?: {
-      id: number;
-      first_name: string;
-      username?: string;
-    };
-  };
-  ready: () => void;
-  expand: () => void;
-  HapticFeedback?: {
-    impactOccurred: (style: "light" | "medium" | "heavy") => void;
-    notificationOccurred: (type: "error" | "success" | "warning") => void;
-  };
-}
+let initialized = false;
 
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: TelegramWebApp;
-    };
+export function initTelegramSdk() {
+  if (initialized || typeof window === "undefined") return;
+  if (!isTMA()) return;
+
+  try {
+    init();
+    if (miniApp.mount.isAvailable()) {
+      miniApp.mount();
+      miniApp.ready();
+    }
+    if (viewport.mount.isAvailable()) {
+      void viewport.mount().then(() => {
+        if (viewport.expand.isAvailable()) viewport.expand();
+        if (viewport.bindCssVars.isAvailable()) viewport.bindCssVars();
+      });
+    }
+    if (swipeBehavior.mount.isAvailable()) {
+      swipeBehavior.mount();
+      if (swipeBehavior.disableVertical.isAvailable()) {
+        swipeBehavior.disableVertical();
+      }
+    }
+    initData.restore();
+    initialized = true;
+  } catch {
+    initialized = false;
   }
 }
 
 export function useTelegram() {
-  const tg = typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
-
   useEffect(() => {
-    tg?.ready();
-    tg?.expand();
-  }, [tg]);
+    initTelegramSdk();
+  }, []);
+
+  let rawInitData = "";
+  try {
+    rawInitData = retrieveRawInitData() ?? "";
+  } catch {
+    rawInitData = "";
+  }
 
   return {
-    tg,
-    user: tg?.initDataUnsafe?.user,
-    initData: tg?.initData ?? "",
-    hapticSuccess: () => tg?.HapticFeedback?.notificationOccurred("success"),
-    hapticTap: () => tg?.HapticFeedback?.impactOccurred("light"),
+    isTelegram: typeof window !== "undefined" && isTMA(),
+    user: initData.user(),
+    initData: rawInitData,
+    hapticSuccess: () => {
+      if (hapticFeedback.notificationOccurred.isAvailable()) {
+        hapticFeedback.notificationOccurred("success");
+      }
+    },
+    hapticTap: () => {
+      if (hapticFeedback.impactOccurred.isAvailable()) {
+        hapticFeedback.impactOccurred("light");
+      }
+    },
+    requestFullscreen: () => {
+      if (viewport.requestFullscreen.isAvailable()) {
+        void viewport.requestFullscreen();
+      }
+    },
   };
 }

@@ -13,6 +13,7 @@ permissions:
 jobs:
   rollback:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: production
       url: ${{ vars.PUBLIC_URL }}

@@ -1,63 +1,73 @@
-# Архитектура STEM Game Constructor (Fullstack TypeScript Monorepo)
+# Архитектура STEM Game Constructor
 
-## 1. Технологический стек
+## 1. Монорепозиторий (npm workspaces)
 
-Мы используем современный **Fullstack TypeScript Monorepo** (`npm workspaces`) с единой сквозной типизацией между Telegram Mini App, Backend API и Telegram-ботом:
+```
+packages/shared   игровое ядро: схемы, расчёты, баланс, пресеты (без I/O)
+apps/server       Hono API + grammY бот, доменные модули
+apps/web          Telegram Mini App (React, FSD)
+```
 
-- **Monorepo**: `npm workspaces` (`packages/shared`, `apps/server`, `apps/web`)
-- **`packages/shared`**:
-  - Единые схемы данных и валидации на **Zod**.
-  - Декларативное ядро конструктора игр (`GameConfig`, `StatDefinition`, `SlotDefinition`, `CardItem`, `PerkProperty`, `BoardCell`, `BalanceReport`).
-  - Математический движок расчёта характеристик сборки и валидатор экономического баланса.
+Сквозная типизация: типы — `z.infer` от схем `packages/shared`; сервер и клиент импортируют `@stem/shared` напрямую (TS-исходники, без сборки пакета).
 
-## 1.1. Чистая структура (Feature-Sliced Design & Domain Modules)
+Инструменты: TypeScript 5.9 (strict, `noUncheckedIndexedAccess`), Biome (lint + format), Steiger (границы FSD), Vitest, GitHub Actions (lint → typecheck → test → build → `npm audit --omit=dev`).
 
-Репозиторий следует принципам минимализма, отсутствия лишних комментариев и строгой модульности:
+## 2. Игровое ядро (`packages/shared`)
 
-- **`apps/web/src/` (FSD — Feature-Sliced Design)**:
-  - `app/` — инициализация приложения, провайдеры, глобальные стили.
-  - `pages/` — экраны приложения (`team-dashboard`, `admin-console`, `constructor-studio`).
-  - `widgets/` — самостоятельные блоки интерфейса (сборка по слотам, витрина магазина, таблица команд, отчёт баланса).
-  - `features/` — пользовательские и админские сценарии (покупка/замена детали, начисление валюты, переключение фазы).
-  - `entities/` — бизнес-сущности (`team`, `game-template`, `card`).
-  - `shared/` — переиспользуемые UI-примитивы, API-клиент, хук Telegram WebApp (`useTelegram`).
-  - *Правило импортов*: только сверху вниз (`pages` → `widgets` → `features` → `entities` → `shared`).
-- **`apps/server/src/` (Domain-Modular Backend)**:
-  - `modules/game/` — состояние игры, шаблоны, проверка баланса.
-  - `modules/team/` — команды, экипировка карточек, расчёт статов.
-  - `modules/admin/` — управление днями/фазами, выдача валюты, модификаторы.
-  - `bot/` — Telegram-бот (`grammY`) и кнопка запуска Mini App.
-  - `shared/` — валидация подписи `Telegram.WebApp.initData` и хранилище.
-- **`apps/server` (Backend API + Telegram Bot)**:
-  - **Hono** — ультрабыстрый, легковесный и строго типизированный HTTP-фреймворк.
-  - **grammY** — современный TypeScript-фреймворк для Telegram Bot API (уведомления капитанам, быстрые команды, запуск Mini App).
-  - **Безопасность TWA**: криптографическая проверка подписи `Telegram.WebApp.initData` (HMAC-SHA256 через `BOT_TOKEN`).
-- **`apps/web` (Telegram Mini App — Игрок + Админ-панель)**:
-  - **React 19 + Vite 6 + TypeScript + Tailwind CSS v4**.
-  - Нативная интеграция с Telegram WebApp (`ready()`, `expand()`, тема Telegram, HapticFeedback).
-  - Два режима внутри одного Mini App (переключаются по роли пользователя + удобный dev-переключатель для локальной отладки):
-    1. **Кабинет Команды (Егор)**: дашборд команды, визуальный конструктор артефакта/существа по слотам, магазин компонентов с превью изменения статов, история транзакций.
-    2. **Пульт Администратора и Конструктор (Ренат)**: управление фазами и днями, быстрое начисление валюты за STEM-задачи, таблица всех команд, применение клеток поля, настройка шаблона игры и проверка баланса.
+Любая игра описывается данными `GameTemplate`:
 
----
+- **Метаданные**: тема, валюта (`currencyName`, `currencyIcon`), `totalDays`, трек (`trackName`, `trackMax`), дневной лимит покупок, причины начислений.
+- **Характеристики** (`stats`) и **слоты** (`slots`) — произвольные списки.
+- **Карточки** (`cards`): слот, цена, день открытия, модификаторы статов, `trackBonus`.
+- **Свойства** (`perks`): цена, день, статы, условие `minStatsCondition`, текст эффекта.
+- **Клетки поля** (`boardCells`): тип, подпись, цена откупа.
 
-## 2. Как устроено универсальное ядро (Конструктор игр вместо хардкода)
+Функции: `calculateTeamStats` (карты + перк + модификаторы), `validateGameBalance` (статический анализ).
 
-Вместо жёстких колонок `speed / strength / survival` и `if name == "Молниеносное"`, любая игра описывается JSON/TS-конфигурацией **`GameTemplate`**:
+**Ограничение текущей модели:** правила шага, пороги клеток и эффекты перков пока не выражены данными — только текстом. Целевая декларативная модель (триггер → условие → эффект), уникальные экземпляры карт и вторая механика описаны в `docs/legacy/NEUROFAUNA_RULES.md` §5 и скилле `game-engine`.
 
-1. **Метаданные и Валюта**:
-   - Название сеттинга (например, *«НейроФауна: Эволюция»* или *«АэроТех: Нейро-Дирижабли»*).
-   - Название валюты (`ДНК`, `Энергоячейки`, `Кредиты`) и иконка.
-   - Количество дней смены (`totalDays: 5`), длина победного трека (`trackMax: 30`), лимит покупок в день (`dailyPurchaseLimit: 2`).
-2. **Динамические Характеристики (`stats`)**:
-   - Массив характеристик, например: `[{ id: "speed", label: "Скорость", icon: "⚡" }, ...]`.
-3. **Динамические Слоты сборки (`slots`)**:
-   - Массив слотов, например: `[{ id: "head", label: "Голова" }, ...]` или для дирижабля: `[{ id: "hull", label: "Корпус" }, { id: "engine", label: "Двигатель" }, { id: "neuro", label: "Нейроинтерфейс" }, ...]`.
-4. **Каталог Карточек (`cards`) и Свойств (`perks`)**:
-   - Каждая карточка привязана к `slotId`, дню открытия `dayAvailable`, цене `price` и словарю модификаторов статов `stats: Record<string, number>`.
-   - Свойства (перки) содержат структурированные условия активации (`conditions`: например, `minStat: { speed: 5 }`) вместо текстовых `if-else`.
-5. **Клетки физического поля (`boardCells`)**:
-   - Типизированные клетки (`resource`, `mutation`, `challenge`, `catastrophe`, `boost`) с правилами проверки характеристик и ценой откупа.
-6. **Модуль проверки баланса (`validateGameBalance`)**:
-   - Автоматически проверяет игровой шаблон по дням: стоимость карточек относительно суммы статов (Value-to-Price ratio), отсутствие доминирующих («имбовых») или бесполезных карт, заполненность всех слотов на каждый день и сходимость экономики за смену.
-   - Позволяет ML-модулю (Вася/Даня) генерировать новые сеттинги в формате `GameTemplate` и сразу прогонять их через детерминированный валидатор баланса.
+## 3. Сервер (`apps/server`)
+
+```
+src/index.ts                 Hono app, onError, запуск бота, graceful shutdown
+src/shared/telegram-auth.ts  middleware проверки initData → c.get("tmaInitData")
+src/shared/validate-json.ts  Zod-валидация тела запроса (400 { error, issues })
+src/shared/errors.ts         DomainError(message, status)
+src/shared/store.ts          in-memory хранилище (заменить на БД)
+src/modules/<domain>/routes.ts   HTTP: валидация входа → вызов сервиса → JSON
+src/modules/<domain>/service.ts  бизнес-логика, бросает DomainError
+src/bot/index.ts             grammY: /start, fallback callback, bot.catch
+```
+
+API (`/api/*`, заголовок `Authorization: tma <initData>`):
+
+| Метод | Путь | Назначение |
+| :--- | :--- | :--- |
+| GET | `/api/health` | проверка живости (без авторизации) |
+| GET | `/api/game/state` | снапшот: состояние, активный шаблон, список шаблонов, отчёт баланса, команды со статами |
+| POST | `/api/team/buy-card` · `/buy-perk` | покупка карты/свойства |
+| POST | `/api/admin/reward` · `/move-track` · `/game-state` · `/switch-template` | управление игрой |
+
+Безопасность и известные дыры (роли, `teamId` из body) — `docs/research/SECURITY.md`.
+
+## 4. Mini App (`apps/web`, Feature-Sliced Design)
+
+```
+app/        main.tsx (init SDK до рендера), App.tsx (вкладки, RunAction), styles.css (токены темы)
+pages/      team-dashboard, admin-console
+widgets/    team-summary, slot-build, shop, teams-board, balance-report
+features/   purchase, manage-team, control-shift   (UI + API действия)
+entities/   game (снапшот, типы, useGameSnapshot), team (StatGrid, TrackProgress), card (StatDeltaList)
+shared/     api (request/postJson с tma-заголовком), lib (Telegram SDK, RunAction), ui (Button, Badge, Section)
+```
+
+- Импорт только на слои ниже; слайс экспортирует только `index.ts`. Проверяет `npm run lint` (steiger). Правило `fsd/insignificant-slice` выключено: на старте многие слайсы используются один раз, но заложены под переиспользование (бот-админка, конструктор шаблонов).
+- Мутации: компонент фичи вызывает `run(() => api(...))`; `App` обрабатывает ошибку, haptics и перезагрузку снапшота.
+- Цвета — только токены Tailwind поверх `--tg-theme-*` (fallback `light-dark()`); safe area учитывается на `body`.
+
+## 5. Куда расти
+
+1. Декларативные правила ядра + полный пресет НейроФауны + симулятор баланса.
+2. БД (Drizzle + SQLite/PostgreSQL): команды, экземпляры карт, история валюты, админы, коды регистрации, сессии мероприятий (мультитенантность).
+3. Роли и привязка игрока к команде по `initData.user.id`.
+4. Генератор шаблонов (structured output по `GameTemplateSchema`) с repair-циклом через валидатор и симуляцию.

@@ -1,0 +1,1026 @@
+{
+  "source": "neurofauna_bot (legacy, Python/aiogram)",
+  "slots": {
+    "head": "Голова",
+    "body": "Туловище",
+    "front": "Передние части",
+    "back": "Задние части",
+    "tail": "Хвост",
+    "special": "Особая часть"
+  },
+  "bodyCards": [
+    {
+      "name": "Голова льва",
+      "slot": "head",
+      "speed": 0,
+      "strength": 2,
+      "survival": -1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Туловище льва",
+      "slot": "body",
+      "speed": 1,
+      "strength": 1,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Передние лапы льва",
+      "slot": "front",
+      "speed": -1,
+      "strength": 2,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Задние лапы льва",
+      "slot": "back",
+      "speed": 2,
+      "strength": 0,
+      "survival": -1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Хвост льва",
+      "slot": "tail",
+      "speed": 1,
+      "strength": 0,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Грива льва",
+      "slot": "special",
+      "speed": 0,
+      "strength": 1,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Голова носорога",
+      "slot": "head",
+      "speed": -1,
+      "strength": 2,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Туловище носорога",
+      "slot": "body",
+      "speed": -1,
+      "strength": 0,
+      "survival": 2,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Передние лапы носорога",
+      "slot": "front",
+      "speed": 0,
+      "strength": 1,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Задние лапы носорога",
+      "slot": "back",
+      "speed": 0,
+      "strength": 0,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Хвост носорога",
+      "slot": "tail",
+      "speed": 0,
+      "strength": 0,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Рог носорога",
+      "slot": "special",
+      "speed": 0,
+      "strength": 2,
+      "survival": -1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Голова хамелеона",
+      "slot": "head",
+      "speed": 1,
+      "strength": -1,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Туловище хамелеона",
+      "slot": "body",
+      "speed": -1,
+      "strength": 0,
+      "survival": 2,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Передние лапы хамелеона",
+      "slot": "front",
+      "speed": 2,
+      "strength": 0,
+      "survival": -1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Задние лапы хамелеона",
+      "slot": "back",
+      "speed": 0,
+      "strength": 0,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Хвост хамелеона",
+      "slot": "tail",
+      "speed": 1,
+      "strength": 0,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Язык хамелеона",
+      "slot": "special",
+      "speed": 1,
+      "strength": 1,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Голова акулы",
+      "slot": "head",
+      "speed": 0,
+      "strength": 2,
+      "survival": -1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Туловище акулы",
+      "slot": "body",
+      "speed": 2,
+      "strength": 0,
+      "survival": -1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Грудные плавники акулы",
+      "slot": "front",
+      "speed": 1,
+      "strength": 0,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Брюшные плавники акулы",
+      "slot": "back",
+      "speed": 2,
+      "strength": -1,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Хвостовой плавник акулы",
+      "slot": "tail",
+      "speed": 2,
+      "strength": 0,
+      "survival": -1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Голова скорпиона",
+      "slot": "head",
+      "speed": -1,
+      "strength": 1,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Туловище скорпиона",
+      "slot": "body",
+      "speed": -1,
+      "strength": 0,
+      "survival": 2,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Клешни скорпиона",
+      "slot": "front",
+      "speed": 0,
+      "strength": 1,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Лапы скорпиона",
+      "slot": "back",
+      "speed": 1,
+      "strength": 0,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Хвост-жало скорпиона",
+      "slot": "tail",
+      "speed": -1,
+      "strength": 2,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Панцирь скорпиона",
+      "slot": "special",
+      "speed": 0,
+      "strength": -1,
+      "survival": 2,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Голова крокодила",
+      "slot": "head",
+      "speed": 0,
+      "strength": 2,
+      "survival": -1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Туловище крокодила",
+      "slot": "body",
+      "speed": 0,
+      "strength": 0,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Передние лапы крокодила",
+      "slot": "front",
+      "speed": -1,
+      "strength": 1,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Задние лапы крокодила",
+      "slot": "back",
+      "speed": 0,
+      "strength": 0,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Хвост крокодила",
+      "slot": "tail",
+      "speed": 1,
+      "strength": 1,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Чешуя крокодила",
+      "slot": "special",
+      "speed": 0,
+      "strength": -1,
+      "survival": 2,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Голова попугая",
+      "slot": "head",
+      "speed": 1,
+      "strength": -1,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Туловище попугая",
+      "slot": "body",
+      "speed": 1,
+      "strength": 0,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Крылья попугая",
+      "slot": "front",
+      "speed": 2,
+      "strength": 0,
+      "survival": -1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Лапы попугая",
+      "slot": "back",
+      "speed": 0,
+      "strength": 0,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Хвост попугая",
+      "slot": "tail",
+      "speed": 1,
+      "strength": 0,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Клюв попугая",
+      "slot": "special",
+      "speed": 0,
+      "strength": 1,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Голова осьминога",
+      "slot": "head",
+      "speed": 0,
+      "strength": 0,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Туловище осьминога",
+      "slot": "body",
+      "speed": 1,
+      "strength": -1,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Щупальца А осьминога",
+      "slot": "front",
+      "speed": 0,
+      "strength": 1,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Щупальца Б осьминога",
+      "slot": "back",
+      "speed": 2,
+      "strength": 0,
+      "survival": -1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Присоски осьминога",
+      "slot": "special",
+      "speed": 0,
+      "strength": 1,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Чернильный мешок осьминога",
+      "slot": "special",
+      "speed": -1,
+      "strength": 0,
+      "survival": 2,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Голова черепахи",
+      "slot": "head",
+      "speed": -1,
+      "strength": 0,
+      "survival": 2,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Панцирь черепахи",
+      "slot": "special",
+      "speed": 0,
+      "strength": -1,
+      "survival": 2,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Передние лапы черепахи",
+      "slot": "front",
+      "speed": 0,
+      "strength": 0,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Задние лапы черепахи",
+      "slot": "back",
+      "speed": 1,
+      "strength": 0,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Хвост черепахи",
+      "slot": "tail",
+      "speed": 0,
+      "strength": 1,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Шея черепахи",
+      "slot": "special",
+      "speed": 0,
+      "strength": 1,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Голова крысы",
+      "slot": "head",
+      "speed": 1,
+      "strength": 0,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Туловище крысы",
+      "slot": "body",
+      "speed": 1,
+      "strength": 0,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Передние лапы крысы",
+      "slot": "front",
+      "speed": 1,
+      "strength": -1,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Задние лапы крысы",
+      "slot": "back",
+      "speed": 2,
+      "strength": 0,
+      "survival": -1,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Хвост крысы",
+      "slot": "tail",
+      "speed": 0,
+      "strength": 0,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 1,
+      "day_available": 1
+    },
+    {
+      "name": "Зубы крысы",
+      "slot": "special",
+      "speed": 1,
+      "strength": 1,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Бивни мамонта",
+      "slot": "head",
+      "speed": 0,
+      "strength": 2,
+      "survival": -1,
+      "spiral_bonus": 0,
+      "price": 3,
+      "day_available": 2
+    },
+    {
+      "name": "Спинной плавник дельфина",
+      "slot": "special",
+      "speed": 2,
+      "strength": -1,
+      "survival": 0,
+      "spiral_bonus": 0,
+      "price": 3,
+      "day_available": 2
+    },
+    {
+      "name": "Костяные наросты",
+      "slot": "body",
+      "speed": -1,
+      "strength": 0,
+      "survival": 2,
+      "spiral_bonus": 0,
+      "price": 3,
+      "day_available": 2
+    },
+    {
+      "name": "Когти орла",
+      "slot": "front",
+      "speed": 1,
+      "strength": 1,
+      "survival": -1,
+      "spiral_bonus": 0,
+      "price": 3,
+      "day_available": 2
+    },
+    {
+      "name": "Хвост гепарда",
+      "slot": "tail",
+      "speed": 2,
+      "strength": 0,
+      "survival": -1,
+      "spiral_bonus": 0,
+      "price": 3,
+      "day_available": 2
+    },
+    {
+      "name": "Броня жука",
+      "slot": "special",
+      "speed": 0,
+      "strength": -1,
+      "survival": 2,
+      "spiral_bonus": 0,
+      "price": 3,
+      "day_available": 2
+    },
+    {
+      "name": "Клыки тигра",
+      "slot": "head",
+      "speed": 0,
+      "strength": 3,
+      "survival": -2,
+      "spiral_bonus": 0,
+      "price": 5,
+      "day_available": 3
+    },
+    {
+      "name": "Реактивный хвост",
+      "slot": "tail",
+      "speed": 3,
+      "strength": 0,
+      "survival": -2,
+      "spiral_bonus": 0,
+      "price": 5,
+      "day_available": 3
+    },
+    {
+      "name": "Кожа рептилии",
+      "slot": "body",
+      "speed": 1,
+      "strength": -2,
+      "survival": 2,
+      "spiral_bonus": 0,
+      "price": 5,
+      "day_available": 3
+    },
+    {
+      "name": "Лапы гепарда",
+      "slot": "back",
+      "speed": 2,
+      "strength": 1,
+      "survival": -2,
+      "spiral_bonus": 0,
+      "price": 5,
+      "day_available": 3
+    },
+    {
+      "name": "Жало осы",
+      "slot": "special",
+      "speed": -2,
+      "strength": 2,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 5,
+      "day_available": 3
+    },
+    {
+      "name": "Голова мегалодона",
+      "slot": "head",
+      "speed": 1,
+      "strength": 3,
+      "survival": -3,
+      "spiral_bonus": 0,
+      "price": 6,
+      "day_available": 4
+    },
+    {
+      "name": "Панцирь стальной черепахи",
+      "slot": "special",
+      "speed": 1,
+      "strength": -3,
+      "survival": 3,
+      "spiral_bonus": 0,
+      "price": 6,
+      "day_available": 4
+    },
+    {
+      "name": "Турболапы",
+      "slot": "back",
+      "speed": 3,
+      "strength": -3,
+      "survival": 1,
+      "spiral_bonus": 0,
+      "price": 6,
+      "day_available": 4
+    },
+    {
+      "name": "Жало каракатицы",
+      "slot": "tail",
+      "speed": -2,
+      "strength": 2,
+      "survival": 2,
+      "spiral_bonus": 0,
+      "price": 6,
+      "day_available": 4
+    },
+    {
+      "name": "Чешуя дракона",
+      "slot": "body",
+      "speed": 2,
+      "strength": 1,
+      "survival": -3,
+      "spiral_bonus": 1,
+      "price": 8,
+      "day_available": 5
+    },
+    {
+      "name": "Плавники левиафана",
+      "slot": "special",
+      "speed": -3,
+      "strength": 2,
+      "survival": 2,
+      "spiral_bonus": 1,
+      "price": 8,
+      "day_available": 5
+    },
+    {
+      "name": "Крылья феникса",
+      "slot": "front",
+      "speed": 3,
+      "strength": -3,
+      "survival": 1,
+      "spiral_bonus": 1,
+      "price": 8,
+      "day_available": 5
+    },
+    {
+      "name": "Голова дракона",
+      "slot": "head",
+      "speed": -2,
+      "strength": 3,
+      "survival": -3,
+      "spiral_bonus": 1,
+      "price": 12,
+      "day_available": 5
+    }
+  ],
+  "properties": [
+    {
+      "name": "Острые рефлексы",
+      "speed_bonus": 1,
+      "strength_bonus": 0,
+      "survival_bonus": 0,
+      "effect_text": "+1 скорость.",
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Мощные мышцы",
+      "speed_bonus": 0,
+      "strength_bonus": 1,
+      "survival_bonus": 0,
+      "effect_text": "+1 сила.",
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Толстая кожа",
+      "speed_bonus": 0,
+      "strength_bonus": 0,
+      "survival_bonus": 1,
+      "effect_text": "+1 выживание.",
+      "price": 2,
+      "day_available": 1
+    },
+    {
+      "name": "Бронированное",
+      "speed_bonus": 0,
+      "strength_bonus": 0,
+      "survival_bonus": 0,
+      "effect_text": "Один раз за день можно пропустить эффект клетки Катастрофы.",
+      "price": 3,
+      "day_available": 1
+    },
+    {
+      "name": "Доминирующее",
+      "speed_bonus": 0,
+      "strength_bonus": 0,
+      "survival_bonus": 0,
+      "effect_text": "В начале каждого хода, если команда на 1-м месте, получите +1 ДНК.",
+      "price": 3,
+      "day_available": 1
+    },
+    {
+      "name": "Молниеносное",
+      "speed_bonus": 0,
+      "strength_bonus": 0,
+      "survival_bonus": -2,
+      "effect_text": "Если скорость 5+: +2 по Спирали каждый ход. Штраф: -2 выживание.",
+      "price": 5,
+      "day_available": 2
+    },
+    {
+      "name": "Массивное",
+      "speed_bonus": -2,
+      "strength_bonus": 0,
+      "survival_bonus": 0,
+      "effect_text": "Если сила 5+: +2 по Спирали каждый ход. Штраф: -2 скорость.",
+      "price": 5,
+      "day_available": 2
+    },
+    {
+      "name": "Кочевое",
+      "speed_bonus": 0,
+      "strength_bonus": -2,
+      "survival_bonus": 0,
+      "effect_text": "Если скорость >=3 и выживание >=3: +2 по Спирали. Штраф: -2 сила.",
+      "price": 5,
+      "day_available": 2
+    },
+    {
+      "name": "Панцирное",
+      "speed_bonus": -3,
+      "strength_bonus": 0,
+      "survival_bonus": 0,
+      "effect_text": "Катастрофа даёт +3 по Спирали. Штраф: -3 скорость.",
+      "price": 5,
+      "day_available": 2
+    },
+    {
+      "name": "Плотоядное",
+      "speed_bonus": -2,
+      "strength_bonus": 0,
+      "survival_bonus": -3,
+      "effect_text": "На клетке Охоты дополнительно +3 по Спирали. Штраф: -3 выживание и -2 скорость.",
+      "price": 5,
+      "day_available": 2
+    },
+    {
+      "name": "Ядовитое",
+      "speed_bonus": -2,
+      "strength_bonus": 0,
+      "survival_bonus": -2,
+      "effect_text": "Если сила 6+: на Охоте дополнительно +8 ДНК. Штраф: -2 скорость и -2 выживание.",
+      "price": 5,
+      "day_available": 2
+    },
+    {
+      "name": "Регенерирующее",
+      "speed_bonus": 0,
+      "strength_bonus": -3,
+      "survival_bonus": 0,
+      "effect_text": "После штрафа в следующий ход базовый шаг +3 вместо +1. Штраф: -3 сила.",
+      "price": 5,
+      "day_available": 2
+    },
+    {
+      "name": "Прозрачное",
+      "speed_bonus": 0,
+      "strength_bonus": -3,
+      "survival_bonus": 0,
+      "effect_text": "На Охоте или Катастрофе можно отменить эффект текущей клетки. Штраф: -3 сила.",
+      "price": 5,
+      "day_available": 2
+    },
+    {
+      "name": "Ночное",
+      "speed_bonus": 0,
+      "strength_bonus": -2,
+      "survival_bonus": -3,
+      "effect_text": "На Мутации: получить +7 ДНК или заменить 2 части бесплатно. Штраф: -3 выживание и -2 сила.",
+      "price": 5,
+      "day_available": 2
+    },
+    {
+      "name": "Стайное",
+      "speed_bonus": 0,
+      "strength_bonus": 0,
+      "survival_bonus": 0,
+      "effect_text": "Если команда позади трёх или более команд: +2 по Спирали в этот ход.",
+      "price": 5,
+      "day_available": 2
+    }
+  ],
+  "spiralMax": 30,
+  "buyoffCosts": {
+    "hunt": 5,
+    "catastrophe": 5,
+    "predator": 5
+  },
+  "eventSquare": [
+    {
+      "position": 1,
+      "type": "start",
+      "label": "Старт"
+    },
+    {
+      "position": 2,
+      "type": "mutation",
+      "label": "Мутация"
+    },
+    {
+      "position": 3,
+      "type": "resource",
+      "label": "Ресурс"
+    },
+    {
+      "position": 4,
+      "type": "hunt",
+      "label": "Охота"
+    },
+    {
+      "position": 5,
+      "type": "catastrophe",
+      "label": "Катастрофа"
+    },
+    {
+      "position": 6,
+      "type": "predator",
+      "label": "Хищник"
+    },
+    {
+      "position": 7,
+      "type": "mutation",
+      "label": "Мутация"
+    },
+    {
+      "position": 8,
+      "type": "resource",
+      "label": "Ресурс"
+    },
+    {
+      "position": 9,
+      "type": "hunt",
+      "label": "Охота"
+    },
+    {
+      "position": 10,
+      "type": "predator",
+      "label": "Хищник"
+    },
+    {
+      "position": 11,
+      "type": "catastrophe",
+      "label": "Катастрофа"
+    },
+    {
+      "position": 12,
+      "type": "resource",
+      "label": "Ресурс"
+    },
+    {
+      "position": 13,
+      "type": "hunt",
+      "label": "Охота"
+    },
+    {
+      "position": 14,
+      "type": "predator",
+      "label": "Хищник"
+    },
+    {
+      "position": 15,
+      "type": "catastrophe",
+      "label": "Катастрофа"
+    },
+    {
+      "position": 16,
+      "type": "big_mutation",
+      "label": "Большая мутация"
+    }
+  ],
+  "rewardReasons": [
+    "Выполнен обязательный минимум дня",
+    "Вся команда участвует в работе",
+    "Объяснено решение преподавателю или ассистенту",
+    "Найдена и исправлена ошибка",
+    "Помогли или объяснили другой команде",
+    "Бонус за темп"
+  ]
+}

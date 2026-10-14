@@ -1,6 +1,59 @@
 name: stem-bot
 
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "5"
+
 services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file:
+      - ${SHARED_DIR}/db.env
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=40", "-c", "log_min_duration_statement=500"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    shm_size: 128m
+    mem_limit: 384m
+    cpus: 1.0
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file:
+      - ${SHARED_DIR}/db.env
+    environment:
+      PGHOST: db
+    volumes:
+      - ${BASE}/backups:/backups
+    entrypoint:
+      - sh
+      - -c
+      - |
+        export PGPASSWORD="$$POSTGRES_PASSWORD"
+        while true; do
+          pg_dump -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -Fc -f "/backups/daily-$$(date -u +%Y%m%d-%H%M).dump" \
+            && find /backups -name 'daily-*.dump' -mtime +14 -delete
+          sleep 86400
+        done
+    depends_on:
+      db:
+        condition: service_healthy
+    mem_limit: 128m
+    security_opt:
+      - no-new-privileges:true
+    logging: *logging
+
   app:
     image: ${APP_IMAGE}:${APP_TAG}
     restart: unless-stopped
@@ -10,6 +63,9 @@ services:
       APP_VERSION: ${APP_VERSION}
     ports:
       - "127.0.0.1:${APP_PORT}:3001"
+    depends_on:
+      db:
+        condition: service_healthy
     read_only: true
     tmpfs:
       - /tmp:size=16m
@@ -20,11 +76,7 @@ services:
     mem_limit: 512m
     cpus: 1.0
     pids_limit: 256
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
-        max-file: "5"
+    logging: *logging
     healthcheck:
       test:
         - CMD
@@ -33,5 +85,8 @@ services:
         - "fetch('http://127.0.0.1:3001/api/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
       interval: 15s
       timeout: 3s
-      start_period: 10s
+      start_period: 20s
       retries: 3
+
+volumes:
+  pgdata:

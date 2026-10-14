@@ -1,2 +1,12 @@
-export type { GameSnapshot, TeamWithStats, TemplateSummary } from "./model/types.js";
-export { useGameSnapshot } from "./model/use-game-snapshot.js";
+export type {
+  ConnectionStatus,
+  FeedEntry,
+  GameSnapshot,
+  LiveState,
+  ProposalInfo,
+  TeamMemberInfo,
+  TeamWithStats,
+  TemplateSummary,
+  ViewerInfo,
+} from "./model/types.js";
+export { useLiveGame } from "./model/use-live-game.js";

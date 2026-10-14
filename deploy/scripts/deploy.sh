@@ -14,11 +14,14 @@ flock -n 9 || die "another deploy is running"
 ACTOR="${DEPLOY_ACTOR:-unknown}"
 log "release ${RELEASE_SHA:-manual} ($APP_VERSION) by $ACTOR: tag=$APP_TAG"
 
-if [ -f "$REL/runtime.env" ]; then
-  install -m 600 "$REL/runtime.env" "$SHARED_DIR/runtime.env"
-  shred -u "$REL/runtime.env" 2>/dev/null || rm -f "$REL/runtime.env"
-fi
-[ -f "$SHARED_DIR/runtime.env" ] || die "runtime.env is missing"
+for env_file in runtime.env db.env; do
+  if [ -f "$REL/$env_file" ]; then
+    install -m 600 "$REL/$env_file" "$SHARED_DIR/$env_file"
+    shred -u "$REL/$env_file" 2>/dev/null || rm -f "$REL/$env_file"
+  fi
+  [ -f "$SHARED_DIR/$env_file" ] || die "$env_file is missing"
+done
+mkdir -p "$BASE/backups"
 
 if [ -f "$REL/.ghcr-token" ]; then
   need GHCR_USER
@@ -70,7 +73,18 @@ on_failure() {
 }
 trap on_failure ERR
 
+backup_before_deploy() {
+  local file
+  file="$BASE/backups/predeploy-$(date -u +%Y%m%d-%H%M%S).dump"
+  if compose ps --status running --services 2>/dev/null | grep -qx db; then
+    compose exec -T db sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' >"$file"
+    log "pre-deploy backup: $(basename "$file") ($(du -h "$file" | cut -f1))"
+  fi
+  find "$BASE/backups" -name 'predeploy-*.dump' | sort | head -n -10 | xargs -r rm -f
+}
+
 TARGET_TAG="$APP_TAG" TARGET_VERSION="$APP_VERSION"
+backup_before_deploy
 apply_app "$TARGET_TAG" "$TARGET_VERSION"
 "$REL/scripts/smoke.sh" "http://127.0.0.1:$APP_PORT" "$TARGET_VERSION"
 

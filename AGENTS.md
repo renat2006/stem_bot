@@ -34,5 +34,10 @@
 - **Security**: проверять `initData` через `tmaAuthMiddleware` и права админа через `requireAdmin`.
 - **Skills**: использовать профильные скиллы `/game-engine`, `/tma-frontend`, `/tma-security`, `/grammy-bot`, `/twa-audit`, `/pr-check`, `/handoff`.
 
+## Local Development
+- `npm run dev`: без `DATABASE_URL` сервер поднимает PGlite в `apps/server/.data/pglite`; бот не стартует без `BOT_POLLING=true` (не трогает прод-вебхук).
+- Играть за разных пользователей вне Telegram: `?as=<id>:<имя>` (например `?as=1:Ведущий` при `ADMIN_IDS=1`, `?as=101:Алиса`). В проде заголовок игнорируется.
+- Схема БД: `apps/server/src/db/schema.ts` → `npm run db:generate -w @stem/server` → коммит `apps/server/drizzle/`.
+
 ## Commit Rules
 - Писать чистые коммит-сообщения в формате Conventional Commits без каких-либо водяных знаков, ссылок на AI и строк `Co-Authored-By`.

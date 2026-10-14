@@ -1,13 +1,5 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../../shared/app-env.js";
-import { getGameSnapshot } from "./service.js";
+import { snapshotResponse } from "../../shared/route-context.js";
 
-export const gameRouter = new Hono<AppEnv>().get("/state", (c) => {
-  const user = c.get("tmaInitData")?.user;
-  return c.json(
-    getGameSnapshot({
-      id: user?.id,
-      username: user?.username,
-    }),
-  );
-});
+export const gameRouter = new Hono<AppEnv>().get("/state", (c) => snapshotResponse(c));

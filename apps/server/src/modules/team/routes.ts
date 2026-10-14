@@ -1,32 +1,48 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "../../shared/app-env.js";
+import { mutationOptions, stateResponse } from "../../shared/route-context.js";
+import { requireIdentity } from "../../shared/telegram-auth.js";
 import { validateJson } from "../../shared/validate-json.js";
-import { buyCard, buyPerk, proposeCardToCaptain, undoLastPurchase } from "./service.js";
+import { buyCard, buyPerk, joinTeam, proposeCard, resolveProposal, undoLastPurchase } from "./service.js";
 
-const BuyCardInput = z.object({ teamId: z.string(), cardId: z.string() });
-const UndoPurchaseInput = z.object({ teamId: z.string() });
-const ProposeCardInput = z.object({
-  teamId: z.string(),
-  cardId: z.string(),
-  memberName: z.string().optional(),
+const JoinInput = z.object({
+  code: z.string().trim().min(4).max(12),
+  displayName: z.string().trim().max(40),
 });
-const BuyPerkInput = z.object({ teamId: z.string(), perkId: z.string() });
+const CardInput = z.object({ cardId: z.string().min(1).max(80) });
+const PerkInput = z.object({ perkId: z.string().min(1).max(80) });
+const DecisionInput = z.object({ accept: z.boolean() });
 
 export const teamRouter = new Hono<AppEnv>()
-  .post("/buy-card", validateJson(BuyCardInput), (c) => {
-    const { teamId, cardId } = c.req.valid("json");
-    return c.json({ team: buyCard(teamId, cardId) });
+  .use("*", requireIdentity)
+  .post("/join", validateJson(JoinInput), async (c) => {
+    const options = await mutationOptions(c);
+    await joinTeam(options, c.req.valid("json"));
+    return stateResponse(c, options.eventId);
   })
-  .post("/undo-purchase", validateJson(UndoPurchaseInput), (c) => {
-    const { teamId } = c.req.valid("json");
-    return c.json({ team: undoLastPurchase(teamId) });
+  .post("/buy-card", validateJson(CardInput), async (c) => {
+    const options = await mutationOptions(c);
+    await buyCard(options, c.req.valid("json").cardId);
+    return stateResponse(c, options.eventId);
   })
-  .post("/propose-card", validateJson(ProposeCardInput), (c) => {
-    const { teamId, cardId, memberName } = c.req.valid("json");
-    return c.json({ proposal: proposeCardToCaptain(teamId, cardId, memberName) });
+  .post("/undo-purchase", async (c) => {
+    const options = await mutationOptions(c);
+    await undoLastPurchase(options);
+    return stateResponse(c, options.eventId);
   })
-  .post("/buy-perk", validateJson(BuyPerkInput), (c) => {
-    const { teamId, perkId } = c.req.valid("json");
-    return c.json({ team: buyPerk(teamId, perkId) });
+  .post("/propose", validateJson(CardInput), async (c) => {
+    const options = await mutationOptions(c);
+    await proposeCard(options, c.req.valid("json").cardId);
+    return stateResponse(c, options.eventId);
+  })
+  .post("/proposals/:id", validateJson(DecisionInput), async (c) => {
+    const options = await mutationOptions(c);
+    await resolveProposal(options, c.req.param("id"), c.req.valid("json").accept);
+    return stateResponse(c, options.eventId);
+  })
+  .post("/buy-perk", validateJson(PerkInput), async (c) => {
+    const options = await mutationOptions(c);
+    await buyPerk(options, c.req.valid("json").perkId);
+    return stateResponse(c, options.eventId);
   });

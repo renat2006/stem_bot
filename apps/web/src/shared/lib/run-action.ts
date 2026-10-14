@@ -1,1 +1,1 @@
-export type RunAction = (action: () => Promise<unknown>) => void;
+export type RunAction = (action: () => Promise<unknown>) => Promise<boolean>;

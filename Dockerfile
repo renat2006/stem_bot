@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.10
 FROM node:22-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -16,10 +15,12 @@ ARG APP_VERSION=dev
 ENV NODE_ENV=production \
     PORT=3001 \
     WEB_DIST_DIR=/app/web \
+    MIGRATIONS_DIR=/app/drizzle \
     APP_VERSION=${APP_VERSION}
 WORKDIR /app
 COPY --from=build --chown=nonroot:nonroot /app/apps/server/dist/ ./
 COPY --from=build --chown=nonroot:nonroot /app/apps/web/dist/ ./web/
+COPY --from=build --chown=nonroot:nonroot /app/apps/server/drizzle/ ./drizzle/
 USER nonroot
 EXPOSE 3001
 HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \

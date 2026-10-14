@@ -13,7 +13,7 @@ log() { printf '%s [%s] %s\n' "$(date -u +%FT%TZ)" "${LOG_TAG:-stem-bot}" "$*" |
 die() { log "ERROR: $*"; exit 1; }
 need() { local name; for name in "$@"; do [ -n "${!name:-}" ] || die "$name is required"; done; }
 
-compose() { docker compose --project-directory "$REL" -f "$REL/compose.yml" "$@"; }
+compose() { BASE="$BASE" docker compose --project-directory "$REL" -f "$REL/compose.yml" "$@"; }
 
 read_state() {
   local file="$1" key value

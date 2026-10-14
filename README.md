@@ -1,32 +1,38 @@
-# STEM Bot & Telegram Mini App
+# STEM Game Constructor (`stem_bot`)
 
-Репозиторий для командной разработки Telegram-бота и Telegram Web App (Mini App).
+Универсальный конструктор игровых систем (аналоговый SDK + Telegram Mini App + Telegram Bot) для образовательных мероприятий STEM.
 
-## Процесс командной работы (Git Flow)
+## Стек и структура монорепо
 
-1. **`main`** — Production ветка (всегда стабильна).
-2. **`dev`** — Основная ветка разработки. Все новые фичи отводятся от `dev` и вливаются обратно в `dev` через Pull Request.
-3. **Именование веток:**
-   - `feat/<short-name>` — новая функциональность
-   - `fix/<short-name>` — исправление бага
-   - `refactor/<short-name>` — рефакторинг без изменения логики
-   - `chore/<short-name>` — инфраструктура, конфиги, зависимости
-4. **Коммиты:** используем [Conventional Commits](https://www.conventionalcommits.org/) (`feat: ...`, `fix: ...`, `chore: ...`).
+- **`packages/shared`** — единые Zod-схемы (`GameTemplate`, `CardItem`, `PerkProperty`, `Team`), пресеты сеттингов (*«НейроФауна»* и *«АэроТех: Нейро-Дирижабли»*), расчёт характеристик и валидатор экономического баланса (`validateGameBalance`).
+- **`apps/server`** — Backend API на **Hono** + Telegram-бот на **grammY** + проверка подписи `Telegram.WebApp.initData`. Доменная модульная структура (`modules/game`, `modules/team`, `modules/admin`, `bot/`).
+- **`apps/web`** — Telegram Mini App на **React 19 + Vite 6 + TypeScript + Tailwind CSS v4** по канонам **FSD (Feature-Sliced Design)** (`app` → `pages` → `widgets` → `features` → `entities` → `shared`).
+- **`docs/`**:
+  - `docs/BRIEF_AND_LEGACY_AUDIT.md` — выжимка брифа заказчика, RACI команды и разбор узких мест старого бота `neurofauna_bot`.
+  - `docs/ARCHITECTURE.md` — описание архитектуры конструктора игр и правил FSD.
 
-## Быстрый старт для разработчиков
+## Быстрый старт
 
 ```bash
-# Клонирование и переход на ветку разработки
 git clone https://github.com/renat2006/stem_bot.git
 cd stem_bot
 git checkout dev
+npm install
 
-# Создание ветки под задачу
-git checkout -b feat/my-feature
+# Запуск Backend API (порт 3001):
+npm run dev:server
+
+# Запуск Telegram Mini App (порт 5173):
+npm run dev:web
+
+# Проверка типов и сборка всех пакетов:
+npm run typecheck
+npm run build
 ```
 
-## AI-Ассистенты и окружение
+## Процесс командной работы (Git Flow)
 
-В репозитории настроена конфигурация для AI-агентов (`AGENTS.md`, `CLAUDE.md`, `.devin/`):
-- `/twa-audit` — проверка безопасности (`initData`), нативного UX и производительности Telegram Mini App.
-- `/pr-check` — автоматическая проверка линтеров, типов, тестов и отсутствия секретов перед PR.
+1. **`main`** — Production-ветка (только через PR).
+2. **`dev`** — Основная ветка интеграции команды.
+3. **Ветки под задачи (от `dev`):** `feat/<name>`, `fix/<name>`, `refactor/<name>`, `chore/<name>`.
+4. **Коммиты:** чистые [Conventional Commits](https://www.conventionalcommits.org/) без лишнего шума и водяных знаков.

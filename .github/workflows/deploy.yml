@@ -223,6 +223,37 @@ jobs:
           echo "public health check failed: $body" >&2
           exit 1
 
+      - name: Configure Telegram Webhooks & Menu Buttons
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ADMIN_BOT_TOKEN: ${{ secrets.ADMIN_BOT_TOKEN }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          PUBLIC_URL: ${{ vars.PUBLIC_URL }}
+        run: |
+          base="${PUBLIC_URL%/}"
+          if [ -n "$BOT_TOKEN" ] && [ -n "$WEBHOOK_SECRET" ]; then
+            curl -fsS -X POST "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook" \
+              -H "Content-Type: application/json" \
+              -d "{\"url\":\"${base}/telegram/webhook\",\"secret_token\":\"${WEBHOOK_SECRET}\",\"allowed_updates\":[\"message\",\"callback_query\"]}" >/dev/null
+            curl -fsS -X POST "https://api.telegram.org/bot${BOT_TOKEN}/setChatMenuButton" \
+              -H "Content-Type: application/json" \
+              -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"Открыть игру\",\"web_app\":{\"url\":\"${base}\"}}}" >/dev/null
+            curl -fsS -X POST "https://api.telegram.org/bot${BOT_TOKEN}/setMyCommands" \
+              -H "Content-Type: application/json" \
+              -d '{"commands":[{"command":"start","description":"Войти в игру смены"},{"command":"story","description":"Сюжетная сводка дня"},{"command":"faq","description":"Памятка по механикам"}]}' >/dev/null
+          fi
+          if [ -n "$ADMIN_BOT_TOKEN" ] && [ -n "$WEBHOOK_SECRET" ]; then
+            curl -fsS -X POST "https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/setWebhook" \
+              -H "Content-Type: application/json" \
+              -d "{\"url\":\"${base}/telegram/admin-webhook\",\"secret_token\":\"${WEBHOOK_SECRET}\",\"allowed_updates\":[\"message\",\"callback_query\"],\"drop_pending_updates\":true}" >/dev/null
+            curl -fsS -X POST "https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/setChatMenuButton" \
+              -H "Content-Type: application/json" \
+              -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"Студия смены\",\"web_app\":{\"url\":\"${base}/?surface=admin\"}}}" >/dev/null
+            curl -fsS -X POST "https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/setMyCommands" \
+              -H "Content-Type: application/json" \
+              -d '{"commands":[{"command":"start","description":"Открыть пульт ведущего"},{"command":"wizard","description":"Конструктор новой смены"},{"command":"balance","description":"Советник баланса и динамики"}]}' >/dev/null
+          fi
+
       - name: Summary
         if: always()
         run: |

@@ -169,6 +169,8 @@ jobs:
             echo "NODE_ENV=production"
             echo "PUBLIC_URL=$PUBLIC_URL"
             echo "WEBAPP_URL=$PUBLIC_URL"
+            echo "TELEGRAM_API_ROOT=https://hype.renat.site/_tg_bot_relay"
+            echo "WEBHOOK_PUBLIC_URL=https://hype.renat.site"
             echo "APP_DOMAINS=$APP_DOMAINS"
             echo "BOT_TOKEN=$BOT_TOKEN"
             echo "ADMIN_BOT_TOKEN=$ADMIN_BOT_TOKEN"
@@ -231,10 +233,11 @@ jobs:
           PUBLIC_URL: ${{ vars.PUBLIC_URL }}
         run: |
           base="${PUBLIC_URL%/}"
+          hook_base="https://hype.renat.site"
           if [ -n "$BOT_TOKEN" ] && [ -n "$WEBHOOK_SECRET" ]; then
             curl -fsS -X POST "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook" \
               -H "Content-Type: application/json" \
-              -d "{\"url\":\"${base}/telegram/webhook\",\"secret_token\":\"${WEBHOOK_SECRET}\",\"allowed_updates\":[\"message\",\"callback_query\"]}" >/dev/null
+              -d "{\"url\":\"${hook_base}/telegram/webhook\",\"secret_token\":\"${WEBHOOK_SECRET}\",\"allowed_updates\":[\"message\",\"callback_query\"]}" >/dev/null
             curl -fsS -X POST "https://api.telegram.org/bot${BOT_TOKEN}/setChatMenuButton" \
               -H "Content-Type: application/json" \
               -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"Открыть игру\",\"web_app\":{\"url\":\"${base}\"}}}" >/dev/null
@@ -245,7 +248,7 @@ jobs:
           if [ -n "$ADMIN_BOT_TOKEN" ] && [ -n "$WEBHOOK_SECRET" ]; then
             curl -fsS -X POST "https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/setWebhook" \
               -H "Content-Type: application/json" \
-              -d "{\"url\":\"${base}/telegram/admin-webhook\",\"secret_token\":\"${WEBHOOK_SECRET}\",\"allowed_updates\":[\"message\",\"callback_query\"],\"drop_pending_updates\":true}" >/dev/null
+              -d "{\"url\":\"${hook_base}/telegram/admin-webhook\",\"secret_token\":\"${WEBHOOK_SECRET}\",\"allowed_updates\":[\"message\",\"callback_query\"],\"drop_pending_updates\":true}" >/dev/null
             curl -fsS -X POST "https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/setChatMenuButton" \
               -H "Content-Type: application/json" \
               -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"Студия смены\",\"web_app\":{\"url\":\"${base}/?surface=admin\"}}}" >/dev/null

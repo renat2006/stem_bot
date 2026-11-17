@@ -51,12 +51,12 @@ await ensureActiveEvent(database.db, config.seedDemoTeams);
 const app = new Hono<AppEnv>();
 
 const playerWebhook =
-  config.PUBLIC_URL && config.WEBHOOK_SECRET
-    ? { url: new URL(PLAYER_WEBHOOK_PATH, config.PUBLIC_URL).href, secret: config.WEBHOOK_SECRET }
+  config.webhookBaseUrl && config.WEBHOOK_SECRET
+    ? { url: new URL(PLAYER_WEBHOOK_PATH, config.webhookBaseUrl).href, secret: config.WEBHOOK_SECRET }
     : null;
 const adminWebhook =
-  config.PUBLIC_URL && config.WEBHOOK_SECRET
-    ? { url: new URL(ADMIN_WEBHOOK_PATH, config.PUBLIC_URL).href, secret: config.WEBHOOK_SECRET }
+  config.webhookBaseUrl && config.WEBHOOK_SECRET
+    ? { url: new URL(ADMIN_WEBHOOK_PATH, config.webhookBaseUrl).href, secret: config.WEBHOOK_SECRET }
     : null;
 
 app.use("/api/*", cors(config.PUBLIC_URL ? { origin: new URL(config.PUBLIC_URL).origin } : undefined));

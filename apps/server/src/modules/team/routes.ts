@@ -4,15 +4,41 @@ import type { AppEnv } from "../../shared/app-env.js";
 import { mutationOptions, stateResponse } from "../../shared/route-context.js";
 import { requireIdentity } from "../../shared/telegram-auth.js";
 import { validateJson } from "../../shared/validate-json.js";
-import { buyCard, buyPerk, joinTeam, proposeCard, resolveProposal, undoLastPurchase } from "./service.js";
+import {
+  buyCard,
+  buyP2PListing,
+  buyPerk,
+  cancelP2PListing,
+  createP2PListing,
+  equipFromInventory,
+  joinTeam,
+  placeAuctionBid,
+  proposeCard,
+  resolveProposal,
+  undoLastPurchase,
+} from "./service.js";
 
 const JoinInput = z.object({
   code: z.string().trim().min(4).max(12),
   displayName: z.string().trim().max(40),
 });
-const CardInput = z.object({ cardId: z.string().min(1).max(80) });
+const CardInput = z.object({
+  cardId: z.string().min(1).max(80),
+  listingId: z.string().min(1).max(80).optional(),
+});
 const PerkInput = z.object({ perkId: z.string().min(1).max(80) });
 const DecisionInput = z.object({ accept: z.boolean() });
+const EquipSwapInput = z.object({
+  slotId: z.string().min(1).max(40),
+  cardId: z.string().min(1).max(80).nullable(),
+});
+const P2PCreateInput = z.object({
+  cardId: z.string().min(1).max(80),
+  price: z.number().int().min(1).max(200),
+  fromEquippedSlot: z.string().min(1).max(40).optional(),
+});
+const ListingIdInput = z.object({ listingId: z.string().min(1).max(80) });
+const BidInput = z.object({ amount: z.number().int().min(1).max(500) });
 
 export const teamRouter = new Hono<AppEnv>()
   .use("*", requireIdentity)
@@ -31,9 +57,34 @@ export const teamRouter = new Hono<AppEnv>()
     await undoLastPurchase(options);
     return stateResponse(c, options.eventId);
   })
+  .post("/equip-inventory", validateJson(EquipSwapInput), async (c) => {
+    const options = await mutationOptions(c);
+    await equipFromInventory(options, c.req.valid("json"));
+    return stateResponse(c, options.eventId);
+  })
+  .post("/p2p/list", validateJson(P2PCreateInput), async (c) => {
+    const options = await mutationOptions(c);
+    await createP2PListing(options, c.req.valid("json"));
+    return stateResponse(c, options.eventId);
+  })
+  .post("/p2p/cancel", validateJson(ListingIdInput), async (c) => {
+    const options = await mutationOptions(c);
+    await cancelP2PListing(options, c.req.valid("json").listingId);
+    return stateResponse(c, options.eventId);
+  })
+  .post("/p2p/buy", validateJson(ListingIdInput), async (c) => {
+    const options = await mutationOptions(c);
+    await buyP2PListing(options, c.req.valid("json").listingId);
+    return stateResponse(c, options.eventId);
+  })
+  .post("/auctions/:id/bid", validateJson(BidInput), async (c) => {
+    const options = await mutationOptions(c);
+    await placeAuctionBid(options, { auctionId: c.req.param("id"), amount: c.req.valid("json").amount });
+    return stateResponse(c, options.eventId);
+  })
   .post("/propose", validateJson(CardInput), async (c) => {
     const options = await mutationOptions(c);
-    await proposeCard(options, c.req.valid("json").cardId);
+    await proposeCard(options, c.req.valid("json"));
     return stateResponse(c, options.eventId);
   })
   .post("/proposals/:id", validateJson(DecisionInput), async (c) => {

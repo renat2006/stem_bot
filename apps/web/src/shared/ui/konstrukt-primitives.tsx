@@ -1,5 +1,7 @@
 import type { StatShape } from "@stem/shared";
+import { X } from "lucide-react";
 import type { ReactNode } from "react";
+import { Drawer } from "vaul";
 
 const SHAPES: Record<StatShape, string> = {
   tri: "polygon(0 0, 100% 50%, 0 100%)",
@@ -140,44 +142,50 @@ export function ModuleCard({
 export function BottomSheet({
   open,
   onClose,
+  title = "Детали",
   children,
 }: {
   open: boolean;
   onClose: () => void;
+  title?: string;
   children: ReactNode;
 }) {
-  if (!open) return null;
   return (
-    <div className="fixed inset-0 z-40 flex flex-col justify-end">
-      <button
-        type="button"
-        aria-label="Закрыть окно"
-        onClick={onClose}
-        className="absolute inset-0 cursor-default"
-        style={{ background: "var(--scrim)" }}
-      />
-      <div
-        className="relative z-10 flex flex-col gap-4 overflow-y-auto rounded-t-[20px] border-t border-ln bg-bg px-4 pt-2.5"
-        style={{
-          maxHeight: "calc(92dvh - var(--app-safe-top))",
-          paddingBottom: "calc(1.5rem + var(--app-safe-bottom))",
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <div className="w-8" />
-          <div className="h-1 w-9 rounded-full bg-ln" />
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-sf2 font-mono text-sm text-mu"
-            aria-label="Закрыть"
+    <Drawer.Root open={open} onOpenChange={(next) => !next && onClose()} noBodyStyles>
+      <Drawer.Portal>
+        <Drawer.Overlay className="fixed inset-0 z-40" style={{ background: "var(--scrim)" }} />
+        <Drawer.Content
+          className="fixed right-0 bottom-0 left-0 z-50 mx-auto flex max-w-[540px] flex-col rounded-t-[22px] border-t border-ln bg-bg outline-none"
+          style={{
+            maxHeight: "calc(92dvh - var(--app-safe-top, 0px))",
+          }}
+        >
+          <Drawer.Title className="sr-only">{title}</Drawer.Title>
+          <Drawer.Description className="sr-only">{title}</Drawer.Description>
+          <div className="flex shrink-0 items-center justify-between px-4 pt-2.5 pb-2">
+            <div className="w-8" />
+            <div className="h-1.5 w-10 rounded-full bg-ln" />
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-sf2 text-mu transition hover:text-fg"
+              aria-label="Закрыть"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div
+            className="flex flex-col gap-4 overflow-y-auto px-4 pt-1"
+            style={{
+              paddingBottom: "calc(1.5rem + var(--app-safe-bottom, 0px))",
+              overscrollBehavior: "contain",
+            }}
           >
-            ✕
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
+            {children}
+          </div>
+        </Drawer.Content>
+      </Drawer.Portal>
+    </Drawer.Root>
   );
 }
 
@@ -192,7 +200,7 @@ export function ToastWithUndo({
 }) {
   return (
     <div
-      className="fixed right-3 left-3 z-50 overflow-hidden rounded-xl bg-fg text-bg"
+      className="fixed right-3 left-3 z-50 mx-auto max-w-[430px] overflow-hidden rounded-xl bg-fg text-bg"
       style={{
         bottom: "calc(1rem + var(--app-safe-bottom))",
         boxShadow: "0 8px 24px rgba(0,0,0,.25)",

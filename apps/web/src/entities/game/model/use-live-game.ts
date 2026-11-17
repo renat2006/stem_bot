@@ -20,28 +20,37 @@ export function useLiveGame() {
 
   const applyRules = useCallback(
     ({ rulesVersion, template, availableTemplates, balanceReport }: RulesPayload) => {
-      setRules((current) =>
-        current && current.rulesVersion > rulesVersion
-          ? current
-          : { rulesVersion, template, availableTemplates, balanceReport },
-      );
+      setRules({ rulesVersion, template, availableTemplates, balanceReport });
     },
     [],
   );
 
+  const applySnapshot = useCallback(
+    (next: GameSnapshot) => {
+      versionRef.current = next.version;
+      applyRules(next);
+      setState(next);
+      setClockOffsetMs(Date.parse(next.serverTime) - Date.now());
+    },
+    [applyRules],
+  );
+
   const refresh = useCallback(async () => {
     const snapshot = await fetchGameSnapshot();
-    applyRules(snapshot);
-    applyState(snapshot);
-    setClockOffsetMs(Date.parse(snapshot.serverTime) - Date.now());
-  }, [applyRules, applyState]);
+    applySnapshot(snapshot);
+  }, [applySnapshot]);
 
   useEffect(() => {
     refresh().catch((err) => setError(err instanceof Error ? err.message : "Ошибка загрузки"));
     const connection = new LiveConnection(
       {
         onRules: applyRules,
-        onState: applyState,
+        onState: (next) => {
+          if (next.version === 1 && versionRef.current > 1) {
+            versionRef.current = 1;
+          }
+          applyState(next);
+        },
         onStatus: setStatus,
         onClockOffset: setClockOffsetMs,
         onError: setError,
@@ -52,11 +61,11 @@ export function useLiveGame() {
     return () => connection.stop();
   }, [refresh, applyRules, applyState]);
 
-  const staleRules = Boolean(state && rules && state.gameState.rulesVersion > rules.rulesVersion);
+  const staleRules = Boolean(state && rules && state.gameState.rulesVersion !== rules.rulesVersion);
   useEffect(() => {
     if (staleRules) refresh().catch(() => {});
   }, [staleRules, refresh]);
 
   const snapshot: GameSnapshot | null = state && rules ? { ...state, ...rules } : null;
-  return { snapshot, status, clockOffsetMs, error, setError, applyState };
+  return { snapshot, status, clockOffsetMs, error, setError, applyState, applySnapshot, refresh };
 }

@@ -1,5 +1,6 @@
+import type { LiveBalanceDashboard } from "./advisor.js";
 import type { BalanceReport, TeamComputedStats } from "./engine.js";
-import type { GameState, GameTemplate, Team } from "./schema.js";
+import type { AuctionLot, GameState, GameTemplate, P2PListing, Team } from "./schema.js";
 
 export type MemberRole = "captain" | "member";
 
@@ -7,6 +8,7 @@ export interface ViewerInfo {
   userId: number | null;
   displayName: string;
   isAdmin: boolean;
+  botSurface: "player" | "admin";
   teamId: string | null;
   role: MemberRole | null;
   needsJoin: boolean;
@@ -28,6 +30,7 @@ export interface ProposalInfo {
   id: string;
   teamId: string;
   cardId: string;
+  listingId?: string | null;
   fromName: string;
   createdAt: string;
 }
@@ -46,6 +49,9 @@ export interface TemplateSummary {
   id: string;
   title: string;
   theme: string;
+  eventTag: string;
+  objectName: string;
+  totalDays: number;
   currencyName: string;
   currencyIcon: string;
 }
@@ -56,6 +62,9 @@ export interface LiveState {
   serverTime: string;
   gameState: GameState;
   teams: TeamWithStats[];
+  listings: P2PListing[];
+  auctions: AuctionLot[];
+  liveBalance: LiveBalanceDashboard;
   viewer: ViewerInfo;
   proposals: ProposalInfo[];
   feed: FeedEntry[];

@@ -13,11 +13,13 @@
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "test:e2e": "playwright test",
     "lint": "biome check . && npm run lint --workspaces --if-present",
     "format": "biome check --write ."
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
+    "@playwright/test": "^1.65.1",
     "typescript": "^5.9.3",
     "zod": "^4.6.7"
   },

@@ -1,21 +1,40 @@
-import { ShiftPhaseSchema } from "@stem/shared";
+import {
+  CardRaritySchema,
+  EffectScopeSchema,
+  FeatureFlagsSchema,
+  LoreBriefingSchema,
+  MarketGenerationInputSchema,
+  ShiftPhaseSchema,
+  ShiftWizardInputSchema,
+} from "@stem/shared";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "../../shared/app-env.js";
-import { mutationOptions, stateResponse } from "../../shared/route-context.js";
+import { mutationOptions, snapshotResponse, stateResponse } from "../../shared/route-context.js";
 import { requireAdmin } from "../../shared/telegram-auth.js";
 import { validateJson } from "../../shared/validate-json.js";
 import {
   adjustTrack,
+  applyQuickFix,
   applyTurn,
+  closeAuctionNow,
+  createShiftFromWizard,
   createTeam,
+  decideMarketDraft,
+  generateMarketDraft,
+  getPendingDraft,
   nextDay,
   removeMember,
   resetEvent,
   rewardTeams,
+  saveDayBriefing,
   setCaptain,
   setPhase,
+  startAuction,
+  updateFeatures,
+  updateMarketDraft,
   updateSettings,
+  upsertCard,
 } from "./service.js";
 
 const RewardInput = z.object({
@@ -40,6 +59,68 @@ const MemberInput = z.object({ userId: z.number().int().positive() });
 const ResetInput = z.object({
   templateId: z.string().min(1).optional(),
   demoTeams: z.boolean().default(false),
+});
+const TurnInput = z
+  .object({
+    buyoffTeamIds: z.array(z.string()).optional(),
+  })
+  .optional();
+
+const UpsertCardInput = z.object({
+  id: z.string().max(64).optional(),
+  name: z.string().trim().min(2).max(80),
+  slotId: z.string().min(1).max(40),
+  rarity: CardRaritySchema.default("common"),
+  tier: z.number().int().min(1).max(5).default(1),
+  price: z.number().int().min(0).max(50),
+  dayAvailable: z.number().int().min(1).max(14),
+  stats: z.record(z.string(), z.number().int().min(-6).max(8)),
+  trackBonus: z.number().int().min(-2).max(4).default(0),
+  stock: z.number().int().min(1).max(30).default(3),
+  stockLeft: z.number().int().min(0).max(30).optional(),
+  effectScope: EffectScopeSchema.optional(),
+  flavor: z.string().max(160).optional(),
+});
+
+const QuickFixInput = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("grant_all"), amount: z.number().int().min(1).max(20), reason: z.string() }),
+  z.object({
+    type: z.literal("discount_rarity"),
+    rarity: z.enum(["common", "rare"]),
+    delta: z.number().int().min(-5).max(5),
+  }),
+  z.object({
+    type: z.literal("bump_card_price"),
+    cardId: z.string().min(1),
+    delta: z.number().int().min(-5).max(5),
+  }),
+  z.object({
+    type: z.literal("restock_slot"),
+    slotId: z.string().min(1),
+    amount: z.number().int().min(1).max(10),
+  }),
+  z.object({
+    type: z.literal("enable_feature"),
+    feature: z.enum(["catchUpBonus", "p2pMarket", "auctions"]),
+  }),
+  z.object({ type: z.literal("tighten_p2p_corridor") }),
+]);
+
+const BriefingSaveInput = z.object({
+  briefing: LoreBriefingSchema,
+  broadcast: z.boolean().default(false),
+});
+
+const AuctionStartInput = z.object({
+  cardId: z.string().min(1).max(80),
+  startingPrice: z.number().int().min(1).max(100),
+  durationMinutes: z.number().int().min(1).max(120).default(5),
+});
+
+const DraftCardsInput = z.object({ cards: z.array(z.unknown()).min(1).max(48) });
+const DraftDecisionInput = z.object({
+  decision: z.enum(["approve", "reject"]),
+  mode: z.enum(["append", "replace"]).default("append"),
 });
 
 export const adminRouter = new Hono<AppEnv>()
@@ -71,8 +152,66 @@ export const adminRouter = new Hono<AppEnv>()
   })
   .post("/apply-turn", async (c) => {
     const options = await mutationOptions(c);
-    await applyTurn(options);
+    const body = await c.req.json().catch(() => undefined);
+    const parsed = TurnInput.safeParse(body);
+    await applyTurn(options, parsed.success ? parsed.data : undefined);
     return stateResponse(c, options.eventId);
+  })
+  .patch("/features", validateJson(FeatureFlagsSchema.partial()), async (c) => {
+    const options = await mutationOptions(c);
+    await updateFeatures(options, c.req.valid("json"));
+    return snapshotResponse(c);
+  })
+  .post("/cards", validateJson(UpsertCardInput), async (c) => {
+    const options = await mutationOptions(c);
+    await upsertCard(options, c.req.valid("json"));
+    return snapshotResponse(c);
+  })
+  .post("/quick-fix", validateJson(QuickFixInput), async (c) => {
+    const options = await mutationOptions(c);
+    await applyQuickFix(options, c.req.valid("json"));
+    return snapshotResponse(c);
+  })
+  .post("/briefings", validateJson(BriefingSaveInput), async (c) => {
+    const options = await mutationOptions(c);
+    await saveDayBriefing(options, c.req.valid("json"));
+    return snapshotResponse(c);
+  })
+  .post("/auctions", validateJson(AuctionStartInput), async (c) => {
+    const options = await mutationOptions(c);
+    await startAuction(options, c.req.valid("json"));
+    return stateResponse(c, options.eventId);
+  })
+  .post("/auctions/:id/close", async (c) => {
+    const options = await mutationOptions(c);
+    await closeAuctionNow(options, c.req.param("id"));
+    return stateResponse(c, options.eventId);
+  })
+  .get("/market/draft", async (c) => {
+    return c.json({ draft: await getPendingDraft() });
+  })
+  .post("/market/generate", validateJson(MarketGenerationInputSchema), async (c) => {
+    const actor = c.get("identity");
+    return c.json(await generateMarketDraft(actor?.userId ?? 0, c.req.valid("json")));
+  })
+  .put("/market/draft/:draftId", validateJson(DraftCardsInput), async (c) => {
+    const updated = await updateMarketDraft(c.req.param("draftId"), c.req.valid("json").cards);
+    return c.json({ draft: updated });
+  })
+  .post("/market/draft/:draftId/decision", validateJson(DraftDecisionInput), async (c) => {
+    const options = await mutationOptions(c);
+    const body = c.req.valid("json");
+    await decideMarketDraft(options, {
+      draftId: c.req.param("draftId"),
+      decision: body.decision,
+      mode: body.mode,
+    });
+    return snapshotResponse(c);
+  })
+  .post("/shift/create", validateJson(ShiftWizardInputSchema), async (c) => {
+    const options = await mutationOptions(c);
+    await createShiftFromWizard(options, c.req.valid("json"));
+    return snapshotResponse(c);
   })
   .post("/teams", validateJson(TeamInput), async (c) => {
     const options = await mutationOptions(c);
@@ -92,5 +231,5 @@ export const adminRouter = new Hono<AppEnv>()
   .post("/reset", validateJson(ResetInput), async (c) => {
     const options = await mutationOptions(c);
     await resetEvent(options, c.req.valid("json"));
-    return stateResponse(c, options.eventId);
+    return snapshotResponse(c);
   });

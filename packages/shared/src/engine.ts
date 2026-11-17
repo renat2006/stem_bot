@@ -1,4 +1,7 @@
-import type { CardItem, GameTemplate, Team } from "./schema.js";
+import type { AuctionLot, BoardCell, CardItem, FeatureFlags, GameTemplate, Team } from "./schema.js";
+
+export const AUCTION_ANTI_SNIPE_WINDOW_MS = 15_000;
+export const AUCTION_ANTI_SNIPE_EXTEND_MS = 20_000;
 
 export interface StepPart {
   key: string;
@@ -21,6 +24,8 @@ export interface TeamComputedStats {
   byModifier: Record<string, number>;
   total: Record<string, number>;
   perkConditionMet: boolean;
+  hasEventShield: boolean;
+  economyBonus: number;
   step: TeamStepBreakdown;
 }
 
@@ -29,6 +34,8 @@ export function calculateTeamStep(
   equippedCards: Record<string, string | null>,
   activePerkId: string | null,
   template: GameTemplate,
+  leaderTrackPosition?: number,
+  teamTrackPosition?: number,
 ): TeamStepBreakdown {
   const parts: StepPart[] = [{ key: "base", value: 1, met: true, label: "база" }];
 
@@ -46,33 +53,67 @@ export function calculateTeamStep(
 
   const cardMap = new Map<string, CardItem>(template.cards.map((c) => [c.id, c]));
   let cardTrackBonus = 0;
+  let filledSlots = 0;
+  let hasSynergyCard = false;
+
   for (const cardId of Object.values(equippedCards)) {
     if (!cardId) continue;
+    filledSlots += 1;
     const card = cardMap.get(cardId);
-    if (card?.trackBonus) cardTrackBonus += card.trackBonus;
+    if (!card) continue;
+    if (card.trackBonus) cardTrackBonus += card.trackBonus;
+    if (card.effectScope === "step") cardTrackBonus += 1;
+    if (card.effectScope === "slot_synergy") hasSynergyCard = true;
   }
+
   if (cardTrackBonus > 0) {
     parts.push({
       key: "cards-bonus",
       value: cardTrackBonus,
       met: true,
-      label: "детали",
+      label: "узлы",
     });
   }
 
-  const activePerk = template.perks.find((p) => p.id === activePerkId);
-  if (activePerk && activePerk.stepBonus > 0 && activePerk.minStatsCondition) {
-    const entries = Object.entries(activePerk.minStatsCondition);
-    const firstEntry = entries[0];
-    const met = entries.every(([statId, minVal]) => (totals[statId] ?? 0) >= minVal);
+  if (hasSynergyCard) {
+    const minFilled = Math.max(3, Math.ceil(template.slots.length * 0.65));
     parts.push({
-      key: `perk:${activePerk.id}`,
-      statId: firstEntry?.[0],
-      min: firstEntry?.[1],
-      value: activePerk.stepBonus,
-      met,
-      isPerk: true,
-      label: activePerk.shortName ?? activePerk.name,
+      key: "slot-synergy",
+      value: 1,
+      met: filledSlots >= minFilled,
+      label: `сборка ${minFilled}+`,
+    });
+  }
+
+  if (template.features?.perks !== false) {
+    const activePerk = template.perks.find((p) => p.id === activePerkId);
+    if (activePerk && activePerk.stepBonus > 0 && activePerk.minStatsCondition) {
+      const entries = Object.entries(activePerk.minStatsCondition);
+      const firstEntry = entries[0];
+      const met = entries.every(([statId, minVal]) => (totals[statId] ?? 0) >= minVal);
+      parts.push({
+        key: `perk:${activePerk.id}`,
+        statId: firstEntry?.[0],
+        min: firstEntry?.[1],
+        value: activePerk.stepBonus,
+        met,
+        isPerk: true,
+        label: activePerk.shortName ?? activePerk.name,
+      });
+    }
+  }
+
+  if (
+    template.features?.catchUpBonus &&
+    leaderTrackPosition !== undefined &&
+    teamTrackPosition !== undefined &&
+    leaderTrackPosition - teamTrackPosition >= 6
+  ) {
+    parts.push({
+      key: "catch-up",
+      value: 1,
+      met: true,
+      label: "догоняющий импульс",
     });
   }
 
@@ -80,7 +121,11 @@ export function calculateTeamStep(
   return { total, parts };
 }
 
-export function calculateTeamStats(team: Team, template: GameTemplate): TeamComputedStats {
+export function calculateTeamStats(
+  team: Team,
+  template: GameTemplate,
+  leaderTrackPosition?: number,
+): TeamComputedStats {
   const byPart: Record<string, number> = {};
   const byPerk: Record<string, number> = {};
   const byModifier: Record<string, number> = {};
@@ -93,16 +138,22 @@ export function calculateTeamStats(team: Team, template: GameTemplate): TeamComp
   }
 
   const cardMap = new Map<string, CardItem>(template.cards.map((c) => [c.id, c]));
+  let hasEventShield = false;
+  let economyBonus = 0;
+
   for (const cardId of Object.values(team.equippedCards)) {
     if (!cardId) continue;
     const card = cardMap.get(cardId);
     if (!card) continue;
+    if (card.effectScope === "event_shield") hasEventShield = true;
+    if (card.effectScope === "economy") economyBonus += 1;
     for (const [statId, value] of Object.entries(card.stats)) {
       byPart[statId] = (byPart[statId] ?? 0) + value;
     }
   }
 
-  const activePerk = template.perks.find((p) => p.id === team.activePerkId);
+  const activePerk =
+    template.features?.perks !== false ? template.perks.find((p) => p.id === team.activePerkId) : undefined;
   if (activePerk) {
     for (const [statId, value] of Object.entries(activePerk.stats)) {
       byPerk[statId] = (byPerk[statId] ?? 0) + value;
@@ -123,9 +174,25 @@ export function calculateTeamStats(team: Team, template: GameTemplate): TeamComp
     }
   }
 
-  const step = calculateTeamStep(total, team.equippedCards, team.activePerkId, template);
+  const step = calculateTeamStep(
+    total,
+    team.equippedCards,
+    team.activePerkId,
+    template,
+    leaderTrackPosition,
+    team.trackPosition,
+  );
 
-  return { byPart, byPerk, byModifier, total, perkConditionMet, step };
+  return {
+    byPart,
+    byPerk,
+    byModifier,
+    total,
+    perkConditionMet,
+    hasEventShield,
+    economyBonus,
+    step,
+  };
 }
 
 export interface CardEffectPreview {
@@ -198,8 +265,8 @@ export function evaluateBuyState(params: {
       ok: false,
       kind: "closed",
       label: "Рынок закрыт",
-      blockHead: "Фаза покупок закрыта",
-      blockText: "Дождитесь открытия окна рынка ведущим смены.",
+      blockHead: "Окно покупок закрыто",
+      blockText: "Дождитесь открытия фазы рынка ведущим смены.",
     };
   }
 
@@ -207,7 +274,7 @@ export function evaluateBuyState(params: {
     return {
       ok: false,
       kind: "equipped",
-      label: "Уже в сборке",
+      label: "Уже установлено",
     };
   }
 
@@ -215,9 +282,9 @@ export function evaluateBuyState(params: {
     return {
       ok: false,
       kind: "soldOut",
-      label: "Раскупили",
-      blockHead: "Карту купили раньше вас",
-      blockText: `Последнюю взяла «${soldToTeam ?? "другая команда"}». Завтра на рынке будут новые карты для слота «${slotLabel}».`,
+      label: "Разобрали",
+      blockHead: "Деталь забрали раньше вас",
+      blockText: `Последнюю взяла команда «${soldToTeam ?? "соперников"}». Загляните на биржу команд или подберите другой вариант для слота «${slotLabel}».`,
     };
   }
 
@@ -225,9 +292,9 @@ export function evaluateBuyState(params: {
     return {
       ok: false,
       kind: "limit",
-      label: "Лимит покупок исчерпан",
-      blockHead: `Куплено ${dailyLimit} из ${dailyLimit}`,
-      blockText: "Следующие покупки — в следующей точке взаимодействия.",
+      label: "Лимит исчерпан",
+      blockHead: `Взято ${dailyLimit} из ${dailyLimit} за раунд`,
+      blockText: "Новые покупки из общего магазина откроются в следующем раунде.",
     };
   }
 
@@ -238,27 +305,312 @@ export function evaluateBuyState(params: {
       kind: "funds",
       label: `Не хватает ${diff} ${template.currencyName}`,
       blockHead: `Не хватает ${diff} ${template.currencyName}`,
-      blockText:
-        "Следующее начисление за учёбу — в конце блока. Карты дешевле найдутся по фильтру «По карману».",
+      blockText: "Следующее начисление придёт после оценки работы команды.",
     };
   }
 
   if (!isCaptain) {
+    if (template.features?.teamProposals === false) {
+      return {
+        ok: false,
+        kind: "propose",
+        label: "Покупает капитан",
+        blockHead: "Покупки оформляет капитан",
+        blockText: "Обсудите выбор в команде и попросите капитана взять эту деталь.",
+      };
+    }
     return {
       ok: true,
       kind: "propose",
       label: "Предложить капитану",
-      blockHead: team.captainUsername
-        ? `Покупает капитан ${team.captainUsername}`
-        : "Покупает капитан команды",
-      blockText: "Ему придёт карта с прогнозом шага, купить можно в одно касание.",
+      blockHead: team.captainUsername ? `Покупает капитан ${team.captainUsername}` : "Покупает капитан",
+      blockText: "Капитан увидит деталь с прогнозом шага и сможет взять её в одно касание.",
     };
   }
 
   return {
     ok: true,
     kind: "buy",
-    label: `Купить за ${card.price} ${template.currencyName}`,
+    label: `Взять за ${card.price} ${template.currencyName}`,
+  };
+}
+
+export interface P2PPriceCheck {
+  ok: boolean;
+  minPrice: number;
+  maxPrice: number;
+  fee: number;
+  sellerReceives: number;
+  reason?: string;
+}
+
+export function validateP2PPrice(
+  card: CardItem,
+  price: number,
+  features: FeatureFlags,
+  currencyName: string,
+): P2PPriceCheck {
+  const base = Math.max(1, card.price);
+  const minPrice = Math.max(1, Math.floor(base * features.p2pMinPriceRatio));
+  const maxPrice = Math.max(minPrice, Math.ceil(base * features.p2pMaxPriceRatio));
+
+  if (!Number.isInteger(price) || price < minPrice || price > maxPrice) {
+    return {
+      ok: false,
+      minPrice,
+      maxPrice,
+      fee: 0,
+      sellerReceives: 0,
+      reason: `Допустимая цена на бирже: от ${minPrice} до ${maxPrice} ${currencyName}`,
+    };
+  }
+
+  const fee = Math.floor((price * features.p2pFeePercent) / 100);
+  const sellerReceives = Math.max(1, price - fee);
+
+  return { ok: true, minPrice, maxPrice, fee, sellerReceives };
+}
+
+export interface AuctionBidEvaluation {
+  ok: boolean;
+  minBid: number;
+  nextEndsAtMs: number;
+  extended: boolean;
+  refundTeamId: string | null;
+  refundAmount: number;
+  reason?: string;
+}
+
+export function evaluateAuctionBid(params: {
+  auction: Pick<AuctionLot, "status" | "startingPrice" | "currentBid" | "leaderTeamId" | "endsAt">;
+  bidderTeam: Pick<Team, "id" | "currency">;
+  amount: number;
+  nowMs: number;
+  currencyName: string;
+}): AuctionBidEvaluation {
+  const { auction, bidderTeam, amount, nowMs, currencyName } = params;
+  const endsAtMs = Date.parse(auction.endsAt);
+  const minBid = auction.currentBid > 0 ? auction.currentBid + 1 : auction.startingPrice;
+
+  if (auction.status !== "open" || Number.isNaN(endsAtMs) || nowMs >= endsAtMs) {
+    return {
+      ok: false,
+      minBid,
+      nextEndsAtMs: endsAtMs,
+      extended: false,
+      refundTeamId: null,
+      refundAmount: 0,
+      reason: "Торги по этому узлу уже завершены",
+    };
+  }
+
+  if (auction.leaderTeamId === bidderTeam.id) {
+    return {
+      ok: false,
+      minBid,
+      nextEndsAtMs: endsAtMs,
+      extended: false,
+      refundTeamId: null,
+      refundAmount: 0,
+      reason: "Ваша команда уже удерживает лучшую ставку",
+    };
+  }
+
+  if (!Number.isInteger(amount) || amount < minBid) {
+    return {
+      ok: false,
+      minBid,
+      nextEndsAtMs: endsAtMs,
+      extended: false,
+      refundTeamId: null,
+      refundAmount: 0,
+      reason: `Минимальная ставка сейчас — ${minBid} ${currencyName}`,
+    };
+  }
+
+  if (bidderTeam.currency < amount) {
+    return {
+      ok: false,
+      minBid,
+      nextEndsAtMs: endsAtMs,
+      extended: false,
+      refundTeamId: null,
+      refundAmount: 0,
+      reason: `Не хватает ${amount - bidderTeam.currency} ${currencyName} на балансе команды`,
+    };
+  }
+
+  const remainingMs = endsAtMs - nowMs;
+  const extended = remainingMs < AUCTION_ANTI_SNIPE_WINDOW_MS;
+  const nextEndsAtMs = extended ? nowMs + AUCTION_ANTI_SNIPE_EXTEND_MS : endsAtMs;
+
+  return {
+    ok: true,
+    minBid,
+    nextEndsAtMs,
+    extended,
+    refundTeamId: auction.leaderTeamId,
+    refundAmount: auction.leaderTeamId ? auction.currentBid : 0,
+  };
+}
+
+export interface BoardTurnOutcome {
+  stepMove: number;
+  cellEventTriggered: boolean;
+  cellLabel: string | null;
+  passed: boolean;
+  shielded: boolean;
+  buyoffUsed: boolean;
+  canBuyoff: boolean;
+  currencyDelta: number;
+  eventTrackDelta: number;
+  nextTrackPosition: number;
+  nextCurrency: number;
+  summary: string;
+}
+
+export function resolveBoardTurn(params: {
+  team: Team;
+  template: GameTemplate;
+  leaderTrackPosition?: number;
+  cellOverride?: BoardCell;
+  useBuyoff?: boolean;
+}): BoardTurnOutcome {
+  const { team, template, leaderTrackPosition, cellOverride, useBuyoff = false } = params;
+  const computed = calculateTeamStats(team, template, leaderTrackPosition);
+  const stepMove = computed.step.total;
+  const landedPos = Math.min(template.trackMax, Math.max(1, team.trackPosition + stepMove));
+
+  let currencyDelta = computed.economyBonus;
+  let eventTrackDelta = 0;
+  let canBuyoff = false;
+
+  const dayEventsEnabled = template.features?.dayEvents !== false;
+  const allowBuyoff = template.features?.allowBuyoff !== false;
+  const targetCell =
+    cellOverride ??
+    (dayEventsEnabled ? template.boardCells.find((c) => c.position === landedPos) : undefined);
+
+  if (!targetCell || targetCell.type === "start" || targetCell.type === "apex") {
+    const finalTrack = Math.min(template.trackMax, Math.max(1, landedPos));
+    return {
+      stepMove,
+      cellEventTriggered: false,
+      cellLabel: targetCell?.label ?? null,
+      passed: true,
+      shielded: false,
+      buyoffUsed: false,
+      canBuyoff: false,
+      currencyDelta,
+      eventTrackDelta: 0,
+      nextTrackPosition: finalTrack,
+      nextCurrency: Math.max(0, team.currency + currencyDelta),
+      summary: `Ход +${stepMove}: клетка ${team.trackPosition} → ${finalTrack}`,
+    };
+  }
+
+  if (targetCell.type === "resource") {
+    const gain = targetCell.rewardCurrency || 2;
+    currencyDelta += gain;
+    return {
+      stepMove,
+      cellEventTriggered: true,
+      cellLabel: targetCell.label,
+      passed: true,
+      shielded: false,
+      buyoffUsed: false,
+      canBuyoff: false,
+      currencyDelta,
+      eventTrackDelta: targetCell.rewardTrack,
+      nextTrackPosition: Math.min(template.trackMax, Math.max(1, landedPos + targetCell.rewardTrack)),
+      nextCurrency: Math.max(0, team.currency + currencyDelta),
+      summary: `${targetCell.label}: находка принесла +${gain} ${template.currencyName}`,
+    };
+  }
+
+  const statId = targetCell.statId ?? template.extraModule?.statId ?? template.stats[0]?.id;
+  const minRequired = targetCell.minStat ?? template.extraModule?.min ?? 3;
+  const currentStat = statId ? (computed.total[statId] ?? 0) : 0;
+  const statLabel = template.stats.find((s) => s.id === statId)?.label ?? "Характеристика";
+  const buyoffCost = targetCell.buyoffCost ?? template.extraModule?.buyoffCost ?? 2;
+
+  if (currentStat >= minRequired) {
+    const bonusTrack = targetCell.rewardTrack || (targetCell.type === "challenge" ? 1 : 0);
+    const bonusCurrency = targetCell.rewardCurrency || 0;
+    eventTrackDelta += bonusTrack;
+    currencyDelta += bonusCurrency;
+    const finalTrack = Math.min(template.trackMax, Math.max(1, landedPos + eventTrackDelta));
+    return {
+      stepMove,
+      cellEventTriggered: true,
+      cellLabel: targetCell.label,
+      passed: true,
+      shielded: false,
+      buyoffUsed: false,
+      canBuyoff: false,
+      currencyDelta,
+      eventTrackDelta,
+      nextTrackPosition: finalTrack,
+      nextCurrency: Math.max(0, team.currency + currencyDelta),
+      summary: `${targetCell.label}: проверка «${statLabel}» пройдена (${currentStat} ≥ ${minRequired})${bonusTrack > 0 ? `, +${bonusTrack} к треку` : ""}`,
+    };
+  }
+
+  if (computed.hasEventShield) {
+    return {
+      stepMove,
+      cellEventTriggered: true,
+      cellLabel: targetCell.label,
+      passed: true,
+      shielded: true,
+      buyoffUsed: false,
+      canBuyoff: false,
+      currencyDelta,
+      eventTrackDelta: 0,
+      nextTrackPosition: landedPos,
+      nextCurrency: Math.max(0, team.currency + currencyDelta),
+      summary: `${targetCell.label}: защитный модуль спас сборку от потери темпа`,
+    };
+  }
+
+  canBuyoff = allowBuyoff && buyoffCost > 0 && team.currency + currencyDelta >= buyoffCost;
+  if (useBuyoff && canBuyoff) {
+    currencyDelta -= buyoffCost;
+    return {
+      stepMove,
+      cellEventTriggered: true,
+      cellLabel: targetCell.label,
+      passed: false,
+      shielded: false,
+      buyoffUsed: true,
+      canBuyoff: true,
+      currencyDelta,
+      eventTrackDelta: 0,
+      nextTrackPosition: landedPos,
+      nextCurrency: Math.max(0, team.currency + currencyDelta),
+      summary: `${targetCell.label}: откуп ${buyoffCost} ${template.currencyName} удержал позицию`,
+    };
+  }
+
+  const penaltyTrack = targetCell.penaltyTrack !== 0 ? targetCell.penaltyTrack : -1;
+  const penaltyCurrency = targetCell.penaltyCurrency;
+  eventTrackDelta += penaltyTrack;
+  currencyDelta += penaltyCurrency;
+  const finalTrack = Math.min(template.trackMax, Math.max(1, landedPos + eventTrackDelta));
+
+  return {
+    stepMove,
+    cellEventTriggered: true,
+    cellLabel: targetCell.label,
+    passed: false,
+    shielded: false,
+    buyoffUsed: false,
+    canBuyoff,
+    currencyDelta,
+    eventTrackDelta,
+    nextTrackPosition: finalTrack,
+    nextCurrency: Math.max(0, team.currency + currencyDelta),
+    summary: `${targetCell.label}: не хватило «${statLabel}» (${currentStat} < ${minRequired}), откат ${penaltyTrack}`,
   };
 }
 
@@ -266,6 +618,7 @@ export interface BalanceIssue {
   severity: "warning" | "error";
   code: string;
   message: string;
+  cardId?: string;
 }
 
 export interface BalanceReport {
@@ -276,6 +629,7 @@ export interface BalanceReport {
     totalCards: number;
     avgEfficiencyByDay: Record<number, number>;
     slotCoverage: Record<string, number>;
+    rarityCounts: Record<"common" | "rare" | "legendary", number>;
   };
   issues: BalanceIssue[];
 }
@@ -283,38 +637,88 @@ export interface BalanceReport {
 export function validateGameBalance(template: GameTemplate): BalanceReport {
   const issues: BalanceIssue[] = [];
   const slotCoverage: Record<string, number> = {};
+  const dayOneSlotCoverage: Record<string, number> = {};
+  const rarityCounts: Record<"common" | "rare" | "legendary", number> = {
+    common: 0,
+    rare: 0,
+    legendary: 0,
+  };
 
   for (const slot of template.slots) {
     slotCoverage[slot.id] = 0;
+    dayOneSlotCoverage[slot.id] = 0;
   }
 
   const efficiencyByDay: Record<number, number[]> = {};
 
-  for (const card of template.cards) {
+  template.cards.forEach((card, index) => {
+    const rarity = card.rarity ?? "common";
+    rarityCounts[rarity] = (rarityCounts[rarity] ?? 0) + 1;
     slotCoverage[card.slotId] = (slotCoverage[card.slotId] ?? 0) + 1;
-    const netStatSum = Object.values(card.stats).reduce((acc, v) => acc + v, 0) + card.trackBonus * 2;
-    const efficiency = card.price > 0 ? Number((netStatSum / card.price).toFixed(2)) : netStatSum;
+    if (card.dayAvailable === 1) {
+      dayOneSlotCoverage[card.slotId] = (dayOneSlotCoverage[card.slotId] ?? 0) + 1;
+    }
+
+    const values = Object.values(card.stats);
+    const positiveSum = values.reduce((acc, v) => acc + Math.max(0, v), 0) + card.trackBonus * 2;
+    const negativeSum = values.reduce((acc, v) => acc + Math.abs(Math.min(0, v)), 0);
+    const netStatSum = values.reduce((acc, v) => acc + v, 0) + card.trackBonus * 2;
+    const efficiency = card.price > 0 ? Number((positiveSum / card.price).toFixed(2)) : positiveSum;
 
     const dayList = efficiencyByDay[card.dayAvailable] ?? [];
     dayList.push(efficiency);
     efficiencyByDay[card.dayAvailable] = dayList;
 
-    if (efficiency > 2.0) {
+    if (efficiency > 2.2) {
       issues.push({
         severity: "warning",
         code: "OVERPOWERED_CARD",
-        message: `Карта "${card.name}" (День ${card.dayAvailable}) имеет слишком высокую отдачу статов на единицу цены (${efficiency}).`,
+        cardId: card.id,
+        message: `Деталь «${card.name}» слишком выгодна для своей цены (${card.price} ${template.currencyName}).`,
       });
     }
 
-    if (netStatSum < 0) {
+    if (netStatSum < 0 && !card.effectScope) {
       issues.push({
         severity: "warning",
         code: "NEGATIVE_NET_CARD",
-        message: `Карта "${card.name}" даёт отрицательную сумму характеристик (${netStatSum}).`,
+        cardId: card.id,
+        message: `У детали «${card.name}» штрафы перевешивают плюсы без особого свойства.`,
       });
     }
-  }
+
+    if (rarity === "rare" && positiveSum >= 4 && negativeSum === 0) {
+      issues.push({
+        severity: "warning",
+        code: "RARE_WITHOUT_TRADEOFF",
+        cardId: card.id,
+        message: `Редкая деталь «${card.name}» даёт сильный плюс без встречного минуса-компромисса.`,
+      });
+    }
+
+    const dominator = template.cards.find(
+      (other, otherIndex) =>
+        otherIndex !== index &&
+        other.slotId === card.slotId &&
+        other.dayAvailable <= card.dayAvailable &&
+        other.price <= card.price &&
+        other.trackBonus >= card.trackBonus &&
+        !card.effectScope &&
+        template.stats.every(({ id }) => (other.stats[id] ?? 0) >= (card.stats[id] ?? 0)) &&
+        (other.price < card.price ||
+          other.trackBonus > card.trackBonus ||
+          template.stats.some(({ id }) => (other.stats[id] ?? 0) > (card.stats[id] ?? 0))),
+    );
+
+    if (dominator) {
+      issues.push({
+        severity: "warning",
+        code: "DOMINATED_CARD",
+        cardId: card.id,
+        message: `Деталь «${card.name}» полностью проигрывает варианту «${dominator.name}» в том же слоте.`,
+      });
+    }
+  });
 
   for (const slot of template.slots) {
     const count = slotCoverage[slot.id] ?? 0;
@@ -322,7 +726,13 @@ export function validateGameBalance(template: GameTemplate): BalanceReport {
       issues.push({
         severity: "error",
         code: "LOW_SLOT_COVERAGE",
-        message: `Слот "${slot.label}" содержит слишком мало вариантов карт (${count}).`,
+        message: `В слоте «${slot.label}» меньше двух вариантов деталей (${count}).`,
+      });
+    } else if ((dayOneSlotCoverage[slot.id] ?? 0) === 0) {
+      issues.push({
+        severity: "warning",
+        code: "MISSING_DAY_ONE_SLOT",
+        message: `В слоте «${slot.label}» нет стартовой детали для Дня 1.`,
       });
     }
   }
@@ -334,7 +744,7 @@ export function validateGameBalance(template: GameTemplate): BalanceReport {
       issues.push({
         severity: "warning",
         code: "EMPTY_DAY_POOL",
-        message: `На День ${day} не открывается ни одной новой карточки.`,
+        message: `В День ${day} на рынке не открывается ни одной новой детали.`,
       });
       avgEfficiencyByDay[day] = 0;
     } else {
@@ -343,7 +753,7 @@ export function validateGameBalance(template: GameTemplate): BalanceReport {
     }
   }
 
-  const penalty = issues.reduce((acc, item) => acc + (item.severity === "error" ? 20 : 8), 0);
+  const penalty = issues.reduce((acc, item) => acc + (item.severity === "error" ? 18 : 6), 0);
   const score = Math.max(0, 100 - penalty);
 
   return {
@@ -354,6 +764,7 @@ export function validateGameBalance(template: GameTemplate): BalanceReport {
       totalCards: template.cards.length,
       avgEfficiencyByDay,
       slotCoverage,
+      rarityCounts,
     },
     issues,
   };

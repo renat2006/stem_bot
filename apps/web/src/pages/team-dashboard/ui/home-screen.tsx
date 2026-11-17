@@ -1,3 +1,4 @@
+import { BookOpen, ChevronRight } from "lucide-react";
 import type { GameSnapshot, TeamWithStats } from "../../../entities/game/index.js";
 import { StatGrid, StepBlocks, TrackProgress } from "../../../entities/team/index.js";
 import type { RunAction } from "../../../shared/lib/index.js";
@@ -18,6 +19,8 @@ interface HomeScreenProps {
   onHelp: (key: HelpKey) => void;
   onOpenMarket: (slotId: string) => void;
   onOpenTrack: () => void;
+  onOpenLore: () => void;
+  onToast: (text: string) => void;
 }
 
 export function HomeScreen({
@@ -30,6 +33,8 @@ export function HomeScreen({
   onHelp,
   onOpenMarket,
   onOpenTrack,
+  onOpenLore,
+  onToast,
 }: HomeScreenProps) {
   const { template, gameState, teams } = snapshot;
   const ranked = [...teams].sort((a, b) => b.trackPosition - a.trackPosition);
@@ -41,8 +46,34 @@ export function HomeScreen({
   const limit = gameState.dailyPurchaseLimit;
   const leftBuys = limit === null ? Number.POSITIVE_INFINITY : Math.max(0, limit - team.purchasesToday);
 
+  const dayBriefing =
+    template.features.storyBriefings &&
+    (template.dayBriefings.find((b) => b.day === gameState.currentDay) ??
+      template.dayBriefings.find((b) => b.day === 0));
+
   return (
-    <div className="space-y-3.5">
+    <div className="space-y-3">
+      {dayBriefing && (
+        <button
+          type="button"
+          onClick={onOpenLore}
+          className="flex w-full items-center justify-between gap-3 rounded-2xl border border-ac/35 bg-ac/8 px-3.5 py-3 text-left transition active:scale-[0.99]"
+        >
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-ac text-acfg">
+              <BookOpen className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="font-mono text-[10px] font-semibold tracking-[0.06em] uppercase text-ac">
+                Легенда дня {gameState.currentDay}
+              </p>
+              <p className="truncate text-sm font-semibold text-fg">{dayBriefing.title}</p>
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 shrink-0 text-mu" />
+        </button>
+      )}
+
       <TeamSummary
         team={team}
         template={template}
@@ -55,6 +86,7 @@ export function HomeScreen({
 
       <ProposalsInbox
         proposals={snapshot.proposals}
+        p2pListings={snapshot.listings}
         team={team}
         template={template}
         isCaptain={isCaptain}
@@ -66,44 +98,13 @@ export function HomeScreen({
         team={team}
         template={template}
         gameState={gameState}
+        isCaptain={isCaptain}
+        marketOpen={marketOpen}
+        run={run}
         onSelectEmptySlot={onOpenMarket}
         onHelp={() => onHelp("build")}
+        onToast={onToast}
       />
-
-      <ModuleCard
-        title="Характеристики и пороги"
-        badge={
-          <span className="flex items-center gap-1.5 text-xs text-mu">
-            <span className="h-2.5 w-2.5 rounded-[2px] border-[1.5px] border-ac" />
-            порог шага
-          </span>
-        }
-        onHelp={() => onHelp("step")}
-      >
-        <StatGrid
-          stats={template.stats}
-          values={team.computedStats.total}
-          template={template}
-          activePerkId={team.activePerkId}
-        />
-      </ModuleCard>
-
-      <ModuleCard
-        title="Прогноз хода"
-        subtitle={`клетка ${team.trackPosition} → ${Math.min(template.trackMax, team.trackPosition + team.computedStats.step.total)}`}
-        onHelp={() => onHelp("step")}
-      >
-        <div className="space-y-4">
-          <StepBlocks step={team.computedStats.step} stats={template.stats} />
-          <TrackProgress
-            label={template.trackName}
-            position={team.trackPosition}
-            max={template.trackMax}
-            stepForecast={team.computedStats.step.total}
-            rivalPositions={teams.filter((t) => t.id !== team.id).map((t) => t.trackPosition)}
-          />
-        </div>
-      </ModuleCard>
 
       {extra && extraStat && (
         <ModuleCard
@@ -120,20 +121,45 @@ export function HomeScreen({
           onHelp={() => onHelp("extra")}
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[15px] font-semibold text-fg">{extra.title}</span>
+            <span className="text-sm font-semibold text-fg">{extra.title}</span>
             <span className="flex items-center gap-1.5 font-mono text-xs text-mu">
               <StatGlyph shape={extraStat.shape} color={extraStat.color} size={11} />
-              {extraStat.label}: {formatStatValue(extraVal)} (порог {extra.min})
+              {extraStat.label}: {formatStatValue(extraVal)} (нужно {extra.min})
             </span>
           </div>
         </ModuleCard>
       )}
 
+      <ModuleCard
+        title="Характеристики и прогноз хода"
+        subtitle={`клетка ${team.trackPosition} → ${Math.min(template.trackMax, team.trackPosition + team.computedStats.step.total)}`}
+        onHelp={() => onHelp("step")}
+      >
+        <div className="space-y-4">
+          <StatGrid
+            stats={template.stats}
+            values={team.computedStats.total}
+            template={template}
+            activePerkId={team.activePerkId}
+          />
+          <div className="border-t border-ln pt-3.5">
+            <StepBlocks step={team.computedStats.step} stats={template.stats} />
+          </div>
+          <TrackProgress
+            label={template.trackName}
+            position={team.trackPosition}
+            max={template.trackMax}
+            stepForecast={team.computedStats.step.total}
+            rivalPositions={teams.filter((t) => t.id !== team.id).map((t) => t.trackPosition)}
+          />
+        </div>
+      </ModuleCard>
+
       <EventFeed
-        feed={snapshot.feed.slice(0, 8)}
+        feed={snapshot.feed.slice(0, 6)}
         teams={teams}
-        title="Что произошло"
-        emptyText="Здесь появятся начисления и покупки команды"
+        title="Лента событий"
+        emptyText="Здесь появятся начисления, сделки и ходы команд"
       />
 
       <button
@@ -141,7 +167,7 @@ export function HomeScreen({
         onClick={() => (marketOpen && leftBuys > 0 ? onOpenMarket("all") : onOpenTrack())}
         className="h-12 w-full rounded-xl bg-ac text-base font-semibold text-acfg transition active:scale-[0.99]"
       >
-        {marketOpen && leftBuys > 0 ? "Открыть рынок" : "Смотреть трек"}
+        {marketOpen && leftBuys > 0 ? "Перейти на торговую площадку" : "Смотреть маршрут и рейтинг"}
       </button>
     </div>
   );

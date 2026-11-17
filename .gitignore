@@ -59,3 +59,10 @@ _legacy/
 
 # Local database (PGlite)
 .data/
+
+# Art generation masters
+packages/art/packs/*/masters/
+
+# Playwright E2E artifacts
+playwright-report/
+test-results/

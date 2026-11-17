@@ -9,6 +9,7 @@ import type { Context as HonoContext } from "hono";
 import { members } from "../db/schema.js";
 import { activeEventId, loadEvent } from "../modules/event/repository.js";
 import { buildLiveState, normalizeTemplate } from "../modules/event/snapshot.js";
+import { config } from "../shared/config.js";
 import { type AlertService, type QueuedAlert, runtime } from "../shared/runtime.js";
 
 const webhookReplyStore = new AsyncLocalStorage<{ payload: Record<string, unknown> | null }>();
@@ -80,7 +81,9 @@ export function createBotWebhookHandler(bot: Bot, secretToken: string) {
 }
 
 export function createPlayerBot(token: string, webAppUrl: string): Bot {
-  const bot = new Bot(token, { client: { timeoutSeconds: 5 } });
+  const bot = new Bot(token, {
+    client: { apiRoot: config.TELEGRAM_API_ROOT, timeoutSeconds: 20 },
+  });
   attachBotRuntime(bot, token, "stem_player_bot");
 
   bot.command("start", async (ctx) => {
@@ -171,7 +174,9 @@ export function createPlayerBot(token: string, webAppUrl: string): Bot {
 }
 
 export function createAdminBot(token: string, adminWebAppUrl: string, adminIds: ReadonlySet<number>): Bot {
-  const bot = new Bot(token, { client: { timeoutSeconds: 5 } });
+  const bot = new Bot(token, {
+    client: { apiRoot: config.TELEGRAM_API_ROOT, timeoutSeconds: 20 },
+  });
   attachBotRuntime(bot, token, "stem_admin_bot");
 
   bot.use(async (ctx, next) => {
@@ -334,6 +339,7 @@ export async function configureBotDelivery(
 
   if (delivery.webhook) {
     try {
+      await bot.init();
       await bot.api.setWebhook(delivery.webhook.url, {
         secret_token: delivery.webhook.secret,
         allowed_updates: ["message", "callback_query"],

@@ -57,6 +57,8 @@ services:
   app:
     image: ${APP_IMAGE}:${APP_TAG}
     restart: unless-stopped
+    extra_hosts:
+      - "hype.renat.site:136.148.220.198"
     env_file:
       - ${SHARED_DIR}/runtime.env
     environment:

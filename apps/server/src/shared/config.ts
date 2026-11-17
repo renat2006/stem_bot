@@ -31,6 +31,8 @@ const EnvSchema = z
     ADMIN_BOT_TOKEN: cleanOptional,
     PUBLIC_URL: z.url().optional(),
     WEBAPP_URL: z.url().optional(),
+    TELEGRAM_API_ROOT: z.url().default("https://api.telegram.org"),
+    WEBHOOK_PUBLIC_URL: z.url().optional(),
     WEBHOOK_SECRET: z
       .string()
       .regex(/^[A-Za-z0-9_-]{32,256}$/)
@@ -91,6 +93,7 @@ function loadConfig() {
     isProduction: env.NODE_ENV === "production",
     webAppUrl,
     adminWebAppUrl,
+    webhookBaseUrl: env.WEBHOOK_PUBLIC_URL ?? env.PUBLIC_URL,
     adminIds: new Set([...env.ADMIN_IDS, ...env.SUPER_ADMIN_IDS]),
     seedDemoTeams: env.SEED_DEMO_TEAMS ?? env.NODE_ENV !== "production",
   };

@@ -1,0 +1,25 @@
+{
+  "id": "rovers",
+  "version": 1,
+  "rig": "rover",
+  "palette": {
+    "outline": "#1F1D19",
+    "paper": "#F6EFE2",
+    "rust": "#C4532F",
+    "teal": "#2E5F63",
+    "ochre": "#D99B38",
+    "olive": "#6F8136",
+    "glow": "#F5A623"
+  },
+  "rigOverrides": [],
+  "parts": [],
+  "perks": {},
+  "stats": {},
+  "currency": "",
+  "cells": {},
+  "covers": {
+    "hero": "assets/cover-hero.55568bad87a1.webp",
+    "story": "assets/cover-story.c477bcd03bb1.webp"
+  },
+  "emptyStates": {}
+}

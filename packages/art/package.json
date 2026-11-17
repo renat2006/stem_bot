@@ -1,0 +1,30 @@
+{
+  "name": "@stem/art",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./procedural": "./src/procedural/index.ts",
+    "./packs/*": "./packs/*/manifest.json"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "art:prompts": "tsx scripts/prompts.ts",
+    "art:ingest": "tsx scripts/ingest.ts",
+    "art:validate": "tsx scripts/validate.ts",
+    "art:sheet": "tsx scripts/sheet.ts"
+  },
+  "dependencies": {
+    "@stem/shared": "*",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.5",
+    "vitest": "^5.0.4",
+    "tsx": "^4.19.2"
+  }
+}

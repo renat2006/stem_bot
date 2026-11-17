@@ -1,11 +1,13 @@
 import { type GameTemplate, previewCardEffect } from "@stem/shared";
-import type { ProposalInfo, TeamWithStats } from "../../../entities/game/index.js";
+import { AssemblyStage, PartSticker } from "../../../entities/assembly/index.js";
+import type { P2PListing, ProposalInfo, TeamWithStats } from "../../../entities/game/index.js";
 import { resolveProposal } from "../../../features/purchase/index.js";
 import type { RunAction } from "../../../shared/lib/index.js";
 import { Button, ModuleCard } from "../../../shared/ui/index.js";
 
 interface ProposalsInboxProps {
   proposals: ProposalInfo[];
+  p2pListings?: P2PListing[];
   team: TeamWithStats;
   template: GameTemplate;
   isCaptain: boolean;
@@ -15,6 +17,7 @@ interface ProposalsInboxProps {
 
 export function ProposalsInbox({
   proposals,
+  p2pListings = [],
   team,
   template,
   isCaptain,
@@ -31,21 +34,39 @@ export function ProposalsInbox({
         {proposals.map((proposal) => {
           const card = template.cards.find((c) => c.id === proposal.cardId);
           if (!card) return null;
+          const listing = proposal.listingId
+            ? p2pListings.find((l) => l.id === proposal.listingId)
+            : undefined;
+          const price = listing ? listing.price : card.price;
           const preview = previewCardEffect(team, card, template);
           const delta = preview.stepDelta;
           return (
             <li key={proposal.id} className="space-y-2 rounded-xl border border-ln bg-sf2 p-3">
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
+                <PartSticker template={template} card={card} thumbnail />
+                <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-fg">{card.name}</p>
                   <p className="text-xs text-mu">
-                    от {proposal.fromName} · {card.price} {template.currencyName} · шаг{" "}
+                    от {proposal.fromName}
+                    {listing ? ` · биржа «${listing.sellerTeamName}»` : ""} · {price} {template.currencyName}{" "}
+                    · шаг{" "}
                     <span className={delta > 0 ? "text-pos" : delta < 0 ? "text-neg" : "text-mu"}>
                       {delta > 0 ? `+${delta}` : delta}
                     </span>
                   </p>
                 </div>
               </div>
+              <details>
+                <summary className="cursor-pointer text-xs font-medium text-ac">Посмотреть на стенде</summary>
+                <div className="mt-2 flex justify-center">
+                  <AssemblyStage
+                    template={template}
+                    equipped={team.equippedCards}
+                    preview={{ slotId: card.slotId, cardId: card.id }}
+                    size="card"
+                  />
+                </div>
+              </details>
               {isCaptain && (
                 <div className="grid grid-cols-2 gap-1.5">
                   <Button variant="ghost" onClick={() => run(() => resolveProposal(proposal.id, false))}>

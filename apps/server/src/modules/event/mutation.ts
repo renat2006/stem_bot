@@ -3,7 +3,7 @@ import type { Tx } from "../../db/client.js";
 import { commands, type EventRow, events, ledger } from "../../db/schema.js";
 import { DomainError } from "../../shared/errors.js";
 import type { Identity } from "../../shared/identity.js";
-import { runtime } from "../../shared/runtime.js";
+import { type QueuedAlert, runtime } from "../../shared/runtime.js";
 
 export interface LedgerDraft {
   teamId?: string | null;
@@ -17,6 +17,7 @@ export interface MutationContext {
   event: EventRow;
   actor: Identity;
   log: (entry: LedgerDraft) => void;
+  alert: (item: QueuedAlert) => void;
   rulesChanged: () => void;
 }
 
@@ -30,8 +31,9 @@ export async function mutateEvent<T>(
   { eventId, actor, idempotencyKey }: MutationOptions,
   apply: (ctx: MutationContext) => Promise<T>,
 ): Promise<T> {
-  const { db, hub } = runtime();
+  const { db, hub, alerts } = runtime();
   let rules = false;
+  const queuedAlerts: QueuedAlert[] = [];
 
   const outcome = await db.transaction(async (tx) => {
     const [event] = await tx.select().from(events).where(eq(events.id, eventId)).for("update");
@@ -51,6 +53,7 @@ export async function mutateEvent<T>(
       event,
       actor,
       log: (entry) => drafts.push(entry),
+      alert: (item) => queuedAlerts.push(item),
       rulesChanged: () => {
         rules = true;
       },
@@ -79,6 +82,13 @@ export async function mutateEvent<T>(
     return { replayed: false, value };
   });
 
-  if (!outcome.replayed) hub.publish(eventId, { rules });
+  if (!outcome.replayed) {
+    hub.publish(eventId, { rules });
+    if (alerts && queuedAlerts.length > 0) {
+      void alerts.dispatch(eventId, queuedAlerts).catch((err) => {
+        console.error("Alert dispatch failed", err);
+      });
+    }
+  }
   return outcome.value;
 }

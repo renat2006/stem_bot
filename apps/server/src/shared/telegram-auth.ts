@@ -16,14 +16,17 @@ export const identityMiddleware = createMiddleware<AppEnv>(async (c, next) => {
     return next();
   }
 
-  const devIdentity = identityFromDevUser(c.req.header("x-dev-user") ?? "");
+  const devIdentity = identityFromDevUser(
+    c.req.header("x-dev-user") ?? "",
+    c.req.header("x-dev-surface") ?? undefined,
+  );
   if (devIdentity) {
     c.set("identity", devIdentity);
     return next();
   }
 
   if (config.isProduction) {
-    return c.json({ error: "Требуется авторизация Telegram Mini App (Authorization: tma ...)" }, 401);
+    return c.json({ error: "Требуется авторизация Telegram Mini App" }, 401);
   }
   return next();
 });

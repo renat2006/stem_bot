@@ -28,6 +28,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm run art:validate -w @stem/art
       - run: npm test
       - run: npm run build
       - run: npm audit --omit=dev --audit-level=high

@@ -40,8 +40,11 @@ Caddy (хост, :443) ── stem-bot.renat.site, stem-bot.195-209-218-212.ssli
 | `DEPLOY_HOST` | secret | адрес сервера |
 | `WEBHOOK_SECRET` | secret | секрет вебхука Telegram (`X-Telegram-Bot-Api-Secret-Token`) |
 | `POSTGRES_PASSWORD` | secret | пароль БД; из него собираются `DATABASE_URL` и `db.env` |
-| `BOT_TOKEN` | secret | токен бота от @BotFather — **задаёт владелец** |
+| `BOT_TOKEN` | secret | токен клиентского бота игроков от @BotFather — **задаёт владелец** |
+| `ADMIN_BOT_TOKEN` | secret | токен отдельного бота ведущих/студии от @BotFather — **задаёт владелец** |
 | `ADMIN_IDS` / `SUPER_ADMIN_IDS` | secret | Telegram user ID админов через запятую — **задаёт владелец** |
+| `OPENROUTER_API_KEY` / `GEMINI_API_KEY` | secret | ключи ИИ-провайдера для генерации карт и легенд (необязательны: есть офлайн-синтезатор) |
+| `AI_MODEL` | var | модель ИИ (по умолчанию `google/gemini-2.5-flash`) |
 | `DEPLOY_USER` | var | `stembot` |
 | `PUBLIC_URL` | var | публичный URL (вебхук, CORS, кнопка Mini App) |
 | `APP_DOMAINS` | var | домены для Caddy через запятую; нерезолвящиеся пропускаются |

@@ -1,13 +1,45 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+import { timingSafeEqual } from "node:crypto";
 import { autoRetry } from "@grammyjs/auto-retry";
 import { apiThrottler } from "@grammyjs/transformer-throttler";
 import { and, eq } from "drizzle-orm";
 import { Bot, InlineKeyboard } from "grammy";
+import type { Update } from "grammy/types";
+import type { Context as HonoContext } from "hono";
 import { members } from "../db/schema.js";
 import { activeEventId, loadEvent } from "../modules/event/repository.js";
 import { buildLiveState, normalizeTemplate } from "../modules/event/snapshot.js";
 import { type AlertService, type QueuedAlert, runtime } from "../shared/runtime.js";
 
-function attachRateLimitPlugins(bot: Bot) {
+const webhookReplyStore = new AsyncLocalStorage<{ payload: Record<string, unknown> | null }>();
+
+function attachBotRuntime(bot: Bot, token: string, defaultUsername: string) {
+  const botId = Number(token.split(":")[0]) || 1;
+  bot.botInfo = {
+    id: botId,
+    is_bot: true,
+    first_name: "STEM Bot",
+    username: defaultUsername,
+    can_join_groups: false,
+    can_read_all_group_messages: false,
+    supports_inline_queries: false,
+    can_connect_to_business: false,
+    has_main_web_app: true,
+    has_topics_enabled: false,
+    allows_users_to_create_topics: false,
+    can_manage_bots: false,
+    supports_join_request_queries: false,
+  };
+
+  bot.api.config.use(async (prev, method, payload, signal) => {
+    const store = webhookReplyStore.getStore();
+    if (store && !store.payload && (method === "sendMessage" || method === "answerCallbackQuery")) {
+      store.payload = { method, ...(payload as Record<string, unknown>) };
+      return { ok: true, result: true as never };
+    }
+    return prev(method, payload, signal);
+  });
+
   bot.api.config.use(
     apiThrottler({
       global: { reservoir: 28, reservoirRefreshAmount: 28, reservoirRefreshInterval: 1000 },
@@ -16,15 +48,40 @@ function attachRateLimitPlugins(bot: Bot) {
   );
   bot.api.config.use(
     autoRetry({
-      maxRetryAttempts: 3,
-      maxDelaySeconds: 45,
+      maxRetryAttempts: 2,
+      maxDelaySeconds: 15,
     }),
   );
 }
 
+function secretsEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  return bufA.length === bufB.length && timingSafeEqual(bufA, bufB);
+}
+
+export function createBotWebhookHandler(bot: Bot, secretToken: string) {
+  return async (c: HonoContext) => {
+    const provided = c.req.header("x-telegram-bot-api-secret-token") ?? "";
+    if (!provided || !secretsEqual(provided, secretToken)) {
+      return c.json({ error: "Unauthorized webhook" }, 401);
+    }
+    const update = await c.req.json<Update>().catch(() => null);
+    if (!update || typeof update.update_id !== "number") {
+      return c.json({ error: "Invalid update" }, 400);
+    }
+    const store: { payload: Record<string, unknown> | null } = { payload: null };
+    await webhookReplyStore.run(store, () => bot.handleUpdate(update));
+    if (store.payload) {
+      return c.json(store.payload, 200);
+    }
+    return c.json({ ok: true }, 200);
+  };
+}
+
 export function createPlayerBot(token: string, webAppUrl: string): Bot {
-  const bot = new Bot(token);
-  attachRateLimitPlugins(bot);
+  const bot = new Bot(token, { client: { timeoutSeconds: 5 } });
+  attachBotRuntime(bot, token, "stem_player_bot");
 
   bot.command("start", async (ctx) => {
     const startPayload = ctx.match?.trim();
@@ -114,8 +171,8 @@ export function createPlayerBot(token: string, webAppUrl: string): Bot {
 }
 
 export function createAdminBot(token: string, adminWebAppUrl: string, adminIds: ReadonlySet<number>): Bot {
-  const bot = new Bot(token);
-  attachRateLimitPlugins(bot);
+  const bot = new Bot(token, { client: { timeoutSeconds: 5 } });
+  attachBotRuntime(bot, token, "stem_admin_bot");
 
   bot.use(async (ctx, next) => {
     const uid = ctx.from?.id;
@@ -276,13 +333,19 @@ export async function configureBotDelivery(
   };
 
   if (delivery.webhook) {
-    await bot.init();
-    await bot.api.setWebhook(delivery.webhook.url, {
-      secret_token: delivery.webhook.secret,
-      allowed_updates: ["message", "callback_query"],
-      drop_pending_updates: false,
-    });
-    await applyMeta();
+    try {
+      await bot.api.setWebhook(delivery.webhook.url, {
+        secret_token: delivery.webhook.secret,
+        allowed_updates: ["message", "callback_query"],
+        drop_pending_updates: false,
+      });
+      await applyMeta();
+    } catch (err) {
+      console.warn(
+        "Skipping in-container Telegram webhook registration (managed externally):",
+        (err as Error).message,
+      );
+    }
     return;
   }
   if (!delivery.polling) return;

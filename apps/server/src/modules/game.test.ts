@@ -377,4 +377,49 @@ describe("dual telegram bots (playerBot & adminBot)", () => {
     await adminBot.handleUpdate(makeCmd(5, 1, "/balance"));
     expect(sent[sent.length - 1]?.text).toContain("Индекс баланса");
   });
+
+  it("returns direct JSON sendMessage payload from webhook HTTP response without outbound Bot API call", async () => {
+    const { Hono } = await import("hono");
+    const { createBotWebhookHandler } = await import("../bot/index.js");
+    const directAdminBot = createAdminBot(
+      "654321:XYZ-DEF1234ghIkl-zyx57W2v1u123ew22",
+      "https://stem-bot.renat.site/?surface=admin",
+      new Set([857932226]),
+    );
+    const app = new Hono();
+    app.post(
+      "/telegram/admin-webhook",
+      createBotWebhookHandler(directAdminBot, "test_secret_token_32_characters_ok"),
+    );
+
+    const unauth = await app.request("/telegram/admin-webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ update_id: 1 }),
+    });
+    expect(unauth.status).toBe(401);
+
+    const res = await app.request("/telegram/admin-webhook", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Telegram-Bot-Api-Secret-Token": "test_secret_token_32_characters_ok",
+      },
+      body: JSON.stringify({
+        update_id: 100,
+        message: {
+          message_id: 10,
+          date: Math.floor(Date.now() / 1000),
+          chat: { id: 857932226, type: "private", first_name: "Admin" },
+          from: { id: 857932226, is_bot: false, first_name: "Admin" },
+          text: "/start",
+          entities: [{ offset: 0, length: 6, type: "bot_command" }],
+        },
+      }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { method?: string; chat_id?: number; text?: string };
+    expect(body.method).toBe("sendMessage");
+    expect(body.chat_id).toBe(857932226);
+  });
 });

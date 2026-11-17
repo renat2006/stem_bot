@@ -24,7 +24,7 @@ export async function connectPglite(
   migrationsFolder: string,
 ): Promise<DbHandle> {
   const { PGlite } = await import("@electric-sql/pglite");
-  if (dataDir) {
+  if (dataDir && !dataDir.startsWith("memory://")) {
     const { mkdir } = await import("node:fs/promises");
     await mkdir(dataDir, { recursive: true });
   }

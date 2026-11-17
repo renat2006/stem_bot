@@ -21,6 +21,13 @@ const roots: Record<string, string> = {
 export function speciesName(template: GameTemplate, equipped: Record<string, string | null>): string {
   const cards = new Map(template.cards.map((card) => [card.id, card]));
   const part = (slot: string) => cards.get(equipped[slot] ?? "");
+  if (template.objectRig === "rover") {
+    const drive = part("drive");
+    const chassis = part("chassis");
+    const code = ((hashId(`${chassis?.id ?? "base"}-${drive?.id ?? "0"}`) % 90) + 10).toString();
+    const label = drive?.name.split(" ")[0] ?? chassis?.name.split(" ")[0] ?? "Прототип";
+    return `РВ-${code} «${label}»`;
+  }
   if (template.objectRig === "airship") {
     const envelope = part("envelope");
     return envelope ? `NX-${(hashId(envelope.id) % 900) + 100} «${envelope.name}»` : "NX-0 «Прототип»";

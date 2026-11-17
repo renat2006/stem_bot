@@ -21,7 +21,7 @@ export const SlotSocketSchema = z.object({
 });
 
 export const RigSchema = z.object({
-  id: z.enum(["creature", "airship", "campus"]),
+  id: z.enum(["creature", "airship", "campus", "rover"]),
   viewBox: z.literal("0 0 1000 1000"),
   frame: z
     .tuple([z.number(), z.number(), z.number().positive(), z.number().positive()])

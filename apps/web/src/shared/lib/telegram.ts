@@ -11,7 +11,7 @@ import {
   themeParams,
   viewport,
 } from "@tma.js/sdk-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 let initialized = false;
 
@@ -28,8 +28,8 @@ export function applyThemeAppearance(mode: "light" | "dark") {
   document.documentElement.setAttribute("data-tg", mode);
 
   if (isTMA() && miniApp.isMounted()) {
-    const bgHex = mode === "dark" ? "#0f1214" : "#f4f5f6";
-    const headerHex = mode === "dark" ? "#14181b" : "#ffffff";
+    const bgHex = mode === "dark" ? "#0f1215" : "#f5f3ee";
+    const headerHex = mode === "dark" ? "#14181c" : "#ffffff";
     const tgBg = themeParams.secondaryBgColor() ?? bgHex;
     const tgHeader = themeParams.headerBgColor() ?? themeParams.bgColor() ?? headerHex;
     if (miniApp.setHeaderColor.isAvailable()) miniApp.setHeaderColor(tgHeader);
@@ -40,6 +40,10 @@ export function applyThemeAppearance(mode: "light" | "dark") {
 
 export function detectInitialTheme(): "light" | "dark" {
   if (typeof window === "undefined") return "light";
+  try {
+    const stored = localStorage.getItem("color-scheme");
+    if (stored === "light" || stored === "dark") return stored;
+  } catch {}
   if (isTMA() && themeParams.isMounted()) {
     return themeParams.isDark() ? "dark" : "light";
   }
@@ -89,49 +93,8 @@ export function initTelegramSdk() {
     if (swipeBehavior.disableVertical.isAvailable()) swipeBehavior.disableVertical();
   }
   initData.restore();
-  applyThemeAppearance(themeParams.isDark() ? "dark" : "light");
+  applyThemeAppearance(detectInitialTheme());
   if (miniApp.ready.isAvailable()) miniApp.ready();
-}
-
-export function useTelegramTheme() {
-  const [themeMode, setThemeMode] = useState<"light" | "dark">(() => detectInitialTheme());
-  const [manualOverride, setManualOverride] = useState<"light" | "dark" | null>(null);
-
-  const effectiveMode = manualOverride ?? themeMode;
-
-  useEffect(() => {
-    applyThemeAppearance(effectiveMode);
-  }, [effectiveMode]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    if (isTMA() && themeParams.isMounted()) {
-      const unsub = themeParams.isDark.sub((isDark) => {
-        setThemeMode(isDark ? "dark" : "light");
-      });
-      return () => unsub();
-    }
-
-    const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = (e: MediaQueryListEvent) => {
-      setThemeMode(e.matches ? "dark" : "light");
-    };
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-
-  const toggleTheme = () => {
-    setManualOverride((prev) => {
-      const current = prev ?? themeMode;
-      return current === "light" ? "dark" : "light";
-    });
-  };
-
-  return {
-    themeMode: effectiveMode,
-    toggleTheme,
-  };
 }
 
 export function useTelegramBackButton(visible: boolean, onBack: () => void) {
@@ -155,8 +118,18 @@ export function useTelegramBackButton(visible: boolean, onBack: () => void) {
   }, [visible, onBack]);
 }
 
+function hapticsAllowed(): boolean {
+  try {
+    return localStorage.getItem("stem_haptics") !== "0";
+  } catch {
+    return true;
+  }
+}
+
 function notify(type: "success" | "error" | "warning") {
-  if (hapticFeedback.notificationOccurred.isAvailable()) hapticFeedback.notificationOccurred(type);
+  if (hapticsAllowed() && hapticFeedback.notificationOccurred.isAvailable()) {
+    hapticFeedback.notificationOccurred(type);
+  }
 }
 
 export function useTelegram() {
@@ -166,7 +139,9 @@ export function useTelegram() {
     hapticSuccess: () => notify("success"),
     hapticError: () => notify("error"),
     hapticTap: () => {
-      if (hapticFeedback.impactOccurred.isAvailable()) hapticFeedback.impactOccurred("light");
+      if (hapticsAllowed() && hapticFeedback.impactOccurred.isAvailable()) {
+        hapticFeedback.impactOccurred("light");
+      }
     },
   };
 }

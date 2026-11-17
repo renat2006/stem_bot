@@ -1,29 +1,33 @@
 .assembly-stage {
-  --assembly-cycle: 6s;
+  --assembly-cycle: 5.8s;
   position: relative;
   margin: 0;
   width: 100%;
   border: 1px solid var(--ln);
-  border-radius: 16px;
+  border-radius: 18px;
   background-color: var(--sf);
   background-image:
     linear-gradient(var(--ln) 1px, transparent 1px), linear-gradient(90deg, var(--ln) 1px, transparent 1px);
-  background-size: 20px 20px;
+  background-size: 22px 22px;
   overflow: hidden;
   color: var(--fg);
 }
+
 .assembly-stage--card {
-  width: 160px;
+  width: 172px;
 }
+
 .assembly-stage--token {
-  width: 40px;
+  width: 42px;
   border-radius: 50%;
   flex-shrink: 0;
 }
+
 .assembly-canvas {
   position: relative;
   width: 100%;
 }
+
 .assembly-ghost {
   position: absolute;
   inset: 0;
@@ -33,90 +37,151 @@
   stroke: var(--mu);
   stroke-width: 3;
   stroke-dasharray: 9 12;
-  opacity: 0.4;
+  opacity: 0.2;
 }
+
+.assembly-stage--token .assembly-ghost {
+  opacity: 0.08;
+}
+
 .assembly-ghost .assembly-shadow {
   fill: var(--mu);
   stroke: none;
   opacity: 0.2;
 }
+
 .assembly-ghost .assembly-rigging {
   stroke-dasharray: none;
   stroke-width: 7;
 }
+
 .assembly-ghost .assembly-plinth {
   fill: var(--sf2);
   stroke: var(--mu);
   stroke-dasharray: none;
 }
+
+.assembly-ghost .assembly-horizon {
+  stroke: var(--ac);
+  stroke-width: 2.5;
+  stroke-dasharray: 14 8;
+  opacity: 0.45;
+}
+
+.assembly-life {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 90%;
+}
+
 .assembly-socket {
   position: absolute;
   pointer-events: none;
-  animation-duration: var(--assembly-cycle);
-  animation-iteration-count: infinite;
-  animation-timing-function: ease-in-out;
 }
-.assembly-part,
-.assembly-incoming {
+
+.assembly-motion-inner {
+  width: 100%;
+  height: 100%;
+  transform-origin: inherit;
+}
+
+.assembly-part {
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
 .assembly-part[data-align="top"] {
   align-items: flex-start;
 }
+
 .assembly-part[data-align="bottom"] {
   align-items: flex-end;
 }
+
 .assembly-part[data-align="left"] {
   justify-content: flex-start;
 }
+
 .assembly-part[data-align="right"] {
   justify-content: flex-end;
 }
+
 .part-sticker {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
+
+.part-sticker[data-rarity="rare"] {
+  filter: drop-shadow(0 2px 6px rgba(46, 134, 150, 0.22));
+}
+
+.part-sticker[data-rarity="legendary"] {
+  filter: drop-shadow(0 0 10px rgba(245, 166, 35, 0.36));
+}
+
+.part-sticker--printed {
+  overflow: visible;
+  filter: drop-shadow(1px 0 0 #f5efdf) drop-shadow(-1px 0 0 #f5efdf) drop-shadow(0 1px 0 #f5efdf)
+    drop-shadow(0 -1px 0 #f5efdf);
+}
+
+.part-sticker--printed[data-rarity="legendary"] {
+  filter: drop-shadow(1px 0 0 #f5efdf) drop-shadow(-1px 0 0 #f5efdf) drop-shadow(0 1px 0 #f5efdf)
+    drop-shadow(0 -1px 0 #f5efdf) drop-shadow(0 0 10px rgba(245, 166, 35, 0.36));
+}
+
 .assembly-socket[data-preview] {
   outline: 2px dashed var(--ac);
-  border-radius: 12px;
+  outline-offset: 2px;
+  border-radius: 14px;
 }
-.assembly-socket[data-preview] > .assembly-part {
-  opacity: 0.85;
+
+.assembly-socket[data-selected] {
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
+  border-radius: 14px;
 }
-.assembly-replaced,
-.assembly-outgoing {
+
+.assembly-replaced {
   position: absolute;
   inset: 0;
-  opacity: 0.2;
+  opacity: 0.18;
 }
-.assembly-outgoing {
-  animation: assembly-remove 280ms ease-out both;
-}
-.assembly-incoming {
-  animation: assembly-install 280ms cubic-bezier(0.2, 1.5, 0.5, 1) both;
-}
+
 .assembly-empty {
   display: flex;
   width: 100%;
   height: 100%;
   align-items: center;
   justify-content: center;
+}
+
+.assembly-empty-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1.5px dashed var(--ac);
+  background: color-mix(in oklab, var(--sf) 84%, var(--ac));
   color: var(--ac);
   font:
-    500 24px "IBM Plex Mono",
+    600 18px "IBM Plex Mono",
     monospace;
 }
+
 .assembly-controls {
   position: absolute;
   inset: 0 0 auto;
   pointer-events: none;
 }
+
 .assembly-controls button {
   position: absolute;
   min-width: 36px;
@@ -125,45 +190,88 @@
   background: transparent;
   cursor: pointer;
   pointer-events: auto;
-  border-radius: 10px;
+  border-radius: 12px;
+  transition: background-color 140ms ease-out;
 }
+
+.assembly-controls button:hover {
+  background: color-mix(in oklab, var(--ac) 10%, transparent);
+}
+
 .assembly-controls button:focus-visible {
   outline: 3px solid var(--ac);
 }
+
+.assembly-pause-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid var(--ln);
+  background: color-mix(in oklab, var(--sf) 88%, transparent);
+  color: var(--mu);
+  cursor: pointer;
+  transition:
+    color 140ms ease,
+    border-color 140ms ease;
+}
+
+.assembly-pause-btn:hover {
+  color: var(--fg);
+  border-color: var(--ac);
+}
+
 .assembly-label {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
-  gap: 4px;
-  padding: 10px 12px;
+  gap: 6px;
+  padding: 9px 12px;
   border-top: 1px solid var(--ln);
   background: var(--sf2);
   font:
     500 11px "IBM Plex Mono",
     monospace;
 }
-.assembly-motion--bob {
-  animation-name: assembly-bob;
-}
-.assembly-motion--sway {
-  animation-name: assembly-sway;
-}
-.assembly-motion--pulse {
-  animation-name: assembly-pulse;
-}
-.assembly-motion--flap {
-  animation-name: assembly-flap;
-}
+
 @keyframes assembly-bob {
   0%,
   100% {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-1.5%);
+    transform: translateY(-1.6%);
   }
 }
+
 @keyframes assembly-sway {
+  0%,
+  100% {
+    transform: rotate(-3.5deg);
+  }
+  50% {
+    transform: rotate(3.5deg);
+  }
+}
+
+@keyframes assembly-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.035);
+  }
+}
+
+@keyframes assembly-flap {
   0%,
   100% {
     transform: rotate(-6deg);
@@ -172,108 +280,52 @@
     transform: rotate(6deg);
   }
 }
-@keyframes assembly-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.04);
-  }
-}
-@keyframes assembly-flap {
-  0%,
-  100% {
-    transform: rotate(-10deg);
-  }
-  50% {
-    transform: rotate(10deg);
-  }
-}
-@keyframes assembly-install {
-  from {
-    transform: translateY(-30%) scale(1.15);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0) scale(1);
-    opacity: 1;
-  }
-}
-@keyframes assembly-remove {
-  to {
-    transform: translateY(30%);
-    opacity: 0;
-  }
-}
-.assembly-stage[data-low-power] * {
-  animation: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .assembly-stage * {
-    animation: none;
-  }
-}
 
-.part-sticker--printed {
-  overflow: visible;
-  filter: drop-shadow(1px 0 0 #f5efdf) drop-shadow(-1px 0 0 #f5efdf) drop-shadow(0 1px 0 #f5efdf)
-    drop-shadow(0 -1px 0 #f5efdf);
-}
-.assembly-ghost {
-  opacity: 0.18;
-}
-.assembly-stage--token .assembly-ghost {
-  opacity: 0.08;
-}
-
-.assembly-life {
-  position: absolute;
-  inset: 0;
-  transform-origin: 50% 90%;
-}
-.assembly-stage[data-rig="creature"] .assembly-life {
-  animation: specimen-breathe 5.8s ease-in-out infinite;
-}
-.assembly-socket[data-plane="near"],
-.assembly-socket[data-plane="far"] {
-  animation-name: specimen-limb;
-  animation-duration: 5.8s;
-}
 @keyframes specimen-breathe {
   0%,
   100% {
     transform: translateY(0) rotate(-0.2deg);
   }
   50% {
-    transform: translateY(-1px) rotate(0.2deg);
+    transform: translateY(-1.5px) rotate(0.2deg);
   }
 }
-@keyframes specimen-limb {
+
+@keyframes rover-suspension {
   0%,
   100% {
-    transform: rotate(calc(var(--assembly-angle, 0deg) - 0.7deg));
+    transform: translateY(0);
   }
   50% {
-    transform: rotate(calc(var(--assembly-angle, 0deg) + 0.7deg));
+    transform: translateY(-2.5px);
   }
 }
-.assembly-stage--token[data-rig] .assembly-life,
-.assembly-stage--token .assembly-socket {
-  animation: none;
-}
 
-.assembly-life > .assembly-motion--sway[data-plane="single"] {
-  animation: specimen-limb 5.8s ease-in-out infinite;
-}
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-reduced-motion="true"])
+    .assembly-stage:not([data-low-power]):not([data-paused]):not(.assembly-stage--token) {
+    &[data-rig="creature"] .assembly-life {
+      animation: specimen-breathe 5.8s ease-in-out infinite;
+    }
 
-.assembly-stage[data-low-power] .assembly-life,
-.assembly-stage[data-low-power] .assembly-socket {
-  animation: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .assembly-stage[data-rig] .assembly-life,
-  .assembly-stage[data-rig] .assembly-socket {
-    animation: none;
+    &[data-rig="rover"] .assembly-life {
+      animation: rover-suspension 4.2s ease-in-out infinite;
+    }
+
+    & .assembly-motion--bob {
+      animation: assembly-bob var(--assembly-cycle) ease-in-out infinite;
+    }
+
+    & .assembly-motion--sway {
+      animation: assembly-sway var(--assembly-cycle) ease-in-out infinite;
+    }
+
+    & .assembly-motion--pulse {
+      animation: assembly-pulse var(--assembly-cycle) ease-in-out infinite;
+    }
+
+    & .assembly-motion--flap {
+      animation: assembly-flap var(--assembly-cycle) ease-in-out infinite;
+    }
   }
 }

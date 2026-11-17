@@ -47,4 +47,28 @@ export const RIGS: Record<Rig["id"], Rig> = {
     ],
     shadow: { cx: 500, cy: 910, rx: 390, ry: 35 },
   }),
+  rover: RigSchema.parse({
+    id: "rover",
+    frame: [0, 130, 1000, 740],
+    groundY: 820,
+    viewBox: "0 0 1000 1000",
+    ghostPath:
+      "M190 520 L250 430 H740 L810 520 V610 H190Z M240 610 A95 95 0 1 0 430 610 M570 610 A95 95 0 1 0 760 610 M660 430 V260 H740 M270 430 L340 280 H500",
+    sockets: [
+      { slotId: "chassis", box: [180, 410, 640, 230], align: "center", z: 2, motion: "bob" },
+      { slotId: "drive", box: [150, 545, 700, 275], align: "top", z: 3 },
+      { slotId: "power", box: [365, 360, 245, 195], align: "center", z: 4, motion: "pulse" },
+      { slotId: "firmware", box: [205, 330, 210, 175], align: "center", z: 4 },
+      {
+        slotId: "sensors",
+        box: [605, 205, 235, 255],
+        align: "bottom",
+        z: 5,
+        motion: "sway",
+        pivot: [0.5, 0.9],
+      },
+      { slotId: "cargo", box: [115, 210, 310, 255], align: "bottom", z: 5, motion: "bob" },
+    ],
+    shadow: { cx: 500, cy: 845, rx: 370, ry: 34 },
+  }),
 };

@@ -1,6 +1,23 @@
-import type { GameTemplate } from "./schema.js";
+import { ROVER_SPRINT_TEMPLATE } from "./rover-preset.js";
+import { type CardRarity, type GameTemplate, GameTemplateSchema } from "./schema.js";
 
-export const NEUROFAUNA_TEMPLATE: GameTemplate = {
+function rarityForTier(tier: number): CardRarity {
+  if (tier >= 5) return "legendary";
+  if (tier >= 3) return "rare";
+  return "common";
+}
+
+function buildPreset(raw: Record<string, unknown>): GameTemplate {
+  const cards = ((raw.cards as Array<Record<string, unknown>>) ?? []).map((card) => ({
+    ...card,
+    rarity: card.rarity ?? rarityForTier(Number(card.tier ?? 1)),
+  }));
+  return GameTemplateSchema.parse({ ...raw, cards });
+}
+
+export { ROVER_SPRINT_TEMPLATE };
+
+export const NEUROFAUNA_TEMPLATE: GameTemplate = buildPreset({
   id: "neurofauna-classic",
   title: "НейроФауна",
   theme: "Летняя STEM-школа · Биоинженерия и эволюционная гонка",
@@ -339,9 +356,65 @@ export const NEUROFAUNA_TEMPLATE: GameTemplate = {
     badLabel: "риск −1 шаг",
     chips: ["Выживание ниже 1: −1 шаг", "Откуп 3 ДНК"],
   },
-};
+  dayBriefings: [
+    {
+      day: 0,
+      title: "Лаборатория «НейроФауна» открыта",
+      story:
+        "Исследовательские станции приступили к синтезу новых форм жизни. Днём ваша команда добывает ДНК на занятиях, а вечером комбинирует гены скорости, силы и выживания на пути к вершине Эволюционной спирали.",
+      challengeTitle: "У каждой мощной адаптации есть своя цена — собирайте с умом",
+      illustrationKey: "cover-story",
+    },
+    {
+      day: 1,
+      title: "День 1 · Выход на сушу",
+      story:
+        "Первые прототипы покидают биокамеры. Среда ещё мягкая, но места у источников ресурса достаются тем, кто быстрее освоил базовую анатомию.",
+      challengeTitle: "Соберите стартовый организм",
+      focusStatId: "speed",
+      targetMin: 2,
+      illustrationKey: "cover-hero",
+    },
+    {
+      day: 2,
+      title: "День 2 · Сезон засухи",
+      story:
+        "Водоёмы пересыхают, а открытые равнины проверяют запас прочности тканей. Чистая погоня за скоростью без защиты начинает давать сбои.",
+      challengeTitle: "Испытание «Засуха»",
+      focusStatId: "survival",
+      targetMin: 2,
+    },
+    {
+      day: 3,
+      title: "День 3 · Борьба за ареал",
+      story:
+        "В биоме появляются крупные виды и редкие мутации. Команды выходят на межлабораторную биржу генов, чтобы закрыть уязвимые места сборки.",
+      challengeTitle: "Проверка «Охота»",
+      focusStatId: "strength",
+      targetMin: 4,
+    },
+    {
+      day: 4,
+      title: "День 4 · Тектонический сдвиг",
+      story:
+        "Пеплопад и резкое похолодание меняют правила отбора. На аукцион выставлены единичные реликтовые адаптации.",
+      challengeTitle: "Событие «Катастрофа»",
+      focusStatId: "survival",
+      targetMin: 4,
+    },
+    {
+      day: 5,
+      title: "День 5 · Вершина Спирали",
+      story:
+        "Финальный бросок к вершине эволюции! Выживают и побеждают виды, в которых команда нашла точный баланс всех трёх сфер.",
+      challengeTitle: "Финальный рывок по Эволюционной спирали",
+      focusStatId: "speed",
+      targetMin: 5,
+    },
+  ],
+});
 
-export const STARTUP_DAY_TEMPLATE: GameTemplate = {
+export const STARTUP_DAY_TEMPLATE: GameTemplate = buildPreset({
   id: "startup-in-a-day",
   title: "Стартап за день",
   theme: "STEM-конференция · Сборка технологической компании и выход на IPO",
@@ -546,9 +619,9 @@ export const STARTUP_DAY_TEMPLATE: GameTemplate = {
     badLabel: "нужно Устойчивость 4",
     chips: ["Награда +6 Кредитов", "+2 шага"],
   },
-};
+});
 
-export const NEURO_AIRSHIP_TEMPLATE: GameTemplate = {
+export const NEURO_AIRSHIP_TEMPLATE: GameTemplate = buildPreset({
   id: "neuro-airship-stem",
   title: "АэроТех: Нейро-Дирижабли",
   theme: "Конструирование беспилотных дирижаблей на нейроуправлении",
@@ -777,9 +850,10 @@ export const NEURO_AIRSHIP_TEMPLATE: GameTemplate = {
     badLabel: "риск сноса −1 шаг",
     chips: ["Надёжность ниже 2: −1 шаг", "Аварийная тяга 4 Энергоячейки"],
   },
-};
+});
 
 export const DEFAULT_TEMPLATES: GameTemplate[] = [
+  ROVER_SPRINT_TEMPLATE,
   NEUROFAUNA_TEMPLATE,
   STARTUP_DAY_TEMPLATE,
   NEURO_AIRSHIP_TEMPLATE,

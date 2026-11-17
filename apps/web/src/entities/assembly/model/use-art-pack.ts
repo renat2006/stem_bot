@@ -5,6 +5,7 @@ const loaders: Record<string, () => Promise<{ default: unknown }>> = {
   neurofauna: () => import("@stem/art/packs/neurofauna"),
   airship: () => import("@stem/art/packs/airship"),
   startup: () => import("@stem/art/packs/startup"),
+  rovers: () => import("@stem/art/packs/rovers"),
 };
 const cache = new Map<string, Promise<ArtPack | null>>();
 

@@ -2,6 +2,10 @@ import { z } from "zod";
 
 export const StatShapeSchema = z.enum(["tri", "up", "sq", "hex", "dia"]);
 
+export const CardRaritySchema = z.enum(["common", "rare", "legendary"]);
+
+export const EffectScopeSchema = z.enum(["step", "event_shield", "economy", "slot_synergy"]);
+
 export const StatDefinitionSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
@@ -19,13 +23,56 @@ export const CardItemSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   slotId: z.string().min(1),
+  rarity: CardRaritySchema.default("common"),
   tier: z.number().int().min(1).max(5).default(1),
   price: z.number().int().nonnegative(),
   dayAvailable: z.number().int().min(1),
   stats: z.record(z.string(), z.number().int()),
   trackBonus: z.number().int().default(0),
   stock: z.number().int().min(1).default(3),
+  effectScope: EffectScopeSchema.optional(),
+  flavor: z.string().optional(),
   sellerTeam: z.string().optional(),
+});
+
+export const RarityRuleSchema = z.object({
+  maxPositiveSum: z.number().int().min(1).max(12),
+  minNegativeSum: z.number().int().min(0).max(8),
+  defaultStock: z.number().int().min(1).max(10),
+  minPrice: z.number().int().min(1).max(30),
+});
+
+export const RarityConfigSchema = z.object({
+  common: RarityRuleSchema.default({ maxPositiveSum: 2, minNegativeSum: 0, defaultStock: 4, minPrice: 2 }),
+  rare: RarityRuleSchema.default({ maxPositiveSum: 4, minNegativeSum: 1, defaultStock: 2, minPrice: 4 }),
+  legendary: RarityRuleSchema.default({ maxPositiveSum: 6, minNegativeSum: 2, defaultStock: 1, minPrice: 6 }),
+});
+
+export const FeatureFlagsSchema = z.object({
+  p2pMarket: z.boolean().default(true),
+  p2pMinPriceRatio: z.number().min(0.2).max(2).default(0.5),
+  p2pMaxPriceRatio: z.number().min(1).max(5).default(2.5),
+  p2pFeePercent: z.number().int().min(0).max(30).default(0),
+  p2pCountsTowardLimit: z.boolean().default(false),
+  slotInventory: z.boolean().default(true),
+  auctions: z.boolean().default(true),
+  perks: z.boolean().default(true),
+  dayEvents: z.boolean().default(true),
+  allowBuyoff: z.boolean().default(true),
+  teamProposals: z.boolean().default(true),
+  undoPurchase: z.boolean().default(true),
+  storyBriefings: z.boolean().default(true),
+  catchUpBonus: z.boolean().default(true),
+});
+
+export const LoreBriefingSchema = z.object({
+  day: z.number().int().min(0),
+  title: z.string().min(1),
+  story: z.string().min(1),
+  challengeTitle: z.string().optional(),
+  focusStatId: z.string().optional(),
+  targetMin: z.number().int().optional(),
+  illustrationKey: z.string().optional(),
 });
 
 export const PerkPropertySchema = z.object({
@@ -56,12 +103,21 @@ export const ExtraModuleSchema = z.object({
   okLabel: z.string().min(1),
   badLabel: z.string().min(1),
   chips: z.array(z.string().min(1)),
+  rewardTrack: z.number().int().default(1),
+  penaltyTrack: z.number().int().default(-1),
+  buyoffCost: z.number().int().nonnegative().default(2),
 });
 
 export const BoardCellSchema = z.object({
   position: z.number().int().min(1),
   type: z.enum(["start", "mutation", "resource", "challenge", "catastrophe", "apex"]),
   label: z.string().min(1),
+  statId: z.string().optional(),
+  minStat: z.number().int().optional(),
+  rewardCurrency: z.number().int().default(0),
+  rewardTrack: z.number().int().default(0),
+  penaltyCurrency: z.number().int().default(0),
+  penaltyTrack: z.number().int().default(0),
   buyoffCost: z.number().int().nonnegative().optional(),
 });
 
@@ -70,15 +126,18 @@ export const EventFactSchema = z.object({
   label: z.string().min(1),
 });
 
+export const DefaultFeatures = FeatureFlagsSchema.parse({});
+export const DefaultRarityRules = RarityConfigSchema.parse({});
+
 export const GameTemplateSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   theme: z.string().min(1),
   eventTag: z.string().default("STEM-ШКОЛА"),
-  eventKey: z.enum(["neurofauna", "startup", "airship"]).default("neurofauna"),
+  eventKey: z.enum(["neurofauna", "startup", "airship", "rovers"]).default("neurofauna"),
   objectName: z.string().default("Существо"),
   artPackId: z.string().min(1).optional(),
-  objectRig: z.enum(["creature", "airship", "campus"]).default("creature"),
+  objectRig: z.enum(["creature", "airship", "campus", "rover"]).default("creature"),
   currencyName: z.string().min(1),
   currencyIcon: z.string().min(1),
   totalDays: z.number().int().min(1),
@@ -101,9 +160,33 @@ export const GameTemplateSchema = z.object({
   perks: z.array(PerkPropertySchema),
   boardCells: z.array(BoardCellSchema),
   extraModule: ExtraModuleSchema.optional(),
+  features: FeatureFlagsSchema.default(DefaultFeatures),
+  rarityRules: RarityConfigSchema.default(DefaultRarityRules),
+  dayBriefings: z.array(LoreBriefingSchema).default([]),
 });
 
 export const ShiftPhaseSchema = z.enum(["scoring", "market", "turn", "summary"]);
+
+export const P2PListingSchema = z.object({
+  id: z.string(),
+  sellerTeamId: z.string(),
+  sellerTeamName: z.string(),
+  cardId: z.string(),
+  price: z.number().int().positive(),
+  createdAt: z.string(),
+});
+
+export const AuctionLotSchema = z.object({
+  id: z.string(),
+  cardId: z.string(),
+  startingPrice: z.number().int().positive(),
+  currentBid: z.number().int().nonnegative(),
+  leaderTeamId: z.string().nullable(),
+  leaderTeamName: z.string().nullable(),
+  bidCount: z.number().int().nonnegative().default(0),
+  endsAt: z.string(),
+  status: z.enum(["open", "settled", "cancelled"]),
+});
 
 export const GameStateSchema = z.object({
   activeTemplateId: z.string(),
@@ -128,24 +211,35 @@ export const TeamSchema = z.object({
   captainUsername: z.string(),
   members: z.array(z.string()).default(["Е", "О", "М", "Д"]),
   currency: z.number().int(),
+  heldCurrency: z.number().int().nonnegative().default(0),
   trackPosition: z.number().int().min(1),
   boardPosition: z.number().int().min(1),
   purchasesToday: z.number().int().nonnegative(),
   equippedCards: z.record(z.string(), z.string().nullable()),
+  inventory: z.array(z.string()).default([]),
+  badges: z.array(z.string()).default([]),
   activePerkId: z.string().nullable(),
   statModifiers: z.record(z.string(), z.number().int()),
 });
 
 export type StatShape = z.infer<typeof StatShapeSchema>;
+export type CardRarity = z.infer<typeof CardRaritySchema>;
+export type EffectScope = z.infer<typeof EffectScopeSchema>;
 export type StatDefinition = z.infer<typeof StatDefinitionSchema>;
 export type SlotDefinition = z.infer<typeof SlotDefinitionSchema>;
 export type CardItem = z.infer<typeof CardItemSchema>;
+export type RarityRule = z.infer<typeof RarityRuleSchema>;
+export type RarityConfig = z.infer<typeof RarityConfigSchema>;
+export type FeatureFlags = z.infer<typeof FeatureFlagsSchema>;
+export type LoreBriefing = z.infer<typeof LoreBriefingSchema>;
 export type PerkProperty = z.infer<typeof PerkPropertySchema>;
 export type StepThreshold = z.infer<typeof StepThresholdSchema>;
 export type ExtraModule = z.infer<typeof ExtraModuleSchema>;
 export type BoardCell = z.infer<typeof BoardCellSchema>;
 export type EventFact = z.infer<typeof EventFactSchema>;
 export type ShiftPhase = z.infer<typeof ShiftPhaseSchema>;
+export type P2PListing = z.infer<typeof P2PListingSchema>;
+export type AuctionLot = z.infer<typeof AuctionLotSchema>;
 export type GameTemplate = z.infer<typeof GameTemplateSchema>;
 export type GameState = z.infer<typeof GameStateSchema>;
 export type Team = z.infer<typeof TeamSchema>;

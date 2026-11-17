@@ -10,13 +10,20 @@ interface JoinFormProps {
 
 const CODE_LENGTH = 6;
 
+function resolveInitialCode(): string {
+  const start = getStartParam();
+  if (start) {
+    const cleaned = start.startsWith("join_") ? start.slice(5) : start;
+    if (/^[a-z0-9]{4,12}$/i.test(cleaned)) return cleaned.toUpperCase().slice(0, CODE_LENGTH);
+  }
+  if (typeof window === "undefined") return "";
+  const params = new URLSearchParams(window.location.search);
+  return (params.get("join") ?? params.get("code") ?? "").toUpperCase().slice(0, CODE_LENGTH);
+}
+
 export function JoinForm({ defaultName, run, onJoined }: JoinFormProps) {
   const [name, setName] = useState(defaultName);
-  const [code, setCode] = useState(() =>
-    (getStartParam() ?? new URLSearchParams(window.location.search).get("code") ?? "")
-      .toUpperCase()
-      .slice(0, CODE_LENGTH),
-  );
+  const [code, setCode] = useState(resolveInitialCode);
   const ready = name.trim().length > 0 && code.trim().length >= 4;
 
   return (
@@ -39,7 +46,7 @@ export function JoinForm({ defaultName, run, onJoined }: JoinFormProps) {
           onChange={(e) => setName(e.target.value)}
           maxLength={40}
           autoComplete="given-name"
-          placeholder="Имя, которое увидит команда"
+          placeholder="Имя для вашей команды"
           className="h-12 rounded-xl border border-ln bg-sf px-3.5 text-base text-fg focus:border-ac focus:outline-none"
         />
       </label>
@@ -56,7 +63,9 @@ export function JoinForm({ defaultName, run, onJoined }: JoinFormProps) {
           placeholder="ABC123"
           className="h-14 rounded-xl border-[1.5px] border-ac bg-sf px-4 text-center font-mono text-2xl font-semibold tracking-[0.25em] uppercase text-fg placeholder:text-mu/50 focus:outline-none"
         />
-        <span className="text-xs text-mu">Код выдаёт ведущий. Первый вошедший становится капитаном.</span>
+        <span className="text-xs text-mu">
+          Введите код от ведущего или отсканируйте QR команды. Первый участник становится капитаном.
+        </span>
       </label>
 
       <button
@@ -64,7 +73,7 @@ export function JoinForm({ defaultName, run, onJoined }: JoinFormProps) {
         disabled={!ready}
         className="h-12 w-full rounded-xl bg-ac text-base font-semibold text-acfg disabled:bg-sf2 disabled:text-mu"
       >
-        Войти в команду
+        Присоединиться к команде
       </button>
     </form>
   );

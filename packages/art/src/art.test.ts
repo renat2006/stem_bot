@@ -2,6 +2,7 @@ import { DEFAULT_TEMPLATES, GameTemplateSchema, NEUROFAUNA_TEMPLATE } from "@ste
 import { describe, expect, it } from "vitest";
 import airship from "../packs/airship/manifest.json";
 import neurofauna from "../packs/neurofauna/manifest.json";
+import rovers from "../packs/rovers/manifest.json";
 import startup from "../packs/startup/manifest.json";
 import { composeAssembly } from "./compose.js";
 import { proceduralPart } from "./procedural/index.js";
@@ -9,7 +10,7 @@ import { RIGS } from "./rigs/index.js";
 import { ArtPackSchema } from "./schema.js";
 import { speciesName } from "./species-name.js";
 
-const manifests = [neurofauna, airship, startup];
+const manifests = [neurofauna, airship, startup, rovers];
 
 describe("art pack contract", () => {
   it("validates the three procedural manifests and rig sockets against their templates", () => {
@@ -124,6 +125,7 @@ describe("species names", () => {
           id: "scorpion-tail",
           name: "Хвост скорпиона",
           slotId: "tail",
+          rarity: "common" as const,
           stats: {},
           price: 1,
           tier: 1,
@@ -138,16 +140,20 @@ describe("species names", () => {
     );
     expect(speciesName(template, {})).toBe("Неизвестный вид");
   });
-  it("names empty and assembled airships and campuses", () => {
+  it("names empty and assembled non-creature rigs", () => {
     for (const template of DEFAULT_TEMPLATES.filter((t) => t.objectRig !== "creature")) {
       const equipped = Object.fromEntries(
         template.slots.map((slot) => [slot.id, template.cards.find((c) => c.slotId === slot.id)?.id ?? null]),
       );
       expect(speciesName(template, equipped)).toBe(speciesName(template, equipped));
       expect(speciesName(template, equipped)).not.toBe(speciesName(template, {}));
-      expect(speciesName(template, equipped)).toMatch(
-        template.objectRig === "campus" ? /Labs$/ : /^NX-\d+ «.+»$/,
-      );
+      const pattern =
+        template.objectRig === "campus"
+          ? /Labs$/
+          : template.objectRig === "rover"
+            ? /^РВ-\d+ «.+»$/
+            : /^NX-\d+ «.+»$/;
+      expect(speciesName(template, equipped)).toMatch(pattern);
     }
   });
 });

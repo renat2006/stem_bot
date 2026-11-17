@@ -26,6 +26,8 @@ export function PartSticker({
   const [failedSrc, setFailedSrc] = useState<string>();
   const useAsset = Boolean(src && failedSrc !== src);
   const fallback = `data:image/svg+xml,${encodeURIComponent(proceduralPart(card, template, activePack))}`;
+  const rarity = card.rarity ?? "common";
+
   if (useAsset && asset?.contentBox && !thumbnail) {
     return (
       <svg
@@ -36,6 +38,7 @@ export function PartSticker({
         role="img"
         aria-label={card.name}
         data-tier={card.tier}
+        data-rarity={rarity}
       >
         <image
           href={src}
@@ -66,6 +69,7 @@ export function PartSticker({
         if (src) setFailedSrc(src);
       }}
       data-tier={card.tier}
+      data-rarity={rarity}
     />
   );
 }

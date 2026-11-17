@@ -53,42 +53,42 @@ export function TeamSummary({
   let nowSub = `Дальше ${template.nextPhaseLabel}`;
   if (currentPhase === "scoring") {
     nowTitle = `Начисление ${template.currencyName}`;
-    nowSub = "Ассистенты оценивают учебный блок · дальше откроется рынок";
+    nowSub = "Ведущие оценивают учебный блок · дальше откроется рынок";
   } else if (currentPhase === "market") {
     nowTitle = !isCaptain
-      ? "Предложите карты капитану"
+      ? "Предложите детали капитану"
       : leftBuys > 0
-        ? `Купите до ${leftBuys} карт`
-        : "Покупки сделаны";
+        ? `Выберите до ${leftBuys} деталей`
+        : "Лимит покупок выполнен";
     nowSub = `Рынок открыт · дальше ${template.nextPhaseLabel}`;
   } else if (currentPhase === "turn") {
     nowTitle = `Ход: +${team.computedStats.step.total} шаг`;
-    nowSub = `Бросок кубика и движение по треку «${template.trackName}»`;
+    nowSub = `Движение команд по маршруту «${template.trackName}»`;
   } else if (currentPhase === "summary") {
-    nowTitle = "Итоги раунда";
-    nowSub = "Фиксация позиций на общем табло";
+    nowTitle = "Итоги дня";
+    nowSub = "Позиции команд зафиксированы на табло";
   }
 
   return (
-    <div className="space-y-3">
-      <section className="flex flex-col gap-3.5 rounded-2xl border border-ln bg-sf p-4">
+    <div className="space-y-2.5">
+      <section className="flex flex-col gap-3 rounded-2xl border border-ln bg-sf p-3.5">
         <div className="flex items-center gap-3.5">
           <div
-            className="relative h-[68px] w-[68px] shrink-0 rounded-full"
+            className="relative h-16 w-16 shrink-0 rounded-full"
             style={{
               background: `conic-gradient(${hasTimer ? "var(--warn)" : "var(--ac)"} ${pct}%, var(--sf2) 0)`,
             }}
           >
             <div className="absolute inset-[5px] flex flex-col items-center justify-center rounded-full bg-sf">
-              <span className="font-mono text-base leading-none font-semibold text-fg">{timerStr}</span>
-              <span className="mt-1 text-[11px] text-mu">{hasTimer ? "осталось" : "день"}</span>
+              <span className="font-mono text-sm leading-none font-semibold text-fg">{timerStr}</span>
+              <span className="mt-1 text-[10px] text-mu">{hasTimer ? "осталось" : "день"}</span>
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <span className="font-mono text-[11px] font-medium tracking-[0.06em] text-mu">{phaseLine}</span>
-            <h2 className="text-xl leading-tight font-semibold text-fg">{nowTitle}</h2>
-            <p className="text-[13px] leading-snug text-mu">{nowSub}</p>
+            <h2 className="text-lg leading-tight font-semibold text-fg">{nowTitle}</h2>
+            <p className="text-xs leading-snug text-mu">{nowSub}</p>
           </div>
         </div>
 
@@ -115,22 +115,26 @@ export function TeamSummary({
       </section>
 
       <section className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-ln bg-sf p-3.5">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-ac font-mono text-base font-semibold text-acfg">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-ac font-mono text-sm font-semibold text-acfg">
           {team.monogram}
         </div>
         <div className="flex min-w-0 flex-col gap-1">
           <h3 className="truncate text-base font-semibold text-fg">{team.name}</h3>
-          <div className="flex items-center gap-1.5 text-xs text-mu">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs text-mu">
             <span className="rounded-md bg-sf2 px-2 py-0.5 font-mono text-xs font-semibold text-fg">
-              {teamRank} место
+              {teamRank} место из {totalTeams}
             </span>
-            <span>из {totalTeams}</span>
+            {team.heldCurrency > 0 && (
+              <span className="rounded-md bg-warn/15 px-2 py-0.5 font-mono text-[11px] font-medium text-warn">
+                в ставке: {team.heldCurrency}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex flex-col items-end gap-1.5">
-          <span className="flex items-center gap-2 font-mono text-[28px] leading-none font-semibold text-fg">
-            {team.currency}
-            <Coin size={20} />
+          <span className="flex items-center gap-1.5 font-mono text-2xl leading-none font-semibold text-fg">
+            {team.currency - (team.heldCurrency ?? 0)}
+            <Coin size={18} />
           </span>
           <div className="flex items-center gap-1.5">
             <BuySlots used={team.purchasesToday} limit={limit} />

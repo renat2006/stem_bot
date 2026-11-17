@@ -1,10 +1,15 @@
 import type { Server } from "node:http";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
-import { webhookCallback } from "grammy";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { configureBotDelivery, createAdminBot, createAlertService, createPlayerBot } from "./bot/index.js";
+import {
+  configureBotDelivery,
+  createAdminBot,
+  createAlertService,
+  createBotWebhookHandler,
+  createPlayerBot,
+} from "./bot/index.js";
 import { connectPglite, connectPostgres } from "./db/client.js";
 import { adminRouter } from "./modules/admin/routes.js";
 import { activeEventId, settleExpiredAuctions } from "./modules/event/repository.js";
@@ -70,10 +75,10 @@ app.route("/api/team", teamRouter);
 app.route("/api/admin", adminRouter);
 
 if (playerBot && playerWebhook) {
-  app.post(PLAYER_WEBHOOK_PATH, webhookCallback(playerBot, "hono", { secretToken: playerWebhook.secret }));
+  app.post(PLAYER_WEBHOOK_PATH, createBotWebhookHandler(playerBot, playerWebhook.secret));
 }
 if (adminBot && adminWebhook) {
-  app.post(ADMIN_WEBHOOK_PATH, webhookCallback(adminBot, "hono", { secretToken: adminWebhook.secret }));
+  app.post(ADMIN_WEBHOOK_PATH, createBotWebhookHandler(adminBot, adminWebhook.secret));
 }
 
 if (config.WEB_DIST_DIR) {

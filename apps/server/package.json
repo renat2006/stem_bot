@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.121",
-    "@electric-sql/pglite": "^0.5.10",
+    "@electric-sql/pglite": "^0.5.16",
     "@grammyjs/auto-retry": "^2.0.2",
     "@grammyjs/transformer-throttler": "^1.2.1",
     "@hono/node-server": "^2.1.5",
@@ -26,7 +26,7 @@
     "grammy": "^1.46.0",
     "hono": "^4.13.13",
     "postgres": "^3.4.9",
-    "ws": "^8.22.0",
+    "ws": "^8.23.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -35,6 +35,6 @@
     "drizzle-kit": "^0.31.11",
     "esbuild": "^0.28.2",
     "tsx": "^4.19.2",
-    "vitest": "^5.0.4"
+    "vitest": "^5.1.0"
   }
 }

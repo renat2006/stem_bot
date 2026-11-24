@@ -1,9 +1,12 @@
+import type { Team } from "@stem/shared";
+import { Users } from "lucide-react";
 import { useState } from "react";
 import { getStartParam, type RunAction } from "../../../shared/lib/index.js";
-import { joinTeam } from "../api/join-api.js";
+import { joinTeam, joinTeamByIdDev } from "../api/join-api.js";
 
 interface JoinFormProps {
   defaultName: string;
+  devTeams?: Team[];
   run: RunAction;
   onJoined: () => void;
 }
@@ -21,8 +24,8 @@ function resolveInitialCode(): string {
   return (params.get("join") ?? params.get("code") ?? "").toUpperCase().slice(0, CODE_LENGTH);
 }
 
-export function JoinForm({ defaultName, run, onJoined }: JoinFormProps) {
-  const [name, setName] = useState(defaultName);
+export function JoinForm({ defaultName, devTeams, run, onJoined }: JoinFormProps) {
+  const [name, setName] = useState(defaultName || "Участник");
   const [code, setCode] = useState(resolveInitialCode);
   const ready = name.trim().length > 0 && code.trim().length >= 4;
 
@@ -50,6 +53,35 @@ export function JoinForm({ defaultName, run, onJoined }: JoinFormProps) {
           className="h-12 rounded-xl border border-ln bg-sf px-3.5 text-base text-fg focus:border-ac focus:outline-none"
         />
       </label>
+
+      {devTeams && devTeams.length > 0 && (
+        <div className="space-y-2 rounded-2xl border border-ln bg-sf2 p-3">
+          <span className="block text-xs font-bold text-mu">Быстрый вход в команду (стенд)</span>
+          <div className="grid grid-cols-2 gap-2">
+            {devTeams.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => {
+                  const cleanName = name.trim() || "Участник";
+                  void run(async () => {
+                    const result = await joinTeamByIdDev(t.id, cleanName);
+                    onJoined();
+                    return result;
+                  });
+                }}
+                className="flex min-h-[44px] items-center justify-between gap-2 rounded-xl border border-ln bg-sf px-3 py-2 text-left text-xs font-bold text-fg hover:border-ac"
+              >
+                <span className="truncate">{t.name}</span>
+                <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-mu">
+                  <Users className="h-3 w-3" />
+                  {t.members.length}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <label className="flex flex-col gap-1.5">
         <span className="text-[13.5px] font-medium text-fg">Код команды</span>

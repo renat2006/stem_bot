@@ -1,6 +1,6 @@
 {
   "id": "rovers",
-  "version": 1,
+  "version": 3,
   "rig": "rover",
   "palette": {
     "outline": "#1F1D19",
@@ -11,15 +11,347 @@
     "olive": "#6F8136",
     "glow": "#F5A623"
   },
-  "rigOverrides": [],
-  "parts": [],
-  "perks": {},
-  "stats": {},
-  "currency": "",
-  "cells": {},
-  "covers": {
-    "hero": "assets/cover-hero.55568bad87a1.webp",
-    "story": "assets/cover-story.c477bcd03bb1.webp"
+  "rigOverrides": [
+    {
+      "slotId": "chassis",
+      "box": [160, 460, 680, 190],
+      "motion": "none"
+    },
+    {
+      "slotId": "drive",
+      "box": [0, 0, 180, 185],
+      "z": 4,
+      "motion": "none",
+      "attach": {
+        "parentSlotId": "chassis",
+        "parentPoint": [0.18, 0.85],
+        "partPoint": [0.5, 0.42],
+        "parentAnchor": "drive"
+      }
+    },
+    {
+      "slotId": "sensors",
+      "box": [0, 0, 125, 156],
+      "z": 3,
+      "motion": "none",
+      "attach": {
+        "parentSlotId": "chassis",
+        "parentPoint": [0.23, 0.16],
+        "partPoint": [0.5, 0.94],
+        "parentAnchor": "sensors",
+        "supportAnchors": ["support-sensors-l", "support-sensors-r"]
+      }
+    },
+    {
+      "slotId": "cargo",
+      "box": [0, 0, 165, 148],
+      "z": 3,
+      "motion": "none",
+      "attach": {
+        "parentSlotId": "chassis",
+        "parentPoint": [0.76, 0.13],
+        "partPoint": [0.5, 0.94],
+        "parentAnchor": "cargo",
+        "supportAnchors": ["support-cargo-l", "support-cargo-r"]
+      }
+    },
+    {
+      "slotId": "power",
+      "box": [0, 0, 99, 62],
+      "z": 4,
+      "motion": "none",
+      "attach": {
+        "parentSlotId": "chassis",
+        "parentPoint": [0.48, 0.4],
+        "partPoint": [0.5, 0.72],
+        "parentAnchor": "power"
+      }
+    },
+    {
+      "slotId": "firmware",
+      "box": [0, 0, 57, 45],
+      "z": 5,
+      "motion": "none",
+      "attach": {
+        "parentSlotId": "chassis",
+        "parentPoint": [0.58, 0.1],
+        "partPoint": [0.5, 0.88],
+        "parentAnchor": "firmware"
+      }
+    }
+  ],
+  "parts": [
+    {
+      "cardId": "alu-frame",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 197, 502, 117],
+      "anchors": {
+        "sensors": [0.23, 0.023],
+        "cargo": [0.77, 0.014],
+        "firmware": [0.45, 0.191],
+        "power": [0.53, 0.58],
+        "support-sensors-l": [0.16, 0.088],
+        "support-sensors-r": [0.3, 0.156],
+        "support-cargo-l": [0.655, 0.156],
+        "support-cargo-r": [0.885, 0.079]
+      },
+      "promptId": "alu-frame",
+      "src": "assets/alu-frame.4d81a6f89889.webp",
+      "thumb": "assets/alu-frame-thumb.6ec94e9c4a18.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "articulated-deck",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 194, 502, 123],
+      "anchors": {
+        "sensors": [0.23, 0.167],
+        "cargo": [0.77, 0.045],
+        "firmware": [0.45, 0.291],
+        "power": [0.53, 0.58],
+        "support-sensors-l": [0.16, 0.256],
+        "support-sensors-r": [0.3, 0.232],
+        "support-cargo-l": [0.655, 0.118],
+        "support-cargo-r": [0.885, 0.11]
+      },
+      "promptId": "articulated-deck",
+      "src": "assets/articulated-deck.d61af7f8dee5.webp",
+      "thumb": "assets/articulated-deck-thumb.2f1feb1df065.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "titan-exoframe",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 156, 502, 200],
+      "anchors": {
+        "sensors": [0.23, 0.225],
+        "cargo": [0.77, 0.015],
+        "firmware": [0.45, 0.17],
+        "power": [0.53, 0.58],
+        "support-sensors-l": [0.16, 0.415],
+        "support-sensors-r": [0.3, 0.29],
+        "support-cargo-l": [0.655, 0.08],
+        "support-cargo-r": [0.885, 0.235]
+      },
+      "promptId": "titan-exoframe",
+      "src": "assets/titan-exoframe.9e0ba7b8776b.webp",
+      "thumb": "assets/titan-exoframe-thumb.59699b981a69.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "slick-wheels",
+      "width": 512,
+      "height": 512,
+      "contentBox": [11, 5, 489, 502],
+      "anchors": {},
+      "promptId": "slick-wheels",
+      "src": "assets/slick-wheels.7a6f37214132.webp",
+      "thumb": "assets/slick-wheels-thumb.53c60aa3aefe.webp",
+      "fragments": [],
+      "additionalMounts": [[0.82, 0.85]]
+    },
+    {
+      "cardId": "printed-lug-wheels",
+      "width": 512,
+      "height": 512,
+      "contentBox": [9, 5, 494, 502],
+      "anchors": {},
+      "promptId": "printed-lug-wheels",
+      "src": "assets/printed-lug-wheels.37d994193232.webp",
+      "thumb": "assets/printed-lug-wheels-thumb.18db2d5fca86.webp",
+      "fragments": [],
+      "additionalMounts": [[0.82, 0.85]]
+    },
+    {
+      "cardId": "klann-walker",
+      "width": 512,
+      "height": 512,
+      "contentBox": [10, 5, 492, 502],
+      "anchors": {},
+      "promptId": "klann-walker",
+      "src": "assets/klann-walker.9bd08d53ecfb.webp",
+      "thumb": "assets/klann-walker-thumb.b50db32fbb76.webp",
+      "fragments": [],
+      "additionalMounts": [[0.82, 0.85]]
+    },
+    {
+      "cardId": "ir-line-array",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 207, 502, 97],
+      "anchors": {},
+      "promptId": "ir-line-array",
+      "src": "assets/ir-line-array.a21fd7b0b14d.webp",
+      "thumb": "assets/ir-line-array-thumb.7de0f604d23f.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "tof-bumper",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 121, 502, 270],
+      "anchors": {},
+      "promptId": "tof-bumper",
+      "src": "assets/tof-bumper.ea0d404c5f27.webp",
+      "thumb": "assets/tof-bumper-thumb.f3205df32292.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "high-current-bec",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 47, 502, 418],
+      "anchors": {},
+      "promptId": "high-current-bec",
+      "src": "assets/high-current-bec.0aa8b3ed934d.webp",
+      "thumb": "assets/high-current-bec-thumb.f287cc07e4d5.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "regen-cell-pack",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 110, 502, 291],
+      "anchors": {},
+      "promptId": "regen-cell-pack",
+      "src": "assets/regen-cell-pack.470968b7ac10.webp",
+      "thumb": "assets/regen-cell-pack-thumb.089da8577126.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "cargo-tray",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 140, 502, 232],
+      "anchors": {},
+      "promptId": "cargo-tray",
+      "src": "assets/cargo-tray.220e1356c5ba.webp",
+      "thumb": "assets/cargo-tray-thumb.c8ecce15a944.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "gyro-cradle",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 72, 502, 367],
+      "anchors": {},
+      "promptId": "gyro-cradle",
+      "src": "assets/gyro-cradle.fff2d7412b20.webp",
+      "thumb": "assets/gyro-cradle-thumb.77bb51240d5b.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "scissor-lift-arm",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 100, 502, 312],
+      "anchors": {},
+      "promptId": "scissor-lift-arm",
+      "src": "assets/scissor-lift-arm.d3f668832da1.webp",
+      "thumb": "assets/scissor-lift-arm-thumb.544cb0e4f754.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "rc-sketch",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 11, 502, 489],
+      "anchors": {},
+      "promptId": "rc-sketch",
+      "src": "assets/rc-sketch.eca3dbdd930e.webp",
+      "thumb": "assets/rc-sketch-thumb.cedb9bfb680c.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "pid-line-core",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 93, 502, 326],
+      "anchors": {},
+      "promptId": "pid-line-core",
+      "src": "assets/pid-line-core.c29c1ebfc805.webp",
+      "thumb": "assets/pid-line-core-thumb.e12535d68da4.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "adaptive-torque-os",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 94, 502, 324],
+      "anchors": {},
+      "promptId": "adaptive-torque-os",
+      "src": "assets/adaptive-torque-os.dfbf20fbb6ac.webp",
+      "thumb": "assets/adaptive-torque-os-thumb.fcedc86b7757.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "kevlar-tracks",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 63, 502, 385],
+      "anchors": {},
+      "promptId": "kevlar-tracks",
+      "src": "assets/kevlar-tracks.11f2f3f5727b.webp",
+      "thumb": "assets/kevlar-tracks-thumb.4799a9b28412.webp",
+      "fragments": [],
+      "additionalMounts": [[0.82, 0.85]]
+    },
+    {
+      "cardId": "stereo-lidar",
+      "width": 512,
+      "height": 512,
+      "contentBox": [85, 5, 342, 502],
+      "anchors": {},
+      "promptId": "stereo-lidar",
+      "src": "assets/stereo-lidar.f14f7f2f3601.webp",
+      "thumb": "assets/stereo-lidar-thumb.1ccac811bdb9.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "li-ion-2s",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 123, 502, 266],
+      "anchors": {},
+      "promptId": "li-ion-2s",
+      "src": "assets/li-ion-2s.4c1eca21e4ce.webp",
+      "thumb": "assets/li-ion-2s-thumb.40c98d7cf7ce.webp",
+      "fragments": []
+    }
+  ],
+  "perks": {
+    "fast-courier": "assets/fast-courier.89c4d7af639a.webp",
+    "all-terrain-rig": "assets/all-terrain-rig.18db2d5fca86.webp",
+    "heavy-logistics": "assets/heavy-logistics.75e88e143ab6.webp"
   },
-  "emptyStates": {}
+  "stats": {
+    "speed": "assets/speed.fffb1b2687f7.webp",
+    "traction": "assets/traction.2c45a59ffaa1.webp",
+    "payload": "assets/payload.77bb51240d5b.webp"
+  },
+  "currency": "assets/energy.40c98d7cf7ce.webp",
+  "cells": {
+    "start": "assets/start.6ec94e9c4a18.webp",
+    "challenge": "assets/challenge.f4454c1148fb.webp",
+    "resource": "assets/resource.40c98d7cf7ce.webp",
+    "catastrophe": "assets/catastrophe.b50db32fbb76.webp",
+    "apex": "assets/apex.a6c9cced765a.webp"
+  },
+  "covers": {
+    "hero": "assets/kit-hero.8c45341bfb6d.webp",
+    "story": "assets/kit-story.dff39a0e1ea7.webp"
+  },
+  "emptyStates": {
+    "noTeam": "assets/state-noTeam.4d81a6f89889.webp",
+    "waiting": "assets/state-waiting.eca3dbdd930e.webp",
+    "marketClosed": "assets/state-marketClosed.220e1356c5ba.webp",
+    "summary": "assets/state-summary.9e0ba7b8776b.webp"
+  },
+  "baseAppearance": {
+    "chassis": "alu-frame",
+    "drive": "slick-wheels"
+  }
 }

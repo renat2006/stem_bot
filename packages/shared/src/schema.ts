@@ -33,6 +33,9 @@ export const CardItemSchema = z.object({
   effectScope: EffectScopeSchema.optional(),
   flavor: z.string().optional(),
   sellerTeam: z.string().optional(),
+  actionTag: z.string().optional(),
+  actionBadge: z.string().optional(),
+  circuitLoad: z.number().int().min(0).max(4).optional(),
 });
 
 export const RarityRuleSchema = z.object({
@@ -63,7 +66,117 @@ export const FeatureFlagsSchema = z.object({
   undoPurchase: z.boolean().default(true),
   storyBriefings: z.boolean().default(true),
   catchUpBonus: z.boolean().default(true),
+  powerCircuit: z.boolean().default(true),
+  actionTags: z.boolean().default(true),
+  openMilestones: z.boolean().default(true),
+  offClassPlayground: z.boolean().default(true),
 });
+
+export const RoundEngineTypeSchema = z.enum(["mission", "diagnosis", "legacy_track"]);
+
+export const TemplateLexiconSchema = z.object({
+  objectName: z.string().min(1),
+  currencyLabel: z.string().min(1),
+  currencyUnit: z.string().min(1),
+  reserveLabel: z.string().min(1),
+  environmentLabel: z.string().min(1),
+  programLabel: z.string().min(1),
+  diagnosisLabel: z.string().min(1),
+  circuitLabel: z.string().min(1),
+  extraRiskLabel: z.string().min(1),
+  sectorALabel: z.string().min(1),
+  sectorBLabel: z.string().min(1),
+  workshopNoun: z.string().min(1),
+});
+
+export const DayScheduleItemSchema = z.object({
+  day: z.number().int().min(1),
+  engine: RoundEngineTypeSchema,
+});
+
+export const MissionRouteOptionSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  statId: z.string().min(1),
+  min: z.number().int(),
+  bonusPoints: z.number().int().default(0),
+  requiredTag: z.string().optional(),
+  tagCardName: z.string().optional(),
+  loadCost: z.number().int().nonnegative().default(1),
+});
+
+export const MissionConditionOptionSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  delta: z.number().int(),
+  weight: z.number().positive().default(1),
+});
+
+export const MissionDayConfigSchema = z.object({
+  day: z.number().int().min(1),
+  title: z.string().min(1),
+  routesA: z.array(MissionRouteOptionSchema).min(1),
+  deliveryB: z.object({
+    label: z.string().min(1),
+    statId: z.string().min(1),
+    min: z.number().int(),
+  }),
+  conditions: z.array(MissionConditionOptionSchema).min(1),
+  transferPrompt: z.string().min(1),
+});
+
+export const DiagnosisHypothesisSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  explanation: z.string().min(1),
+});
+
+export const DiagnosisProbeSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  resultByHypothesis: z.record(z.string(), z.string()),
+});
+
+export const DiagnosisDayConfigSchema = z.object({
+  day: z.number().int().min(1),
+  title: z.string().min(1),
+  symptom: z.string().min(1),
+  hypotheses: z.array(DiagnosisHypothesisSchema).min(2),
+  probes: z.array(DiagnosisProbeSchema).min(1),
+  secretHypothesisId: z.string().min(1),
+  maxProbes: z.number().int().min(1).max(4).default(2),
+  transferPrompt: z.string().min(1),
+});
+
+export const MissionTeamOrdersSchema = z.object({
+  routeId: z.string().default("short"),
+  paceA: z.enum(["normal", "fast", "pause"]).default("normal"),
+  paceB: z.enum(["normal", "fast", "pause"]).default("normal"),
+  extraCargo: z.boolean().default(false),
+  reserveTarget: z.enum(["A", "B"]).default("A"),
+});
+
+export const TeamRoundStateSchema = z.object({
+  orders: MissionTeamOrdersSchema.default({
+    routeId: "short",
+    paceA: "normal",
+    paceB: "normal",
+    extraCargo: false,
+    reserveTarget: "A",
+  }),
+  readySlots: z.array(z.number().int().min(0).max(4)).default([]),
+  pingedSlots: z.array(z.number().int().min(0).max(4)).default([]),
+  usedProbes: z.array(z.string()).default([]),
+  probeObservations: z.record(z.string(), z.string()).default({}),
+  eliminatedHypotheses: z.record(z.string(), z.string()).default({}),
+  selectedHypothesisId: z.string().nullable().default(null),
+  diagnosisSubmitted: z.boolean().default(false),
+  lastRoundPoints: z.number().int().default(0),
+  seasonPoints: z.number().int().default(0),
+  transferNote: z.string().default(""),
+});
+
+export const RoundLiveModeSchema = z.enum(["idle", "blind_draft", "negotiation", "diagnosis", "revealed"]);
 
 export const LoreBriefingSchema = z.object({
   day: z.number().int().min(0),
@@ -163,6 +276,10 @@ export const GameTemplateSchema = z.object({
   features: FeatureFlagsSchema.default(DefaultFeatures),
   rarityRules: RarityConfigSchema.default(DefaultRarityRules),
   dayBriefings: z.array(LoreBriefingSchema).default([]),
+  lexicon: TemplateLexiconSchema.optional(),
+  daySchedule: z.array(DayScheduleItemSchema).default([]),
+  missionDays: z.array(MissionDayConfigSchema).default([]),
+  diagnosisDays: z.array(DiagnosisDayConfigSchema).default([]),
 });
 
 export const ShiftPhaseSchema = z.enum(["scoring", "market", "turn", "summary"]);
@@ -201,6 +318,10 @@ export const GameStateSchema = z.object({
   rulesUpdatedNote: z.string().default("Версия 1 · Старт смены"),
   cardStockLeft: z.record(z.string(), z.number().int().nonnegative()).default({}),
   cardSoldTo: z.record(z.string(), z.string()).default({}),
+  roundMode: RoundLiveModeSchema.optional(),
+  roundEngine: RoundEngineTypeSchema.optional(),
+  revealedConditionId: z.string().nullable().optional(),
+  canUndoLastReward: z.boolean().optional(),
 });
 
 export const TeamSchema = z.object({
@@ -220,7 +341,21 @@ export const TeamSchema = z.object({
   badges: z.array(z.string()).default([]),
   activePerkId: z.string().nullable(),
   statModifiers: z.record(z.string(), z.number().int()),
+  roundState: TeamRoundStateSchema.optional(),
 });
+
+export type RoundEngineType = z.infer<typeof RoundEngineTypeSchema>;
+export type TemplateLexicon = z.infer<typeof TemplateLexiconSchema>;
+export type DayScheduleItem = z.infer<typeof DayScheduleItemSchema>;
+export type MissionRouteOption = z.infer<typeof MissionRouteOptionSchema>;
+export type MissionConditionOption = z.infer<typeof MissionConditionOptionSchema>;
+export type MissionDayConfig = z.infer<typeof MissionDayConfigSchema>;
+export type DiagnosisHypothesis = z.infer<typeof DiagnosisHypothesisSchema>;
+export type DiagnosisProbe = z.infer<typeof DiagnosisProbeSchema>;
+export type DiagnosisDayConfig = z.infer<typeof DiagnosisDayConfigSchema>;
+export type MissionTeamOrders = z.infer<typeof MissionTeamOrdersSchema>;
+export type TeamRoundState = z.infer<typeof TeamRoundStateSchema>;
+export type RoundLiveMode = z.infer<typeof RoundLiveModeSchema>;
 
 export type StatShape = z.infer<typeof StatShapeSchema>;
 export type CardRarity = z.infer<typeof CardRaritySchema>;

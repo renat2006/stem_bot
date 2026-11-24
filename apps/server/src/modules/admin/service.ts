@@ -1,18 +1,30 @@
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import {
   analyzeGeneratedMarket,
   type CardItem,
+  computeEffectiveMissionStats,
+  computeEquippedCircuitLoad,
+  type DayScheduleItem,
   DEFAULT_TEMPLATES,
+  defaultPowerCircuit,
+  evaluateMissionOutcome,
+  evaluateOpenMilestones,
   type FeatureFlags,
   type LoreBriefing,
   type MarketGenerationInput,
   type QuickFixKind,
   ROVER_SPRINT_TEMPLATE,
   resolveBoardTurn,
+  resolveDayEngine,
+  resolveLexicon,
+  resolveMissionDay,
   type ShiftPhase,
   type ShiftWizardInput,
   slugifyCardName,
+  TeamRoundStateSchema,
+  type TemplateLexicon,
   validateGeneratedMarket,
+  validateParetoStrategies,
 } from "@stem/shared";
 import { and, desc, eq, sql } from "drizzle-orm";
 import {
@@ -40,8 +52,10 @@ export function rewardTeams(
 ) {
   return mutateEvent(options, async (ctx) => {
     const template = normalizeTemplate(ctx.event.template);
+    const snap: Array<{ teamId: string; prevCurrency: number }> = [];
     for (const teamId of new Set(input.teamIds)) {
       const team = await requireTeam(ctx.tx, ctx.event.id, teamId);
+      snap.push({ teamId: team.id, prevCurrency: team.currency });
       const next = Math.max(0, team.currency + input.amount);
       const diff = next - team.currency;
       await ctx.tx.update(teams).set({ currency: next }).where(eq(teams.id, team.id));
@@ -60,7 +74,42 @@ export function rewardTeams(
         });
       }
     }
+    await ctx.tx
+      .update(events)
+      .set({
+        roundState: {
+          ...(ctx.event.roundState ?? {}),
+          lastRewardBatch: snap,
+        },
+      })
+      .where(eq(events.id, ctx.event.id));
     return { teams: input.teamIds.length };
+  });
+}
+
+export function undoLastRewardBatch(options: MutationOptions) {
+  return mutateEvent(options, async (ctx) => {
+    const batch = ctx.event.roundState?.lastRewardBatch;
+    if (!batch || batch.length === 0) {
+      throw new DomainError("Нет последнего группового начисления для отмены", 409);
+    }
+    for (const item of batch) {
+      await ctx.tx
+        .update(teams)
+        .set({ currency: item.prevCurrency })
+        .where(and(eq(teams.eventId, ctx.event.id), eq(teams.id, item.teamId)));
+    }
+    await ctx.tx
+      .update(events)
+      .set({
+        roundState: {
+          ...(ctx.event.roundState ?? {}),
+          lastRewardBatch: null,
+        },
+      })
+      .where(eq(events.id, ctx.event.id));
+    ctx.log({ kind: "reward-undo", data: { count: batch.length } });
+    return { restored: batch.length };
   });
 }
 
@@ -119,9 +168,41 @@ export function nextDay(options: MutationOptions) {
     if (day > template.totalDays) throw new DomainError("Это был финальный день смены");
     await ctx.tx
       .update(events)
-      .set({ currentDay: day, currentPhase: "scoring", phaseEndsAt: null })
+      .set({
+        currentDay: day,
+        currentPhase: "scoring",
+        phaseEndsAt: null,
+        roundState: {
+          mode: "idle",
+          secretConditionId: null,
+          revealedConditionId: null,
+          blindEndsAt: null,
+          lastRewardBatch: null,
+        },
+      })
       .where(eq(events.id, ctx.event.id));
-    await ctx.tx.update(teams).set({ purchasesToday: 0 }).where(eq(teams.eventId, ctx.event.id));
+    const teamRows = await ctx.tx.select().from(teams).where(eq(teams.eventId, ctx.event.id));
+    for (const row of teamRows) {
+      const prev = TeamRoundStateSchema.parse(row.roundState ?? {});
+      await ctx.tx
+        .update(teams)
+        .set({
+          purchasesToday: 0,
+          roundState: {
+            ...prev,
+            readySlots: [],
+            pingedSlots: [],
+            usedProbes: [],
+            probeObservations: {},
+            eliminatedHypotheses: {},
+            selectedHypothesisId: null,
+            diagnosisSubmitted: false,
+            lastRoundPoints: 0,
+            transferNote: "",
+          },
+        })
+        .where(eq(teams.id, row.id));
+    }
     ctx.log({ kind: "day", data: { day } });
 
     const briefing = template.dayBriefings.find((b) => b.day === day);
@@ -657,6 +738,13 @@ export async function createShiftFromWizard(options: MutationOptions, input: Shi
         purchaseLimit: customTemplate.dailyPurchaseLimit,
         rulesVersion,
         rulesNote: `Запущена смена «${customTemplate.title}»`,
+        roundState: {
+          mode: "idle",
+          secretConditionId: null,
+          revealedConditionId: null,
+          blindEndsAt: null,
+          lastRewardBatch: null,
+        },
       })
       .where(eq(events.id, ctx.event.id));
     ctx.rulesChanged();
@@ -731,10 +819,291 @@ export function resetEvent(options: MutationOptions, input: { templateId?: strin
         purchaseLimit: template.dailyPurchaseLimit,
         rulesVersion,
         rulesNote: `Версия ${rulesVersion} · Старт смены «${template.title}»`,
+        roundState: {
+          mode: "idle",
+          secretConditionId: null,
+          revealedConditionId: null,
+          blindEndsAt: null,
+          lastRewardBatch: null,
+        },
       })
       .where(eq(events.id, ctx.event.id));
     ctx.rulesChanged();
     ctx.log({ kind: "reset", data: { templateId: template.id } });
     return { templateId: template.id };
+  });
+}
+
+export function extendPhaseTimer(options: MutationOptions, input: { seconds: number }) {
+  return mutateEvent(options, async (ctx) => {
+    const baseMs =
+      ctx.event.phaseEndsAt && ctx.event.phaseEndsAt.getTime() > Date.now()
+        ? ctx.event.phaseEndsAt.getTime()
+        : Date.now();
+    const nextEnds = new Date(baseMs + input.seconds * 1000);
+    await ctx.tx.update(events).set({ phaseEndsAt: nextEnds }).where(eq(events.id, ctx.event.id));
+    return { phaseEndsAt: nextEnds.toISOString() };
+  });
+}
+
+export function startRoundEngine(
+  options: MutationOptions,
+  input: {
+    engine?: "mission" | "diagnosis";
+    durationSeconds?: number;
+    conditionId?: string;
+  },
+) {
+  return mutateEvent(options, async (ctx) => {
+    const template = normalizeTemplate(ctx.event.template);
+    const lexicon = resolveLexicon(template);
+    const activeEngine = input.engine ?? resolveDayEngine(template, ctx.event.currentDay);
+    const now = Date.now();
+
+    if (activeEngine === "diagnosis") {
+      const durationSec = input.durationSeconds ?? 180;
+      const phaseEndsAt = new Date(now + durationSec * 1000);
+      await ctx.tx
+        .update(events)
+        .set({
+          currentPhase: "turn",
+          phaseEndsAt,
+          roundState: {
+            ...(ctx.event.roundState ?? {}),
+            mode: "diagnosis",
+            secretConditionId: null,
+            revealedConditionId: null,
+            blindEndsAt: null,
+          },
+        })
+        .where(eq(events.id, ctx.event.id));
+      ctx.log({ kind: "program-start", data: { engine: "diagnosis", durationSec } });
+      ctx.alert({
+        target: "all-teams",
+        text: `🔬 Начат раунд «${lexicon.diagnosisLabel}» (${Math.round(durationSec / 60)} мин). Откройте кабинет команды и выберите приборный замер.`,
+      });
+      return { mode: "diagnosis" as const, phaseEndsAt: phaseEndsAt.toISOString() };
+    }
+
+    const missionDay = resolveMissionDay(template, ctx.event.currentDay);
+    const chosenCondition =
+      (input.conditionId ? missionDay.conditions.find((c) => c.id === input.conditionId) : undefined) ??
+      missionDay.conditions[randomInt(missionDay.conditions.length)] ??
+      missionDay.conditions[0];
+
+    const durationSec = input.durationSeconds ?? 120;
+    const blindEndsAt = new Date(now + Math.min(30, Math.floor(durationSec / 3)) * 1000);
+    const phaseEndsAt = new Date(now + durationSec * 1000);
+
+    await ctx.tx
+      .update(events)
+      .set({
+        currentPhase: "turn",
+        phaseEndsAt,
+        roundState: {
+          ...(ctx.event.roundState ?? {}),
+          mode: "blind_draft",
+          secretConditionId: chosenCondition?.id ?? "calm",
+          revealedConditionId: null,
+          blindEndsAt: blindEndsAt.toISOString(),
+        },
+      })
+      .where(eq(events.id, ctx.event.id));
+
+    ctx.log({ kind: "program-start", data: { engine: "mission", durationSec } });
+    ctx.alert({
+      target: "all-teams",
+      text: `🧭 Открыта «${lexicon.programLabel}» на ${Math.round(durationSec / 60)} мин! Первые 30 секунд — личный выбор каждого участника.`,
+    });
+    return {
+      mode: "blind_draft" as const,
+      phaseEndsAt: phaseEndsAt.toISOString(),
+      blindEndsAt: blindEndsAt.toISOString(),
+    };
+  });
+}
+
+export function revealMissionRound(options: MutationOptions, input?: { conditionId?: string }) {
+  return mutateEvent(options, async (ctx) => {
+    const template = normalizeTemplate(ctx.event.template);
+    const day = ctx.event.currentDay;
+    const missionDay = resolveMissionDay(template, day);
+    const targetCondId =
+      input?.conditionId ?? ctx.event.roundState?.secretConditionId ?? missionDay.conditions[0]?.id;
+    const condition = missionDay.conditions.find((c) => c.id === targetCondId) ?? missionDay.conditions[0];
+    if (!condition) throw new DomainError("Условие среды не настроено", 400);
+
+    const totalWeight = missionDay.conditions.reduce((s, c) => s + c.weight, 0);
+    const circuit = defaultPowerCircuit(template);
+    const rows = await ctx.tx.select().from(teams).where(eq(teams.eventId, ctx.event.id));
+
+    for (const row of rows) {
+      const plain = toTeam(row, [], template, false);
+      const prevRound = TeamRoundStateSchema.parse(row.roundState ?? {});
+      const effStats = computeEffectiveMissionStats(plain, template);
+      const eqLoad = computeEquippedCircuitLoad(plain.equippedCards, template);
+
+      const outcome = evaluateMissionOutcome({
+        stats: effStats,
+        day: missionDay,
+        orders: prevRound.orders,
+        condition,
+        totalWeight,
+        circuit,
+        equippedLoad: eqLoad,
+      });
+
+      const newMilestones = evaluateOpenMilestones({ outcome, team: plain, template });
+      const mergedBadges = Array.from(new Set([...row.badges, ...newMilestones]));
+      const nextTrack = Math.min(template.trackMax, row.trackPosition + outcome.totalPoints);
+
+      await ctx.tx
+        .update(teams)
+        .set({
+          trackPosition: nextTrack,
+          badges: mergedBadges,
+          roundState: {
+            ...prevRound,
+            lastRoundPoints: outcome.totalPoints,
+            seasonPoints: prevRound.seasonPoints + outcome.totalPoints,
+          },
+        })
+        .where(eq(teams.id, row.id));
+
+      const summary = `${condition.label}: +${outcome.totalPoints} очк. (A:${outcome.sectorA.points}, B:${outcome.sectorB.points}, валюта: 0)`;
+      ctx.log({
+        teamId: row.id,
+        kind: "round-reveal",
+        amount: outcome.totalPoints,
+        data: {
+          day,
+          conditionId: condition.id,
+          conditionLabel: condition.label,
+          points: outcome.totalPoints,
+          currencyDelta: 0,
+          summary,
+        },
+      });
+      ctx.alert({
+        target: "team",
+        teamId: row.id,
+        text: `🏁 Вскрытие дня ${day} (${condition.label}): ваша команда набрала +${outcome.totalPoints} очк.! Откройте разбор и контрфактуал.`,
+      });
+    }
+
+    await ctx.tx
+      .update(events)
+      .set({
+        currentPhase: "summary",
+        phaseEndsAt: null,
+        roundState: {
+          ...(ctx.event.roundState ?? {}),
+          mode: "revealed",
+          revealedConditionId: condition.id,
+        },
+      })
+      .where(eq(events.id, ctx.event.id));
+
+    return { conditionId: condition.id, conditionLabel: condition.label, teams: rows.length };
+  });
+}
+
+export function updateTemplateLexicon(options: MutationOptions, patch: Partial<TemplateLexicon>) {
+  return mutateEvent(options, async (ctx) => {
+    const current = normalizeTemplate(ctx.event.template);
+    const mergedLexicon = { ...resolveLexicon(current), ...patch };
+    const nextTemplate = normalizeTemplate({
+      ...current,
+      objectName: mergedLexicon.objectName,
+      currencyName: mergedLexicon.currencyLabel,
+      lexicon: mergedLexicon,
+    });
+    const rulesVersion = ctx.event.rulesVersion + 1;
+    await ctx.tx
+      .update(events)
+      .set({
+        template: nextTemplate,
+        rulesVersion,
+        rulesNote: `Обновлён словарь смены (v${rulesVersion})`,
+      })
+      .where(eq(events.id, ctx.event.id));
+    ctx.rulesChanged();
+    ctx.log({ kind: "lexicon-updated", data: patch as Record<string, unknown> });
+    return { lexicon: mergedLexicon };
+  });
+}
+
+export function updateDaySchedule(
+  options: MutationOptions,
+  input: { totalDays?: number; daySchedule: DayScheduleItem[] },
+) {
+  return mutateEvent(options, async (ctx) => {
+    const current = normalizeTemplate(ctx.event.template);
+    const totalDays = input.totalDays ?? current.totalDays;
+    const nextTemplate = normalizeTemplate({
+      ...current,
+      totalDays,
+      totalPoints: totalDays,
+      daySchedule: input.daySchedule,
+    });
+    const rulesVersion = ctx.event.rulesVersion + 1;
+    await ctx.tx
+      .update(events)
+      .set({
+        template: nextTemplate,
+        rulesVersion,
+        rulesNote: `Обновлено расписание дней (v${rulesVersion})`,
+      })
+      .where(eq(events.id, ctx.event.id));
+    ctx.rulesChanged();
+    ctx.log({ kind: "schedule-updated", data: { totalDays } });
+    return { totalDays, daySchedule: nextTemplate.daySchedule };
+  });
+}
+
+export function applyParetoFix(options: MutationOptions, input?: { day?: number }) {
+  return mutateEvent(options, async (ctx) => {
+    const current = normalizeTemplate(ctx.event.template);
+    const targetDay = input?.day ?? ctx.event.currentDay;
+    const missionDay = resolveMissionDay(current, targetDay);
+    const s0 = current.stats[0]?.id ?? "speed";
+    const s1 = current.stats[1]?.id ?? s0;
+    const s2 = current.stats[2]?.id ?? s1;
+    const check = validateParetoStrategies({
+      day: missionDay,
+      referenceStats: { [s0]: 4, [s1]: 5, [s2]: 4 },
+      circuit: defaultPowerCircuit(current),
+    });
+
+    const updatedMission = {
+      ...missionDay,
+      routesA: missionDay.routesA.map((r, i) => (i === 0 ? { ...r, min: check.suggestedMinA } : r)),
+    };
+
+    const existingIdx = current.missionDays.findIndex((m) => m.day === targetDay);
+    const nextMissionDays =
+      existingIdx >= 0
+        ? current.missionDays.map((m, i) => (i === existingIdx ? updatedMission : m))
+        : [...current.missionDays, updatedMission];
+
+    const nextTemplate = normalizeTemplate({
+      ...current,
+      missionDays: nextMissionDays,
+    });
+    const rulesVersion = ctx.event.rulesVersion + 1;
+    await ctx.tx
+      .update(events)
+      .set({
+        template: nextTemplate,
+        rulesVersion,
+        rulesNote: `Выровнен порог короткого пути до ${check.suggestedMinA} (v${rulesVersion})`,
+      })
+      .where(eq(events.id, ctx.event.id));
+    ctx.rulesChanged();
+    ctx.log({
+      kind: "pareto-fix",
+      data: { day: targetDay, suggestedMinA: check.suggestedMinA },
+    });
+    return { suggestedMinA: check.suggestedMinA };
   });
 }

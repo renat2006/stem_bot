@@ -12,16 +12,24 @@ import {
   createP2PListing,
   equipFromInventory,
   joinTeam,
+  pingTeamSlot,
   placeAuctionBid,
   proposeCard,
   resolveProposal,
+  runDiagnosisProbe,
+  saveTransferNote,
+  submitDiagnosisVerdict,
+  submitProgramOrder,
   undoLastPurchase,
 } from "./service.js";
 
-const JoinInput = z.object({
-  code: z.string().trim().min(4).max(12),
-  displayName: z.string().trim().max(40),
-});
+const JoinInput = z
+  .object({
+    code: z.string().trim().min(4).max(12).optional(),
+    teamId: z.string().trim().min(1).max(80).optional(),
+    displayName: z.string().trim().max(40),
+  })
+  .refine((v) => Boolean(v.code || v.teamId), { message: "Укажите код команды" });
 const CardInput = z.object({
   cardId: z.string().min(1).max(80),
   listingId: z.string().min(1).max(80).optional(),
@@ -39,6 +47,22 @@ const P2PCreateInput = z.object({
 });
 const ListingIdInput = z.object({ listingId: z.string().min(1).max(80) });
 const BidInput = z.object({ amount: z.number().int().min(1).max(500) });
+const ProgramOrderInput = z.object({
+  leverIndex: z.number().int().min(0).max(4),
+  value: z.union([z.string().min(1).max(40), z.boolean()]),
+});
+const PingSlotInput = z.object({
+  slotIndex: z.number().int().min(0).max(4),
+});
+const ProbeInput = z.object({
+  probeId: z.string().min(1).max(40),
+});
+const VerdictInput = z.object({
+  hypothesisId: z.string().min(1).max(40),
+});
+const TransferNoteInput = z.object({
+  note: z.string().trim().min(1).max(240),
+});
 
 export const teamRouter = new Hono<AppEnv>()
   .use("*", requireIdentity)
@@ -95,5 +119,30 @@ export const teamRouter = new Hono<AppEnv>()
   .post("/buy-perk", validateJson(PerkInput), async (c) => {
     const options = await mutationOptions(c);
     await buyPerk(options, c.req.valid("json").perkId);
+    return stateResponse(c, options.eventId);
+  })
+  .post("/program/order", validateJson(ProgramOrderInput), async (c) => {
+    const options = await mutationOptions(c);
+    await submitProgramOrder(options, c.req.valid("json"));
+    return stateResponse(c, options.eventId);
+  })
+  .post("/program/ping", validateJson(PingSlotInput), async (c) => {
+    const options = await mutationOptions(c);
+    await pingTeamSlot(options, c.req.valid("json"));
+    return stateResponse(c, options.eventId);
+  })
+  .post("/diagnosis/probe", validateJson(ProbeInput), async (c) => {
+    const options = await mutationOptions(c);
+    await runDiagnosisProbe(options, c.req.valid("json"));
+    return stateResponse(c, options.eventId);
+  })
+  .post("/diagnosis/verdict", validateJson(VerdictInput), async (c) => {
+    const options = await mutationOptions(c);
+    await submitDiagnosisVerdict(options, c.req.valid("json"));
+    return stateResponse(c, options.eventId);
+  })
+  .post("/transfer-note", validateJson(TransferNoteInput), async (c) => {
+    const options = await mutationOptions(c);
+    await saveTransferNote(options, c.req.valid("json"));
     return stateResponse(c, options.eventId);
   });

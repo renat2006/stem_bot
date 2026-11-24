@@ -2,6 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { timingSafeEqual } from "node:crypto";
 import { autoRetry } from "@grammyjs/auto-retry";
 import { apiThrottler } from "@grammyjs/transformer-throttler";
+import { resolveDayEngine, resolveLexicon } from "@stem/shared";
 import { and, eq } from "drizzle-orm";
 import { Bot, InlineKeyboard } from "grammy";
 import type { Update } from "grammy/types";
@@ -88,24 +89,39 @@ export function createPlayerBot(token: string, webAppUrl: string): Bot {
 
   bot.command("start", async (ctx) => {
     const startPayload = ctx.match?.trim();
-    const targetUrl = startPayload
-      ? `${webAppUrl.replace(/\/$/, "")}/?code=${encodeURIComponent(startPayload)}`
-      : webAppUrl;
-    const keyboard = new InlineKeyboard().webApp("🚀 Открыть кабинет команды", targetUrl);
+    const baseUrl = webAppUrl.replace(/\/$/, "");
+    const isPuzzle = startPayload?.startsWith("puzzle_");
+    const targetUrl = isPuzzle
+      ? `${baseUrl}/?playground=${encodeURIComponent(startPayload ?? "1")}`
+      : startPayload
+        ? `${baseUrl}/?code=${encodeURIComponent(startPayload)}`
+        : webAppUrl;
+
+    const keyboard = new InlineKeyboard().webApp(
+      isPuzzle ? "Открыть вызов (3 мин)" : "Открыть кабинет команды",
+      targetUrl,
+    );
 
     const eventId = await activeEventId(runtime().db);
     if (!eventId) {
-      await ctx.reply("Смена готовится к запуску. Скоро ведущий откроет вход!", { reply_markup: keyboard });
+      await ctx.reply("Полевой атлас готовится к запуску. Скоро ведущий откроет вход для команд.", {
+        reply_markup: keyboard,
+      });
       return;
     }
     const event = await loadEvent(runtime().db, eventId);
     const template = normalizeTemplate(event.template);
+    const lexicon = resolveLexicon(template);
     const intro = template.dayBriefings.find((b) => b.day === event.currentDay) ?? template.dayBriefings[0];
 
+    if (template.features.offClassPlayground !== false && !isPuzzle) {
+      keyboard.row().webApp("Полигон вне урока · 3 мин", `${baseUrl}/?playground=1`);
+    }
+
     await ctx.reply(
-      `${template.currencyIcon} ${template.title}\n${template.theme}\nДень ${event.currentDay} из ${template.totalDays}` +
-        (intro ? `\n\n📡 ${intro.title}\n${intro.story}` : "") +
-        "\n\nНажмите кнопку ниже, чтобы войти в ангар своей команды.",
+      `Полевой атлас · ${template.title}\n${template.theme}\nДень ${event.currentDay} из ${template.totalDays} · Ресурс: ${lexicon.currencyLabel}` +
+        (intro ? `\n\n${intro.title}\n${intro.story}` : "") +
+        "\n\nОткройте приложение ниже, чтобы перейти к своей команде.",
       { reply_markup: keyboard },
     );
   });
@@ -121,13 +137,22 @@ export function createPlayerBot(token: string, webAppUrl: string): Bot {
     const briefing =
       template.dayBriefings.find((b) => b.day === event.currentDay) ?? template.dayBriefings[0];
     if (!briefing) {
-      await ctx.reply(`День ${event.currentDay}: следите за анонсами ведущего смены.`);
+      await ctx.reply(`День ${event.currentDay}: следите за заданием ведущего смены.`);
       return;
     }
-    const keyboard = new InlineKeyboard().webApp("Открыть ангар", webAppUrl);
+    const keyboard = new InlineKeyboard().webApp("Открыть кабинет команды", webAppUrl);
     await ctx.reply(
-      `📡 ${briefing.title}\n\n${briefing.story}` +
-        (briefing.challengeTitle ? `\n\n🎯 Фокус дня: ${briefing.challengeTitle}` : ""),
+      `${briefing.title}\n\n${briefing.story}` +
+        (briefing.challengeTitle ? `\n\nЗадача дня: ${briefing.challengeTitle}` : ""),
+      { reply_markup: keyboard },
+    );
+  });
+
+  bot.command("playground", async (ctx) => {
+    const baseUrl = webAppUrl.replace(/\/$/, "");
+    const keyboard = new InlineKeyboard().webApp("Открыть полигон · 3 мин", `${baseUrl}/?playground=1`);
+    await ctx.reply(
+      "Тренировочный полигон (вне зачёта смены · 0 валюты):\n• Спаси заезд одной правкой\n• Приборная диагностика за 2 замера",
       { reply_markup: keyboard },
     );
   });
@@ -140,27 +165,23 @@ export function createPlayerBot(token: string, webAppUrl: string): Bot {
     }
     const event = await loadEvent(runtime().db, eventId);
     const template = normalizeTemplate(event.template);
+    const lexicon = resolveLexicon(template);
     const f = template.features;
     const lines = [
-      `📖 Памятка по смене «${template.title}»`,
+      `Полевой атлас · Памятка по смене «${template.title}»`,
       "",
-      `• Валюта (${template.currencyIcon} ${template.currencyName}): начисляется ведущим за реальные успехи команды.`,
-      `• Сборка («${template.objectName}»): каждая деталь усиливает одни сферы, но может давать минус в других.`,
+      `• Учебный бюджет (${lexicon.currencyLabel}): начисляется только наставником за реальную работу на занятии.`,
+      `• Сборка («${lexicon.objectName}»): каждая деталь показывает, что даёт и чем за неё платит сборка.`,
+      `• Командный раунд («${lexicon.programLabel}»): каждый участник управляет своим рычагом, а ${lexicon.reserveLabel.toLowerCase()} (+2) направляется в один участок.`,
+      `• Приборная проверка («${lexicon.diagnosisLabel}»): до 2 замеров для отсева гипотез (очки = 3 − замеры, валюта: 0).`,
       f.slotInventory
-        ? "• Склад команды: при замене узла старая деталь сохраняется на складе — её можно вернуть перед другой трассой."
-        : "• Замена узла: новая деталь ставится поверх старой.",
-      f.p2pMarket
-        ? "• Биржа команд: ненужные детали со склада можно продать другим командам за свою цену."
+        ? "• Склад команды: заменённые детали сохраняются на складе и переставляются бесплатно."
         : "",
-      f.auctions
-        ? "• Аукцион дня: редкие и легендарные узлы разыгрываются на открытых торгах с защитой от ставок в последнюю секунду."
-        : "",
-      f.dayEvents
-        ? "• Испытание дня: в конце раунда сборка проходит проверку трассой — держите профильную характеристику выше порога."
-        : "",
+      f.p2pMarket ? "• Биржа команд: лишние детали со склада можно выставить другим командам." : "",
+      f.auctions ? "• Аукцион дня: редкие узлы разыгрываются на открытых торгах." : "",
     ].filter(Boolean);
 
-    const keyboard = new InlineKeyboard().webApp("Перейти к игре", webAppUrl);
+    const keyboard = new InlineKeyboard().webApp("Перейти к команде", webAppUrl);
     await ctx.reply(lines.join("\n"), { reply_markup: keyboard });
   });
 
@@ -191,26 +212,52 @@ export function createAdminBot(token: string, adminWebAppUrl: string, adminIds: 
   });
 
   bot.command("start", async (ctx) => {
-    const wizardUrl = `${adminWebAppUrl}${adminWebAppUrl.includes("?") ? "&" : "?"}tab=wizard`;
+    const sep = adminWebAppUrl.includes("?") ? "&" : "?";
+    const wizardUrl = `${adminWebAppUrl}${sep}tab=wizard`;
+    const projectorUrl = `${adminWebAppUrl}${sep}view=projector`;
     const keyboard = new InlineKeyboard()
-      .webApp("🎛 Открыть Пульт Ведущего", adminWebAppUrl)
+      .webApp("Пульт живого урока", adminWebAppUrl)
       .row()
-      .webApp("✦ Мастер новой смены", wizardUrl);
+      .webApp("Конструктор смены (4 шага)", wizardUrl)
+      .row()
+      .webApp("Табло зала 16:9", projectorUrl);
 
     const eventId = await activeEventId(runtime().db);
     if (!eventId) {
-      await ctx.reply("Админ-студия готова. Создайте новую смену через Мастер запуска!", {
+      await ctx.reply("Студия организатора готова. Запустите смену через Конструктор.", {
         reply_markup: keyboard,
       });
       return;
     }
     const state = await buildLiveState(runtime().db, eventId);
     const event = await loadEvent(runtime().db, eventId);
+    const template = normalizeTemplate(event.template);
+    const engine = resolveDayEngine(template, state.gameState.currentDay);
+    const engineTitle =
+      engine === "diagnosis" ? "Диагностика" : engine === "legacy_track" ? "Трек" : "Миссия 2:00";
     await ctx.reply(
-      `🛠 Пульт смены «${event.title}»\n` +
-        `День ${state.gameState.currentDay} · Команд: ${state.teams.length}\n` +
-        `Здоровье баланса: ${state.liveBalance.healthScore}/100 (${state.liveBalance.momentumLabel})\n` +
+      `Полевой атлас · Студия «${event.title}»\n` +
+        `День ${state.gameState.currentDay} (${engineTitle}) · Команд: ${state.teams.length}\n` +
+        `Баланс смены: ${state.liveBalance.healthScore}/100 (${state.liveBalance.momentumLabel})\n` +
         `${state.liveBalance.summary}`,
+      { reply_markup: keyboard },
+    );
+  });
+
+  bot.command("pulse", async (ctx) => {
+    const eventId = await activeEventId(runtime().db);
+    if (!eventId) {
+      await ctx.reply("Активная смена не найдена.");
+      return;
+    }
+    const state = await buildLiveState(runtime().db, eventId);
+    const readySlots = state.teams.reduce((acc, t) => acc + (t.roundState?.readySlots.length ?? 0), 0);
+    const keyboard = new InlineKeyboard().webApp("Открыть пульт урока", adminWebAppUrl);
+    await ctx.reply(
+      `Пульс зала · День ${state.gameState.currentDay}\n` +
+        `• Фаза: ${state.gameState.currentPhase} (${state.gameState.roundMode ?? "idle"})\n` +
+        `• Ответов в раунде: ${readySlots} из ${state.teams.length * 5}\n` +
+        `• Активных лотов биржи: ${state.listings.length}, аукционов: ${state.auctions.length}`,
       { reply_markup: keyboard },
     );
   });

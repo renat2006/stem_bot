@@ -1,0 +1,177 @@
+.boardbook {
+  min-height: 100dvh;
+  background: #efeee4;
+  color: #203e34;
+  font:
+    16px / 1.5 "Manrope Variable",
+    sans-serif;
+  padding: clamp(14px, 4vw, 64px);
+  box-sizing: border-box;
+}
+.boardbook header,
+.boardbook footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  max-width: 1130px;
+  margin: auto;
+  padding: 14px 0;
+  border-bottom: 1px solid #b5bba9;
+}
+.boardbook a {
+  color: inherit;
+}
+.boardlayout {
+  max-width: 1130px;
+  margin: 24px auto;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 20px;
+}
+.playpage,
+.tablepage {
+  background: #fffaf0;
+  border-radius: 16px;
+  padding: clamp(16px, 3vw, 38px);
+  min-width: 0;
+}
+.tablepage {
+  background: #dee8da;
+}
+.boardbook h1 {
+  font:
+    500 clamp(34px, 5vw, 66px) / 1.04 Georgia,
+    serif;
+  margin: 15px 0;
+}
+.boardbook li {
+  padding: 6px;
+}
+.boardbook button,
+.boardbook select {
+  font: inherit;
+  border-radius: 10px;
+  border: 1px solid #a6b6a7;
+  padding: 10px 14px;
+  margin: 4px;
+  background: #214c3c;
+  color: white;
+  cursor: pointer;
+}
+.boardbook select,
+.boardbook .quiet {
+  background: #fffaf0;
+  color: #214c3c;
+}
+.boardbook button:disabled {
+  opacity: 0.5;
+}
+.partrow {
+  display: flex;
+  overflow: auto;
+}
+.partrow button {
+  display: grid;
+  min-width: 132px;
+  justify-items: center;
+  background: #edf1e4;
+  color: #203e34;
+}
+.partrow button[aria-pressed="true"] {
+  outline: 2px solid #28644a;
+  outline-offset: -3px;
+}
+.partrow .part-sticker {
+  width: 64px;
+  height: 64px;
+}
+.dice button {
+  font-size: 28px;
+}
+.fieldboard {
+  display: grid;
+  gap: 3px;
+}
+.fieldcell {
+  background: #fffff0b8;
+  border: 1px solid #b0bfaa;
+  border-radius: 7px;
+  padding: 4px;
+  min-width: 0;
+  min-height: 26px;
+  font-size: 12px;
+}
+.fieldcell small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.fieldcell i {
+  display: inline-grid;
+  place-items: center;
+  background: #216d53;
+  color: white;
+  border-radius: 100%;
+  width: 20px;
+  height: 20px;
+  font-style: normal;
+  animation: arrive 0.4s ease-out;
+}
+.fieldcell i[data-team="1"] {
+  background: #a44a27;
+}
+.boardbook footer span[aria-current] {
+  font-weight: 800;
+  text-decoration: underline;
+}
+.boardbook details p {
+  border-top: 1px solid #bbc7b7;
+  padding-top: 6px;
+}
+@keyframes arrive {
+  from {
+    transform: translateY(-12px) scale(0.55);
+  }
+}
+@media (max-width: 710px) {
+  .boardlayout {
+    grid-template-columns: 1fr;
+  }
+  .boardbook footer {
+    font-size: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fieldcell i {
+    animation: none;
+  }
+}
+.fieldcell[data-event="Охота"] {
+  background: #f1c5a3;
+}
+.fieldcell[data-event="Ресурс"] {
+  background: #f5dea2;
+}
+.fieldcell[data-event="Мутация"],
+.fieldcell[data-event="Большая мутация"] {
+  background: #ddcde5;
+}
+.fieldcell[data-event="Катастрофа"] {
+  background: #bacbd1;
+}
+.fieldcell[data-event="Хищник"] {
+  background: #d4bba2;
+}
+.fieldcell:has(i) {
+  box-shadow: inset 0 0 0 2px #39705b;
+}
+.boardbook .tablepage h2 {
+  font:
+    500 26px Georgia,
+    serif;
+}
+.teamline {
+  font-weight: 750;
+  color: #25624a;
+}

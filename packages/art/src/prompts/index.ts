@@ -35,9 +35,13 @@ export interface AssetPrompt {
 }
 
 export function buildAssetPrompts(template: GameTemplate, pack: ArtPack): AssetPrompt[] {
-  const negative =
-    "no text, letters, numbers, logos, watermarks, photo-realism, 3D, rainbow, gradients, gore, scenery, magenta inside object, white sticker outline, drop shadows";
-  const prefix = `Single modular science-lab collectible illustration. Match the approved printed field-bestiary reference: simple chunky geometric silhouettes, two or three flat ink tones, very light irregular ink grain only inside shapes, warm handmade print character, playful tiny eye expression where appropriate. Palette strictly ${Object.values(pack.palette).join(", ")}. Consistent dark outline. No sticker border: the app adds it. Top-left light, strict side view. Isolated centered object with 10 percent empty margin. Solid uniform #FF00FF background.`;
+  const modelKit = Boolean(pack.baseAppearance);
+  const negative = modelKit
+    ? "No lettering, background shadows, outlines or sticker borders."
+    : "no text, letters, numbers, logos, watermarks, photo-realism, 3D, rainbow, gradients, gore, scenery, magenta inside object, white sticker outline, drop shadows";
+  const prefix = modelKit
+    ? "Original modular expedition model kit. Matte resin, soft light upper left, strict side profile, teal, bone and amber. Keep ten percent margin on solid #FF00FF."
+    : `Single modular science-lab collectible illustration. Match the approved printed field-bestiary reference: simple chunky geometric silhouettes, two or three flat ink tones, very light irregular ink grain only inside shapes, warm handmade print character, playful tiny eye expression where appropriate. Palette strictly ${Object.values(pack.palette).join(", ")}. Consistent dark outline. No sticker border: the app adds it. Top-left light, strict side view. Isolated centered object with 10 percent empty margin. Solid uniform #FF00FF background.`;
   const entry = (id: string, kind: AssetPrompt["kind"], object: string): AssetPrompt => ({
     id,
     kind,
@@ -45,7 +49,7 @@ export function buildAssetPrompts(template: GameTemplate, pack: ArtPack): AssetP
     negative,
     size: "1024x1024",
     background: "#FF00FF",
-    referenceIds: ["printed-field-bestiary-B"],
+    referenceIds: [modelKit ? "expedition-model-kit" : "printed-field-bestiary-B"],
   });
   const prompts = template.cards.map((card) => {
     const dominant = template.stats
@@ -76,7 +80,13 @@ export function buildAssetPrompts(template: GameTemplate, pack: ArtPack): AssetP
         `small symbol for ${stat.label}, geometric ${stat.shape} silhouette, not text`,
       ),
     );
-  prompts.push(entry("currency", "currency", `DNA helix token coin for ${template.currencyName}`));
+  prompts.push(
+    entry(
+      "currency",
+      "currency",
+      `collectible currency token for ${template.currencyName} in ${template.title}`,
+    ),
+  );
   for (const type of new Set(template.boardCells.map((cell) => cell.type)))
     prompts.push(
       entry(`cell-${type}`, "cell", `board event symbol ${type}, simple science-lab icon, child-friendly`),
@@ -87,17 +97,25 @@ export function buildAssetPrompts(template: GameTemplate, pack: ArtPack): AssetP
     marketClosed: "a closed specimen drawer with a little lock",
     summary: "a completed chimera proudly standing by a small specimen medal",
   })) {
-    prompts.push(entry(`empty-${id}`, "empty", scene));
+    prompts.push(
+      entry(
+        `empty-${id}`,
+        "empty",
+        modelKit ? `${template.objectName} · ${id} state, theme ${template.title}` : scene,
+      ),
+    );
   }
   for (const id of ["hero", "story"]) {
     prompts.push({
       id: `cover-${id}`,
       kind: "cover",
-      prompt: `${prefix.replace("Solid uniform #FF00FF background.", "Warm bone paper background with a very faint graph grid.")} A friendly assembled modular chimera specimen for ${template.title}, moss green and muted teal body, rust lion head, little pincers, sturdy rear legs, crocodile tail and geometric turtle shell. Quiet field-notebook composition with tiny unlettered tags and measurement marks. ${id === "hero" ? "Wide landscape composition 1200x630." : "Tall portrait composition 1080x1920, central specimen, generous negative space."} No text, lettering, UI, magenta or logos.`,
+      prompt: modelKit
+        ? `A complete ${template.objectName} from the modular expedition kit. Warm bone background. Soft upper-left light, left-facing side view, centered, quiet margin. ${negative}`
+        : `${prefix.replace("Solid uniform #FF00FF background.", "Warm bone paper background with a very faint graph grid.")} A friendly assembled modular chimera specimen for ${template.title}, moss green and muted teal body, rust lion head, little pincers, sturdy rear legs, crocodile tail and geometric turtle shell. Quiet field-notebook composition with tiny unlettered tags and measurement marks. ${id === "hero" ? "Wide landscape composition 1200x630." : "Tall portrait composition 1080x1920, central specimen, generous negative space."} No text, lettering, UI, magenta or logos.`,
       negative,
       size: id === "hero" ? "1200x630" : "1080x1920",
       background: "paper",
-      referenceIds: ["printed-field-bestiary-B"],
+      referenceIds: [modelKit ? "expedition-model-kit" : "printed-field-bestiary-B"],
     });
   }
   return prompts;

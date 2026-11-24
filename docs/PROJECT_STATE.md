@@ -2,41 +2,41 @@
 
 > Читать в начале каждой сессии. После своей задачи — обновить этот файл и `CHANGELOG.md` (скилл `/handoff`).
 
-## 1. Сводка (на 2026-11-17)
+## 1. Сводка (на 2026-11-24)
 
-- **Этап**: платформа **STEM Bot 2.0** полностью готова к проведению бакалаврских спринтов и смен (включая декабрьский сеттинг **«Спринт роверов · ЦУ»**). Закрыты ключевые кор-механики, межкомандная биржа, живые аукционы, склад деталей, фоновый советник баланса, отдельный админ-бот со встроенным конструктором смены и сквозные тесты (Vitest + `fast-check` + PGlite + Playwright E2E).
-- **Ветки**: `main` (релизы), `dev` (интеграция), текущая фича-ветка `feat/stem-bot-v2`.
+- **Боевая сборка «Полевого атласа» + «Ядро 3.0» (24 ноября)** — оба продакшн-бота (`playerBot` и `adminBot`), Mini App команды, Студия ведущего (`?surface=admin`) и проекторное табло зала (`?view=projector`) переведены на дизайн-систему **«Полевой атлас»** (`docs/design/field-atlas/`) с полным сохранением всех функций платформы 2.0 и добавлением механик **«Ядра 3.0»** (`docs/design/ENGINE_3_0_DESIGN_HANDOFF.md`).
+- **Клиентский поток** — книжный разворот `.field-spread` на десктопе и полноэкранный мобильный холст в Telegram: 3-шаговый `PlayerGuide` с миллиметровкой и примеркой, бесшовный ангар с 2-колоночными слотами и бесплатным складом, синхронная программа на 5 телефонах (`0:00–0:30` личный выбор → `0:30–2:00` обсуждение пятёрки с двойным прогнозом, `RouteMap` и шиной `powerCircuit`), STEM-диагностика с осциллографом `ProbeDiagram` (`3 − замеры`), вскрытие с контрфактуалом и `ResourceMeter`, а также 3-минутный внеурочный тренажёр (`currencyDelta = 0`).
+- **Поток ведущего и организатора** — разделение на чистый `Пульт урока` (быстрое начисление за занятие с отменой `Undo` в 1 клик, готовность пультов по 5 кирпичикам `.crew-readiness`, таймер с `+30 сек`) и 4-шаговый self-service `Конструктор смены` (`1. Словарь` `TemplateLexicon` без хардкода на 4 мира, `2. Дни` `Миссия / Диагностика / Трек`, `3. Каталог` с **Валидатором Парето 3.0** и автовыравниванием порога, `4. Запуск` с печатью QR и репетиционным раундом).
+- **Ветки** — `main` для релизов, `dev` для интеграции, локальная работа в `feat/phase-design-lab`.
 - **Команда (RACI)**: Леон — PM/механики · Ренат — админ-часть, архитектура · Егор — интерфейс игрока, репозиторий · Вася — ML · Даня — геймдизайн + ML · Рюп — роль уточняется.
 
 ## 2. Что работает
 
 | Модуль | Статус | Где |
 | :--- | :--- | :--- |
-| Zod-схемы шаблона, редкостей, рубильников механик, биржи и аукционов | готово (`CardRarity`, `EffectScope`, `FeatureFlags`, `LoreBriefing`, `P2PListing`, `AuctionLot`) | `packages/shared/src/schema.ts` |
-| Расчёт статов, формулы шага, легендарных сфер, клетки поля, P2P и аукционов | готово (`calculateTeamStats`, `resolveBoardTurn`, `validateP2PPrice`, `evaluateAuctionBid`, property-тесты `fast-check`) | `packages/shared/src/{engine,engine.test}.ts` |
+| Боевая дизайн-система «Полевой атлас» | готово: разворот `.field-spread`, мобильный нижний док `.atlas-mobile-dock`, единая типографика `Manrope Variable` (`tabular-nums`), `RouteMap`, `StatImpactPills`, `CrewStationsStrip`, `ForecastCards`, `ProbeDiagram`, `ResourceMeter`, `SpiralBoard`, светлая/тёмная/высококонтрастная темы без текстовых стрелок и наслоений | `apps/web/src/app/{styles,atlas}.css`, `shared/ui/atlas-graphics.tsx`, `widgets/player-guide` |
+| Игровое ядро 3.0 + схемы и формулы | готово: `TemplateLexicon`, 5-телефонная программа, `powerCircuit`, `actionTags`, STEM-диагностика (`3 − замеры`), контрфактуал, `validateParetoStrategies`, `currencyDelta = 0` | `packages/shared/src/{schema,engine,engine3,engine.test}.ts` |
 | Фоновый советник баланса и динамики команд | готово (`analyzeLiveBalance` + одно-кликовые действия `QuickFixKind`) | `packages/shared/src/advisor.ts` |
-| Пресеты смен: Спринт роверов ЦУ, НейроФауна, Стартап за день, АэроТех | готово (4 полноценных пресета; `rover-sprint-cu` — 6 дней, 6 слотов, 19 деталей, 7 сюжетных сводок) | `packages/shared/src/{rover-preset,presets}.ts` |
-| Хранилище: Postgres 17 / PGlite + Drizzle ORM | готово: события, команды (`inventory`, `held_currency`, `badges`), остатки, биржа `market_listings`, торги `auctions`, черновики `market_drafts`, идемпотентность | `apps/server/src/db`, `apps/server/drizzle` |
-| AI-генератор деталей и легенд смены | готово: Vercel AI SDK (`OpenRouter` / `Gemini 2.5 Flash`) + 1-проходный repair + детерминированный офлайн-синтезатор и двухшаговая публикация черновиков | `apps/server/src/modules/ai/service.ts` |
-| Два раздельных Telegram-бота + служба алертов | готово: `playerBot` (`/start`, `/story`, `/faq`) и `adminBot` (`/start`, `/wizard`, `/pulse`), проверка `initData` по двум токенам, троттлинг рассылок | `apps/server/src/bot/index.ts`, `shared/telegram-auth.ts` |
-| Визуальный движок сборки v2 + арт-пак роверов | готово: риги `rover / creature / airship / campus`, чертёжная процедурная графика роверов, обложки `cover-hero` и `cover-story`, пружинная физика `motion/react` без сброса углов сокетов | `packages/art`, `apps/web/src/entities/assembly` |
-| Кабинет игрока (3 вкладки, без тех-мусора) | готово: Вход + QR, 3-шаговый онбординг, сюжетные сводки дня, `Ангар` + `Склад` + PNG-паспорт сборки, `Рынок / Биржа / Аукцион`, `Маршрут и FAQ`, настройки темы (`Авто/Светлая/Тёмная`), высокой контрастности и анимаций | `apps/web/src/pages/{join,team-dashboard}`, `widgets/*` |
-| Студия ведущего (`?surface=admin`) и Табло проектора `16:9` (`?view=projector`) | готово: 4-шаговый конструктор смены, живой редактор карт и редкостей, рубильники механик вкл/выкл, советник баланса с кнопками исправления, QR команд и отдельное табло для зала | `apps/web/src/pages/{admin-console,projector-board}` |
-| Тулинг, CI и сквозные тесты | готово: Biome, Steiger (FSD), TypeScript, 50 unit/интеграционных тестов Vitest + сквозной E2E-сценарий Playwright, `npm audit --omit=dev` (0 уязвимостей) | `e2e/stem-bot.spec.ts`, `playwright.config.ts` |
+| Пресеты смен: Экспедиция Роверов, НейроФауна, Стартап за день, АэроТех | готово (4 полноценных мира с собственными словарями, миссиями и диагностиками) | `packages/shared/src/{rover-preset,presets,engine3}.ts` |
+| Хранилище: Postgres 17 / PGlite + Drizzle ORM | готово: события и команды с `round_state`, склад `inventory`, `held_currency`, биржа `market_listings`, торги `auctions`, черновики `market_drafts`, миграция `0002_oval_harrier.sql` | `apps/server/src/db`, `apps/server/drizzle` |
+| AI-генератор деталей и легенд смены | готово: Vercel AI SDK (`OpenRouter` / `Gemini 2.5 Flash`) + repair + детерминированный офлайн-синтезатор | `apps/server/src/modules/ai/service.ts` |
+| Два раздельных Telegram-бота + служба алертов | готово: `playerBot` (`/start` + инвайты + `puzzle_...`, `/story`, `/playground`, `/faq`) и `adminBot` (`/start` с кнопками `Пульт урока` / `Конструктор` / `Табло 16:9`, `/pulse`, `/wizard`, `/balance`) | `apps/server/src/bot/index.ts`, `shared/telegram-auth.ts` |
+| Визуальный движок сборки + арт-паки | готово: риги `rover / creature / airship / campus`, 21 WebP для `neurofauna`, 19 карт для `rovers`, пружинная физика `motion/react` | `packages/art`, `apps/web/src/entities/assembly` |
+| Кабинет игрока, Студия ведущего и Табло `16:9` | готово: все 100 % функций v2 (предложения капитану, магазин, склад, P2P-биржа, живые аукционы, FAQ) + все фазы Ядра 3.0 | `apps/web/src/pages/{join,team-dashboard,admin-console,projector-board}` |
+| Тулинг, CI и сквозные тесты | готово: Biome, Steiger (FSD), TypeScript, 37 unit/интеграционных тестов Vitest + 3 сквозных сценария Playwright (`e2e/stem-bot.spec.ts`, включая AABB-аудит наслоений и адаптива `360px..1920px`), `npm audit --omit=dev` (0 уязвимостей) | `e2e/stem-bot.spec.ts`, `playwright.config.ts` |
 
 ## 3. Известные ограничения и техдолг
 
 - **Масштабирование инстансов**: одно активное событие на инстанс и WebSocket-хаб в памяти одного процесса (для нескольких реплик потребуется Postgres `LISTEN/NOTIFY`).
-- **Растровые наборы деталей для второстепенных тем**: у `neurofauna` есть полный растровый набор из 21 детали, у `rovers` — растровые обложки `hero/story` и кастомная векторная чертёжная графика всех 6 слотов; `airship` и `startup` работают в процедурном векторном режиме.
-- **Dev-зависимости**: `steiger` и `drizzle-kit` используют dev-only пакеты со старыми glob-зависимостями; продакшн-дерево (`npm audit --omit=dev`) полностью чистое (`0 vulnerabilities`).
+- **Арт для второстепенных тем**: у `neurofauna` (21 карта) и `rovers` (19 карт) есть полные наборы WebP-ассетов; `airship` и `startup` работают в процедурном векторном режиме.
+- **Dev-зависимости**: продакшн-дерево (`npm audit --omit=dev`) полностью чистое (`0 vulnerabilities`).
 
 ## 4. Бэклог следующих итераций
 
 ### P1 — Продакшн-запуск декабрьского спринта (Ренат, Леон)
-- [ ] Создать отдельного Telegram-бота ведущего в `@BotFather`, прописать `ADMIN_BOT_TOKEN` и `OPENROUTER_API_KEY` (или `GEMINI_API_KEY`) в продакшн `.env`.
-- [ ] Провести сухой прогон 1-го дня «Спринта роверов» с ведущими и ассистентами ЦУ на реальных телефонах (iOS / Android) и проекторе зала.
+- [ ] Прописать `ADMIN_BOT_TOKEN`, `ADMIN_IDS` и `OPENROUTER_API_KEY` (или `GEMINI_API_KEY`) в продакшн `.env`.
+- [ ] Провести очный сухой прогон 1-го и 2-го дней «Экспедиции Роверов» (Миссия + Диагностика) с ведущими на реальных телефонах и проекторе зала.
 
 ### P2 — Аналитика и контент (Вася, Даня, Егор)
-- [ ] Экспорт итоговой ведомости смены (CSV/JSON: команды, сделки, финальные сборки и позиции).
-- [ ] При желании — сгенерировать и прогнать через `npm run art:ingest -w @stem/art` отдельный растровый стикер-пак для 19 деталей `rovers` по готовому `packages/art/packs/rovers/prompts.jsonl`.
+- [ ] Экспорт итоговой ведомости смены (CSV/JSON: команды, сделки, выбранные стратегии, ответы `transferPrompt` и финальные позиции).
 - [ ] Перенос всех 78 архивных карт классической настольной «НейроФауны» из `docs/legacy/neurofauna-data.json` в отдельный расширенный шаблон.

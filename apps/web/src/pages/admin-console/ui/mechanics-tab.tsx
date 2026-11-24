@@ -11,6 +11,27 @@ type BooleanFeatureKey = {
 
 const FLAG_META: Array<{ key: BooleanFeatureKey; label: string; description: string }> = [
   {
+    key: "powerCircuit",
+    label: "Контур нагрузки и перегрева (Ядро 3.0)",
+    description:
+      "Учитывает пик нагрузки и накопленный нагрев между участками маршрута; пауза охлаждает контур на −1",
+  },
+  {
+    key: "actionTags",
+    label: "Особые маршруты по тегам деталей (Ядро 3.0)",
+    description: "Специальные узлы открывают дополнительный вариант прохождения участка A",
+  },
+  {
+    key: "openMilestones",
+    label: "Открытые инженерные вехи (Ядро 3.0)",
+    description: "Все команды, выполнившие техническое условие раунда, получают знак отличия без гонки",
+  },
+  {
+    key: "offClassPlayground",
+    label: "Полигон вне занятий · 3 мин (Ядро 3.0)",
+    description: "Короткие задачи одной правки и диагностики без влияния на учебную валюту смены",
+  },
+  {
     key: "p2pMarket",
     label: "Биржа между командами",
     description:

@@ -3,6 +3,7 @@ import { postJson } from "../../../shared/api/index.js";
 
 export const rewardTeams = (teamIds: string[], amount: number, reason: string, comment?: string) =>
   postJson<LiveState>("/api/admin/reward", { teamIds, amount, reason, comment });
+export const undoRewardBatch = () => postJson<LiveState>("/api/admin/reward/undo");
 export const adjustTrack = (teamId: string, delta: number, reason?: string) =>
   postJson<LiveState>("/api/admin/track", { teamId, delta, reason });
 export const createTeam = (name: string) => postJson<LiveState>("/api/admin/teams", { name });

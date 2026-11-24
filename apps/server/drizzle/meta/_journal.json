@@ -15,6 +15,13 @@
       "when": 1794862017622,
       "tag": "0001_nebulous_night_nurse",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795529981993,
+      "tag": "0002_oval_harrier",
+      "breakpoints": true
     }
   ]
 }

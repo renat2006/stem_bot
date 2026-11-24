@@ -22,3 +22,17 @@ export const buyP2PListing = (listingId: string) => postJson<LiveState>("/api/te
 
 export const placeAuctionBid = (auctionId: string, amount: number) =>
   postJson<LiveState>(`/api/team/auctions/${encodeURIComponent(auctionId)}/bid`, { amount });
+
+export const submitProgramOrder = (leverIndex: number, value: string | boolean) =>
+  postJson<LiveState>("/api/team/program/order", { leverIndex, value });
+
+export const pingTeamSlot = (slotIndex: number) =>
+  postJson<LiveState>("/api/team/program/ping", { slotIndex });
+
+export const runDiagnosisProbe = (probeId: string) =>
+  postJson<LiveState>("/api/team/diagnosis/probe", { probeId });
+
+export const submitDiagnosisVerdict = (hypothesisId: string) =>
+  postJson<LiveState>("/api/team/diagnosis/verdict", { hypothesisId });
+
+export const saveTransferNote = (note: string) => postJson<LiveState>("/api/team/transfer-note", { note });

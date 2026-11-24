@@ -1,7 +1,8 @@
 import type { GameTemplate, LoreBriefing } from "@stem/shared";
-import { Compass, Sparkles } from "lucide-react";
+import { BookOpen, Compass } from "lucide-react";
 import { useState } from "react";
 import { PackIllustration } from "../../../entities/assembly/index.js";
+import { useTelegram } from "../../../shared/lib/index.js";
 import { BottomSheet } from "../../../shared/ui/index.js";
 
 export function LoreBriefingSheet({
@@ -15,6 +16,7 @@ export function LoreBriefingSheet({
   template: GameTemplate;
   currentDay: number;
 }) {
+  const { hapticTap } = useTelegram();
   const available = template.dayBriefings.filter((b) => b.day <= currentDay);
   const defaultBriefing =
     available.find((b) => b.day === currentDay) ?? available.at(-1) ?? template.dayBriefings[0];
@@ -31,19 +33,22 @@ export function LoreBriefingSheet({
             template={template}
             kind="story"
             label={active.title}
-            className="h-48 w-full rounded-2xl border border-ln object-cover"
+            className="h-44 w-full rounded-2xl border border-ln object-cover"
           />
 
           {available.length > 1 && (
-            <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+            <div className="flex gap-2 overflow-x-auto pb-1">
               {available.map((item) => {
                 const isSelected = item.day === active.day;
                 return (
                   <button
                     key={item.day}
                     type="button"
-                    onClick={() => setSelectedDay(item.day)}
-                    className={`min-h-[34px] shrink-0 rounded-full border px-3 text-xs font-medium ${
+                    onClick={() => {
+                      hapticTap();
+                      setSelectedDay(item.day);
+                    }}
+                    className={`min-h-[44px] shrink-0 rounded-xl border px-3.5 text-xs font-bold ${
                       isSelected ? "border-ac bg-ac text-acfg" : "border-ln bg-sf text-mu"
                     }`}
                   >
@@ -55,29 +60,25 @@ export function LoreBriefingSheet({
           )}
 
           <div className="space-y-1.5">
-            <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold tracking-[0.06em] uppercase text-ac">
-              <Sparkles className="h-3.5 w-3.5" />
-              {active.day === 0 ? "Предыстория смены" : `Сводка · День ${active.day}`}
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-ac">
+              <BookOpen className="h-3.5 w-3.5" />
+              <span>{active.day === 0 ? "Предыстория смены" : `День ${active.day}`}</span>
             </span>
-            <h3 className="text-xl leading-tight font-semibold text-fg">{active.title}</h3>
+            <h3 className="atlas-h2">{active.title}</h3>
             <p className="text-sm leading-relaxed text-mu">{active.story}</p>
           </div>
 
           {active.challengeTitle && (
-            <div className="flex items-start gap-2.5 rounded-xl border border-ac/35 bg-ac/10 p-3.5">
+            <div className="flex items-start gap-2.5 rounded-xl border border-ac/35 bg-sf2 p-3.5">
               <Compass className="mt-0.5 h-4 w-4 shrink-0 text-ac" />
               <div className="space-y-0.5">
-                <p className="text-xs font-semibold text-fg">Задача на раунд</p>
+                <p className="text-xs font-bold text-fg">Задача на раунд</p>
                 <p className="text-xs leading-relaxed text-mu">{active.challengeTitle}</p>
               </div>
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="h-12 w-full rounded-xl bg-ac text-base font-semibold text-acfg"
-          >
+          <button type="button" onClick={onClose} className="atlas-primary">
             Принято
           </button>
         </div>

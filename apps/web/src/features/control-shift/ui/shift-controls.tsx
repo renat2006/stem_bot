@@ -79,7 +79,7 @@ export function ShiftControls({ gameState, totalDays, clockOffsetMs, run }: Shif
             >
               Продлить на 5 мин
             </Button>
-            <Button onClick={() => run(() => setPhase("turn"))}>Закрыть рынок → ход</Button>
+            <Button onClick={() => run(() => setPhase("turn"))}>Закрыть рынок и начать ход</Button>
           </div>
         )}
 

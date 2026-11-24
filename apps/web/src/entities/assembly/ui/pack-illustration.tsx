@@ -1,5 +1,5 @@
 import type { GameTemplate } from "@stem/shared";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useArtPack } from "../model/use-art-pack.js";
 
 export function PackIllustration({
@@ -13,7 +13,8 @@ export function PackIllustration({
   label: string;
   className?: string;
 }) {
-  const pack = useArtPack(template.artPackId);
+  const gridId = useId();
+  const pack = useArtPack(template.artPackId ?? template.eventKey);
   const [failed, setFailed] = useState<string>();
   const path =
     kind === "hero" ? pack?.covers.hero : kind === "story" ? pack?.covers.story : pack?.emptyStates[kind];
@@ -47,17 +48,22 @@ export function PackIllustration({
       <div
         role="img"
         aria-label={label}
-        className={
-          className ?? "relative h-44 w-full overflow-hidden rounded-2xl border border-ln bg-sf2 p-4"
-        }
+        className={`relative overflow-hidden ${
+          className ?? "h-44 w-full rounded-2xl border border-ln bg-sf2"
+        }`}
       >
-        <svg viewBox="0 0 800 320" className="absolute inset-0 h-full w-full opacity-55" aria-hidden="true">
+        <svg
+          viewBox="0 0 800 320"
+          preserveAspectRatio="xMidYMid slice"
+          className="pointer-events-none block h-full w-full opacity-55"
+          aria-hidden="true"
+        >
           <defs>
-            <pattern id="bp-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+            <pattern id={gridId} width="32" height="32" patternUnits="userSpaceOnUse">
               <path d="M 32 0 L 0 0 0 32" fill="none" stroke="var(--ln)" strokeWidth="1" />
             </pattern>
           </defs>
-          <rect width="800" height="320" fill="url(#bp-grid)" />
+          <rect width="800" height="320" fill={`url(#${gridId})`} />
           <path
             d="M 40 250 Q 220 180 410 220 T 760 120"
             fill="none"

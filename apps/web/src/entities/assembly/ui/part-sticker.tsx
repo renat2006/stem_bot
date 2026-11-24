@@ -18,7 +18,7 @@ export function PartSticker({
   mirrored?: boolean;
   fragmentId?: string;
 }) {
-  const loadedPack = useArtPack(pack ? undefined : template.artPackId);
+  const loadedPack = useArtPack(pack ? undefined : (template.artPackId ?? template.eventKey));
   const activePack = pack ?? loadedPack;
   const whole = activePack?.parts.find((part) => part.cardId === card.id);
   const asset = whole?.fragments.find((fragment) => fragment.id === fragmentId) ?? whole;

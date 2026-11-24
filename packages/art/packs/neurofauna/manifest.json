@@ -1,6 +1,6 @@
 {
   "id": "neurofauna",
-  "version": 2,
+  "version": 4,
   "rig": "creature",
   "palette": {
     "outline": "#1B1F23",
@@ -28,7 +28,7 @@
       "slotId": "head",
       "box": [80, 240, 300, 280],
       "align": "center",
-      "z": 4,
+      "z": 5,
       "motion": "none",
       "pivot": [0.5, 0.5],
       "mirror": true,
@@ -105,7 +105,7 @@
         "parentSlotId": "body",
         "parentAnchor": "back",
         "partAnchor": "root",
-        "parentPoint": [0.55, 0.46],
+        "parentPoint": [0.52, 0.19],
         "partPoint": [0.5, 0.98]
       }
     }
@@ -113,404 +113,404 @@
   "parts": [
     {
       "cardId": "lion-head",
+      "width": 512,
+      "height": 512,
+      "contentBox": [45, 5, 422, 502],
       "anchors": {
         "root": [0.22, 0.86]
       },
-      "fragments": [],
-      "src": "assets/lion-head.d717b0431bfb.webp",
-      "thumb": "assets/lion-head-thumb.bd983bd05f3a.webp",
-      "width": 512,
-      "height": 512,
       "promptId": "lion-head",
-      "contentBox": [30, 54, 451, 403]
-    },
-    {
-      "cardId": "scorpion-claws",
-      "anchors": {
-        "root": [0.45, 0.1]
-      },
-      "fragments": [
-        {
-          "id": "limb",
-          "src": "assets/scorpion-claws-limb.813015730790.webp",
-          "thumb": "assets/scorpion-claws-limb-thumb.592439d016d0.webp",
-          "width": 512,
-          "height": 512,
-          "contentBox": [141, 30, 229, 451],
-          "anchor": [0.5, 0.05],
-          "contact": [0.5, 0.97],
-          "paired": true,
-          "grounded": true,
-          "restAngle": 0
-        }
-      ],
-      "src": "assets/scorpion-claws.dc1d104e1c7a.webp",
-      "thumb": "assets/scorpion-claws-thumb.251088d085c5.webp",
-      "width": 512,
-      "height": 512,
-      "promptId": "scorpion-claws",
-      "contentBox": [30, 38, 451, 436]
-    },
-    {
-      "cardId": "chameleon-front",
-      "anchors": {
-        "root": [0.45, 0.1]
-      },
-      "fragments": [
-        {
-          "id": "limb",
-          "src": "assets/chameleon-front-limb.5eb95803cc13.webp",
-          "thumb": "assets/chameleon-front-limb-thumb.d1c3c20df750.webp",
-          "width": 512,
-          "height": 512,
-          "contentBox": [174, 30, 164, 451],
-          "anchor": [0.5, 0.05],
-          "contact": [0.5, 0.97],
-          "paired": true,
-          "grounded": true,
-          "restAngle": 0
-        }
-      ],
-      "src": "assets/chameleon-front.ca6f184662d0.webp",
-      "thumb": "assets/chameleon-front-thumb.73cb4ecd58d1.webp",
-      "width": 512,
-      "height": 512,
-      "promptId": "chameleon-front",
-      "contentBox": [30, 68, 451, 375]
-    },
-    {
-      "cardId": "lion-back",
-      "anchors": {
-        "root": [0.5, 0.08]
-      },
-      "fragments": [
-        {
-          "id": "limb",
-          "src": "assets/lion-back-limb.e02955976b12.webp",
-          "thumb": "assets/lion-back-limb-thumb.8c954be03b11.webp",
-          "width": 512,
-          "height": 512,
-          "contentBox": [174, 30, 163, 451],
-          "anchor": [0.5, 0.05],
-          "contact": [0.5, 0.97],
-          "paired": true,
-          "grounded": true,
-          "restAngle": 0
-        }
-      ],
-      "src": "assets/lion-back.0a75b2cee9e6.webp",
-      "thumb": "assets/lion-back-thumb.09ce789eb904.webp",
-      "width": 512,
-      "height": 512,
-      "promptId": "lion-back",
-      "contentBox": [30, 38, 451, 435]
-    },
-    {
-      "cardId": "rat-back",
-      "anchors": {
-        "root": [0.5, 0.08]
-      },
-      "fragments": [
-        {
-          "id": "limb",
-          "src": "assets/rat-back-limb.e4e035096087.webp",
-          "thumb": "assets/rat-back-limb-thumb.b9fb99ecaca3.webp",
-          "width": 512,
-          "height": 512,
-          "contentBox": [176, 30, 159, 451],
-          "anchor": [0.5, 0.05],
-          "contact": [0.5, 0.97],
-          "paired": true,
-          "grounded": true,
-          "restAngle": 0
-        }
-      ],
-      "src": "assets/rat-back.e72eb165c7b1.webp",
-      "thumb": "assets/rat-back-thumb.44f15b17d76c.webp",
-      "width": 512,
-      "height": 512,
-      "promptId": "rat-back",
-      "contentBox": [34, 30, 443, 451]
-    },
-    {
-      "cardId": "crocodile-tail",
-      "anchors": {
-        "root": [0.94, 0.65]
-      },
-      "fragments": [],
-      "src": "assets/crocodile-tail.80be965fb164.webp",
-      "thumb": "assets/crocodile-tail-thumb.af1865dd890d.webp",
-      "width": 512,
-      "height": 512,
-      "promptId": "crocodile-tail",
-      "contentBox": [30, 131, 451, 249]
-    },
-    {
-      "cardId": "turtle-shell",
-      "anchors": {
-        "root": [0.5, 0.98]
-      },
-      "fragments": [],
-      "src": "assets/turtle-shell.78b28588ca62.webp",
-      "thumb": "assets/turtle-shell-thumb.1b8449f1d2ad.webp",
-      "width": 512,
-      "height": 512,
-      "promptId": "turtle-shell",
-      "contentBox": [30, 122, 451, 268]
-    },
-    {
-      "cardId": "mammoth-tusks",
-      "anchors": {
-        "root": [0.22, 0.86]
-      },
-      "fragments": [],
-      "src": "assets/mammoth-tusks.db926c493a10.webp",
-      "thumb": "assets/mammoth-tusks-thumb.1e5a7a9c85dc.webp",
-      "width": 512,
-      "height": 512,
-      "promptId": "mammoth-tusks",
-      "contentBox": [30, 112, 451, 288]
-    },
-    {
-      "cardId": "eagle-claws",
-      "anchors": {
-        "root": [0.45, 0.1]
-      },
-      "fragments": [
-        {
-          "id": "limb",
-          "src": "assets/eagle-claws-limb.33d1de688ce3.webp",
-          "thumb": "assets/eagle-claws-limb-thumb.3234f8c31d5d.webp",
-          "width": 512,
-          "height": 512,
-          "contentBox": [174, 30, 164, 451],
-          "anchor": [0.5, 0.05],
-          "contact": [0.5, 0.97],
-          "paired": true,
-          "grounded": true,
-          "restAngle": 0
-        }
-      ],
-      "src": "assets/eagle-claws.199ea0dc930d.webp",
-      "thumb": "assets/eagle-claws-thumb.71780f1a9a0c.webp",
-      "width": 512,
-      "height": 512,
-      "promptId": "eagle-claws",
-      "contentBox": [30, 45, 451, 421]
-    },
-    {
-      "cardId": "cheetah-tail",
-      "anchors": {
-        "root": [0.94, 0.65]
-      },
-      "fragments": [],
-      "src": "assets/cheetah-tail.16f81b863e3a.webp",
-      "thumb": "assets/cheetah-tail-thumb.5cd91a72542e.webp",
-      "width": 512,
-      "height": 512,
-      "promptId": "cheetah-tail",
-      "contentBox": [30, 177, 451, 157]
-    },
-    {
-      "cardId": "tiger-fangs",
-      "anchors": {
-        "root": [0.22, 0.86]
-      },
-      "fragments": [],
-      "src": "assets/tiger-fangs.abac52bcce2b.webp",
-      "thumb": "assets/tiger-fangs-thumb.faa0f47f3485.webp",
-      "width": 512,
-      "height": 512,
-      "promptId": "tiger-fangs",
-      "contentBox": [30, 73, 451, 365]
-    },
-    {
-      "cardId": "cheetah-paws",
-      "anchors": {
-        "root": [0.45, 0.1]
-      },
-      "fragments": [
-        {
-          "id": "limb",
-          "src": "assets/cheetah-paws-limb.8a4fba28ca9e.webp",
-          "thumb": "assets/cheetah-paws-limb-thumb.46d7bdbbf04b.webp",
-          "width": 512,
-          "height": 512,
-          "contentBox": [184, 30, 143, 451],
-          "anchor": [0.5, 0.05],
-          "contact": [0.5, 0.97],
-          "paired": true,
-          "grounded": true,
-          "restAngle": 0
-        }
-      ],
-      "src": "assets/cheetah-paws.0ed04fd91fac.webp",
-      "thumb": "assets/cheetah-paws-thumb.7e08722cdc79.webp",
-      "width": 512,
-      "height": 512,
-      "promptId": "cheetah-paws",
-      "contentBox": [46, 30, 420, 451]
-    },
-    {
-      "cardId": "jet-tail",
-      "anchors": {
-        "root": [0.94, 0.65]
-      },
-      "fragments": [],
-      "src": "assets/jet-tail.b645be47c216.webp",
-      "thumb": "assets/jet-tail-thumb.100885f12a1d.webp",
-      "width": 512,
-      "height": 512,
-      "promptId": "jet-tail",
-      "contentBox": [30, 129, 451, 253]
-    },
-    {
-      "cardId": "wasp-sting",
-      "anchors": {
-        "root": [0.5, 0.98]
-      },
-      "fragments": [],
-      "src": "assets/wasp-sting.fe63325b6215.webp",
-      "thumb": "assets/wasp-sting-thumb.3d4b03dd6e26.webp",
-      "width": 512,
-      "height": 512,
-      "promptId": "wasp-sting",
-      "contentBox": [30, 130, 451, 252]
-    },
-    {
-      "cardId": "turbo-paws",
-      "anchors": {
-        "root": [0.5, 0.08]
-      },
-      "fragments": [
-        {
-          "id": "limb",
-          "src": "assets/turbo-paws-limb.c3b07289de2f.webp",
-          "thumb": "assets/turbo-paws-limb-thumb.62720a58c6bc.webp",
-          "width": 512,
-          "height": 512,
-          "contentBox": [177, 30, 158, 451],
-          "anchor": [0.5, 0.05],
-          "contact": [0.5, 0.97],
-          "paired": true,
-          "grounded": true,
-          "restAngle": 0
-        }
-      ],
-      "src": "assets/turbo-paws.d421b88a42d9.webp",
-      "thumb": "assets/turbo-paws-thumb.b4cddf2da2e2.webp",
-      "width": 512,
-      "height": 512,
-      "promptId": "turbo-paws",
-      "contentBox": [45, 30, 421, 451]
-    },
-    {
-      "cardId": "steel-shell",
-      "anchors": {
-        "root": [0.5, 0.98]
-      },
-      "fragments": [],
-      "src": "assets/steel-shell.09a08bf809b0.webp",
-      "thumb": "assets/steel-shell-thumb.364a9483dd60.webp",
-      "width": 512,
-      "height": 512,
-      "promptId": "steel-shell",
-      "contentBox": [30, 121, 451, 270]
-    },
-    {
-      "cardId": "phoenix-wings",
-      "anchors": {
-        "root": [0.45, 0.1]
-      },
-      "fragments": [
-        {
-          "id": "limb",
-          "src": "assets/phoenix-wings-limb.2cf11e5b42fc.webp",
-          "thumb": "assets/phoenix-wings-limb-thumb.a253606808c8.webp",
-          "width": 512,
-          "height": 512,
-          "contentBox": [149, 30, 214, 451],
-          "anchor": [0.5, 0.05],
-          "contact": [0.5, 0.97],
-          "paired": true,
-          "grounded": false,
-          "restAngle": -110
-        }
-      ],
-      "src": "assets/phoenix-wings.257694fc1dae.webp",
-      "thumb": "assets/phoenix-wings-thumb.e3439289736b.webp",
-      "width": 512,
-      "height": 512,
-      "promptId": "phoenix-wings",
-      "contentBox": [30, 83, 451, 345]
-    },
-    {
-      "cardId": "shark-body",
-      "anchors": {
-        "neck": [0.94, 0.57],
-        "shoulder": [0.8, 0.78],
-        "hip": [0.3, 0.78],
-        "tail": [0.14, 0.6],
-        "back": [0.45, 0.46]
-      },
-      "fragments": [],
-      "src": "assets/shark-body.c36488e7167f.webp",
-      "thumb": "assets/shark-body-thumb.29976be90b11.webp",
-      "width": 512,
-      "height": 512,
-      "promptId": "shark-body",
-      "contentBox": [30, 119, 451, 273]
+      "src": "assets/lion-head.879855600117.webp",
+      "thumb": "assets/lion-head-thumb.86b73a528b95.webp",
+      "fragments": []
     },
     {
       "cardId": "lion-body",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 104, 502, 303],
+      "anchors": {
+        "neck": [0.78, 0.67],
+        "shoulder": [0.8, 0.78],
+        "hip": [0.3, 0.78],
+        "tail": [0.14, 0.6],
+        "back": [0.48, 0.19]
+      },
+      "promptId": "lion-body",
+      "src": "assets/lion-body.fd06c3800423.webp",
+      "thumb": "assets/lion-body-thumb.31e49d4709ef.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "crocodile-tail",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 173, 502, 165],
+      "anchors": {
+        "root": [0.94, 0.65]
+      },
+      "promptId": "crocodile-tail",
+      "src": "assets/crocodile-tail.26001fcf228e.webp",
+      "thumb": "assets/crocodile-tail-thumb.8347b81e69af.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "phoenix-wings",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 22, 502, 467],
+      "anchors": {
+        "root": [0.45, 0.1]
+      },
+      "promptId": "phoenix-wings",
+      "src": "assets/phoenix-wings.98416047016e.webp",
+      "thumb": "assets/phoenix-wings-thumb.2911b242c84e.webp",
+      "fragments": [
+        {
+          "id": "limb",
+          "src": "assets/phoenix-wings.98416047016e.webp",
+          "thumb": "assets/phoenix-wings-thumb.2911b242c84e.webp",
+          "width": 512,
+          "height": 512,
+          "contentBox": [5, 22, 502, 467],
+          "anchor": [0.52, 0.1],
+          "contact": [0.5, 0.98],
+          "paired": true,
+          "grounded": false,
+          "restAngle": 0
+        }
+      ]
+    },
+    {
+      "cardId": "mammoth-tusks",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 5, 502, 502],
+      "anchors": {
+        "root": [0.28, 0.54]
+      },
+      "promptId": "mammoth-tusks",
+      "src": "assets/mammoth-tusks.1037007cf299.webp",
+      "thumb": "assets/mammoth-tusks-thumb.a88756ce53bb.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "turtle-shell",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 103, 502, 306],
+      "anchors": {
+        "root": [0.5, 0.98]
+      },
+      "promptId": "turtle-shell",
+      "src": "assets/turtle-shell.5b3c612962c2.webp",
+      "thumb": "assets/turtle-shell-thumb.2c764f132f79.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "tiger-fangs",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 27, 502, 457],
+      "anchors": {
+        "root": [0.28, 0.54]
+      },
+      "promptId": "tiger-fangs",
+      "src": "assets/tiger-fangs.28daa83247d2.webp",
+      "thumb": "assets/tiger-fangs-thumb.1918d99b2c9b.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "scorpion-claws",
+      "width": 512,
+      "height": 512,
+      "contentBox": [72, 5, 368, 502],
+      "anchors": {
+        "root": [0.45, 0.1]
+      },
+      "promptId": "scorpion-claws",
+      "src": "assets/scorpion-claws.e5296f0cb4b8.webp",
+      "thumb": "assets/scorpion-claws-thumb.f4dc80066ebf.webp",
+      "fragments": [
+        {
+          "id": "limb",
+          "src": "assets/scorpion-claws.e5296f0cb4b8.webp",
+          "thumb": "assets/scorpion-claws-thumb.f4dc80066ebf.webp",
+          "width": 512,
+          "height": 512,
+          "contentBox": [72, 5, 368, 502],
+          "anchor": [0.52, 0.1],
+          "contact": [0.5, 0.98],
+          "paired": true,
+          "grounded": true,
+          "restAngle": 0
+        }
+      ]
+    },
+    {
+      "cardId": "chameleon-front",
+      "width": 512,
+      "height": 512,
+      "contentBox": [44, 5, 423, 502],
+      "anchors": {
+        "root": [0.45, 0.1]
+      },
+      "promptId": "chameleon-front",
+      "src": "assets/chameleon-front.c72aebe2c666.webp",
+      "thumb": "assets/chameleon-front-thumb.54b940b3f847.webp",
+      "fragments": [
+        {
+          "id": "limb",
+          "src": "assets/chameleon-front.c72aebe2c666.webp",
+          "thumb": "assets/chameleon-front-thumb.54b940b3f847.webp",
+          "width": 512,
+          "height": 512,
+          "contentBox": [44, 5, 423, 502],
+          "anchor": [0.52, 0.1],
+          "contact": [0.5, 0.98],
+          "paired": true,
+          "grounded": true,
+          "restAngle": 0
+        }
+      ]
+    },
+    {
+      "cardId": "eagle-claws",
+      "width": 512,
+      "height": 512,
+      "contentBox": [42, 5, 427, 502],
+      "anchors": {
+        "root": [0.45, 0.1]
+      },
+      "promptId": "eagle-claws",
+      "src": "assets/eagle-claws.518fea3e0538.webp",
+      "thumb": "assets/eagle-claws-thumb.ab25228d9fc2.webp",
+      "fragments": [
+        {
+          "id": "limb",
+          "src": "assets/eagle-claws.518fea3e0538.webp",
+          "thumb": "assets/eagle-claws-thumb.ab25228d9fc2.webp",
+          "width": 512,
+          "height": 512,
+          "contentBox": [42, 5, 427, 502],
+          "anchor": [0.52, 0.1],
+          "contact": [0.5, 0.98],
+          "paired": true,
+          "grounded": true,
+          "restAngle": 0
+        }
+      ]
+    },
+    {
+      "cardId": "lion-back",
+      "width": 512,
+      "height": 512,
+      "contentBox": [81, 5, 350, 502],
+      "anchors": {
+        "root": [0.5, 0.08]
+      },
+      "promptId": "lion-back",
+      "src": "assets/lion-back.d04253ff61e7.webp",
+      "thumb": "assets/lion-back-thumb.bb8835dd8845.webp",
+      "fragments": [
+        {
+          "id": "limb",
+          "src": "assets/lion-back.d04253ff61e7.webp",
+          "thumb": "assets/lion-back-thumb.bb8835dd8845.webp",
+          "width": 512,
+          "height": 512,
+          "contentBox": [81, 5, 350, 502],
+          "anchor": [0.52, 0.1],
+          "contact": [0.5, 0.98],
+          "paired": true,
+          "grounded": true,
+          "restAngle": 0
+        }
+      ]
+    },
+    {
+      "cardId": "rat-back",
+      "width": 512,
+      "height": 512,
+      "contentBox": [78, 5, 355, 502],
+      "anchors": {
+        "root": [0.5, 0.08]
+      },
+      "promptId": "rat-back",
+      "src": "assets/rat-back.2db6f7ad9dd2.webp",
+      "thumb": "assets/rat-back-thumb.a4b78bd08b1a.webp",
+      "fragments": [
+        {
+          "id": "limb",
+          "src": "assets/rat-back.2db6f7ad9dd2.webp",
+          "thumb": "assets/rat-back-thumb.a4b78bd08b1a.webp",
+          "width": 512,
+          "height": 512,
+          "contentBox": [78, 5, 355, 502],
+          "anchor": [0.52, 0.1],
+          "contact": [0.5, 0.98],
+          "paired": true,
+          "grounded": true,
+          "restAngle": 0
+        }
+      ]
+    },
+    {
+      "cardId": "cheetah-paws",
+      "width": 512,
+      "height": 512,
+      "contentBox": [71, 5, 369, 502],
+      "anchors": {
+        "root": [0.45, 0.1]
+      },
+      "promptId": "cheetah-paws",
+      "src": "assets/cheetah-paws.03d0b2427f26.webp",
+      "thumb": "assets/cheetah-paws-thumb.24892604b3af.webp",
+      "fragments": [
+        {
+          "id": "limb",
+          "src": "assets/cheetah-paws.03d0b2427f26.webp",
+          "thumb": "assets/cheetah-paws-thumb.24892604b3af.webp",
+          "width": 512,
+          "height": 512,
+          "contentBox": [71, 5, 369, 502],
+          "anchor": [0.52, 0.1],
+          "contact": [0.5, 0.98],
+          "paired": true,
+          "grounded": true,
+          "restAngle": 0
+        }
+      ]
+    },
+    {
+      "cardId": "turbo-paws",
+      "width": 512,
+      "height": 512,
+      "contentBox": [79, 5, 354, 502],
+      "anchors": {
+        "root": [0.5, 0.08]
+      },
+      "promptId": "turbo-paws",
+      "src": "assets/turbo-paws.98e9ea88eb1f.webp",
+      "thumb": "assets/turbo-paws-thumb.d5499d309148.webp",
+      "fragments": [
+        {
+          "id": "limb",
+          "src": "assets/turbo-paws.98e9ea88eb1f.webp",
+          "thumb": "assets/turbo-paws-thumb.d5499d309148.webp",
+          "width": 512,
+          "height": 512,
+          "contentBox": [79, 5, 354, 502],
+          "anchor": [0.52, 0.1],
+          "contact": [0.5, 0.98],
+          "paired": true,
+          "grounded": true,
+          "restAngle": 0
+        }
+      ]
+    },
+    {
+      "cardId": "cheetah-tail",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 135, 502, 242],
+      "anchors": {
+        "root": [0.94, 0.65]
+      },
+      "promptId": "cheetah-tail",
+      "src": "assets/cheetah-tail.d97d928f06cd.webp",
+      "thumb": "assets/cheetah-tail-thumb.03633c8b86bc.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "jet-tail",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 127, 502, 257],
+      "anchors": {
+        "root": [0.94, 0.65]
+      },
+      "promptId": "jet-tail",
+      "src": "assets/jet-tail.a59695c290e3.webp",
+      "thumb": "assets/jet-tail-thumb.55bde87c1b0a.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "wasp-sting",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 154, 502, 204],
+      "anchors": {
+        "root": [0.5, 0.98]
+      },
+      "promptId": "wasp-sting",
+      "src": "assets/wasp-sting.83c85728d9c9.webp",
+      "thumb": "assets/wasp-sting-thumb.853fedbff3fe.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "shark-body",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 110, 502, 291],
       "anchors": {
         "neck": [0.94, 0.57],
         "shoulder": [0.8, 0.78],
         "hip": [0.3, 0.78],
         "tail": [0.14, 0.6],
-        "back": [0.45, 0.46]
+        "back": [0.48, 0.19]
       },
-      "fragments": [],
-      "src": "assets/lion-body.57f24a99e97a.webp",
-      "thumb": "assets/lion-body-thumb.9191b90156bc.webp",
-      "width": 512,
-      "height": 512,
-      "promptId": "lion-body",
-      "contentBox": [30, 119, 451, 273]
+      "promptId": "shark-body",
+      "src": "assets/shark-body.832cbfc73785.webp",
+      "thumb": "assets/shark-body-thumb.e24734ca9b3c.webp",
+      "fragments": []
     },
     {
       "cardId": "reptile-skin",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 99, 502, 314],
       "anchors": {
         "neck": [0.94, 0.57],
         "shoulder": [0.8, 0.78],
         "hip": [0.3, 0.78],
         "tail": [0.14, 0.6],
-        "back": [0.45, 0.46]
+        "back": [0.48, 0.19]
       },
-      "fragments": [],
-      "src": "assets/reptile-skin.8a9ffa3a53a1.webp",
-      "thumb": "assets/reptile-skin-thumb.00cd38eb15ea.webp",
-      "width": 512,
-      "height": 512,
       "promptId": "reptile-skin",
-      "contentBox": [30, 147, 451, 217]
+      "src": "assets/reptile-skin.878396e21c3b.webp",
+      "thumb": "assets/reptile-skin-thumb.71f55a7cd098.webp",
+      "fragments": []
     },
     {
       "cardId": "dragon-scales",
+      "width": 512,
+      "height": 512,
+      "contentBox": [5, 81, 502, 350],
       "anchors": {
         "neck": [0.94, 0.57],
         "shoulder": [0.8, 0.78],
         "hip": [0.3, 0.78],
         "tail": [0.14, 0.6],
-        "back": [0.45, 0.46]
+        "back": [0.48, 0.19]
       },
-      "fragments": [],
-      "src": "assets/dragon-scales.f232742a0588.webp",
-      "thumb": "assets/dragon-scales-thumb.ca67d27a64af.webp",
+      "promptId": "dragon-scales",
+      "src": "assets/dragon-scales.abcb771ed530.webp",
+      "thumb": "assets/dragon-scales-thumb.287ff256bdba.webp",
+      "fragments": []
+    },
+    {
+      "cardId": "steel-shell",
       "width": 512,
       "height": 512,
-      "promptId": "dragon-scales",
-      "contentBox": [30, 116, 451, 279]
+      "contentBox": [5, 96, 502, 319],
+      "anchors": {
+        "root": [0.5, 0.98]
+      },
+      "promptId": "steel-shell",
+      "src": "assets/steel-shell.7dfcd6eaa221.webp",
+      "thumb": "assets/steel-shell-thumb.b0a3f99d90f2.webp",
+      "fragments": []
     }
   ],
   "perks": {
@@ -533,13 +533,52 @@
     "apex": "assets/cell-apex.f288976b6e13.webp"
   },
   "covers": {
-    "hero": "assets/cover-hero.d3a2ae05aed5.webp",
-    "story": "assets/cover-story.b43def16acf6.webp"
+    "hero": "assets/kit-hero.8a5dd7a51917.webp",
+    "story": "assets/kit-story.a187b04d14db.webp"
   },
   "emptyStates": {
     "noTeam": "assets/empty-noTeam.1ecd666f0b71.webp",
     "waiting": "assets/empty-waiting.e4d980f165f1.webp",
     "marketClosed": "assets/empty-marketClosed.63f1deca8dab.webp",
     "summary": "assets/empty-summary.a71176341bf7.webp"
+  },
+  "baseAppearance": {
+    "body": "lion-body",
+    "front": "chameleon-front",
+    "back": "lion-back",
+    "head": "lion-head",
+    "tail": "cheetah-tail"
+  },
+  "registeredPose": {
+    "body": {
+      "src": "assets/pose-body.ae5917fb8a6c.webp",
+      "box": [263.44, 487.66, 404.21, 171.48],
+      "cardId": "lion-body",
+      "socketBox": [212, 483, 442, 173]
+    },
+    "head": {
+      "src": "assets/pose-head.9a1c20a3c0ed.webp",
+      "box": [65.93, 467.75, 263.35, 204.4],
+      "cardId": "lion-head",
+      "z": 1
+    },
+    "front": {
+      "src": "assets/pose-front.f6bd041ab51c.webp",
+      "box": [96.56, 573.4, 303.92, 219.71]
+    },
+    "back": {
+      "src": "assets/pose-back.923f25ed059c.webp",
+      "box": [451.77, 559.62, 305.45, 232.73],
+      "cardId": "lion-back"
+    },
+    "tail": {
+      "src": "assets/pose-tail.16ad83fa08d4.webp",
+      "box": [614.83, 502.97, 342.97, 67.37]
+    }
+  },
+  "poseRoot": "body",
+  "poseUnderlay": {
+    "src": "assets/pose-undercoat.7942444e0b65.webp",
+    "box": [156.0, 504.0, 502.40000000000003, 174.4]
   }
 }

@@ -12,21 +12,21 @@
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
-    "@ai-sdk/google": "^4.0.121",
-    "@electric-sql/pglite": "^0.5.10",
+    "@ai-sdk/google": "^4.0.124",
+    "@electric-sql/pglite": "^0.5.17",
     "@grammyjs/auto-retry": "^2.0.2",
     "@grammyjs/transformer-throttler": "^1.2.1",
-    "@hono/node-server": "^2.1.5",
+    "@hono/node-server": "^2.1.11",
     "@hono/zod-validator": "^0.9.1",
     "@openrouter/ai-sdk-provider": "^3.1.0",
     "@stem/shared": "*",
     "@tma.js/init-data-node": "^2.0.8",
-    "ai": "^7.0.173",
+    "ai": "^7.0.179",
     "drizzle-orm": "^0.45.4",
     "grammy": "^1.46.0",
     "hono": "^4.13.13",
     "postgres": "^3.4.9",
-    "ws": "^8.22.0",
+    "ws": "^8.23.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -35,6 +35,6 @@
     "drizzle-kit": "^0.31.11",
     "esbuild": "^0.28.2",
     "tsx": "^4.19.2",
-    "vitest": "^5.0.4"
+    "vitest": "^5.1.1"
   }
 }

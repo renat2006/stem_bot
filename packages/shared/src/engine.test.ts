@@ -11,6 +11,17 @@ import {
   validateGameBalance,
   validateP2PPrice,
 } from "./engine.js";
+import {
+  assignMemberLevers,
+  defaultPowerCircuit,
+  evaluateDiagnosisVerdict,
+  evaluateDualForecast,
+  evaluateProbeObservation,
+  resolveDiagnosisDay,
+  resolveLexicon,
+  resolveMissionDay,
+  validateParetoStrategies,
+} from "./engine3.js";
 import { validateGeneratedMarket } from "./market-generation.js";
 import { DEFAULT_TEMPLATES, NEUROFAUNA_TEMPLATE, ROVER_SPRINT_TEMPLATE } from "./presets.js";
 import { GameTemplateSchema, type Team, TeamSchema } from "./schema.js";
@@ -340,5 +351,107 @@ describe("validateGameBalance, generated market & live advisor", () => {
     expect(dashboard.alerts.some((a) => a.id === "runaway-leader")).toBe(true);
     expect(dashboard.alerts.some((a) => a.id === "currency-famine")).toBe(true);
     expect(dashboard.alerts.some((a) => a.fix !== undefined)).toBe(true);
+  });
+});
+
+describe("Engine 3.0 mission, powerCircuit, diagnosis & Pareto validator", () => {
+  it("preserves non-dominated 3/2 vs 4/1 symmetric dilemma and enforces currencyDelta = 0", () => {
+    const day = resolveMissionDay(ROVER_SPRINT_TEMPLATE, 4);
+    const circuit = defaultPowerCircuit(ROVER_SPRINT_TEMPLATE);
+    const stats = { speed: 4, traction: 5, payload: 4 };
+
+    const safeForecast = evaluateDualForecast({
+      stats,
+      day,
+      orders: { routeId: "short", paceA: "normal", paceB: "normal", extraCargo: false, reserveTarget: "A" },
+      circuit,
+      equippedLoad: 3,
+    });
+    expect(safeForecast.map((f) => f.totalPoints)).toEqual([3, 2]);
+    expect(safeForecast.every((f) => f.currencyDelta === 0)).toBe(true);
+
+    const riskForecast = evaluateDualForecast({
+      stats,
+      day,
+      orders: { routeId: "detour", paceA: "normal", paceB: "normal", extraCargo: true, reserveTarget: "B" },
+      circuit,
+      equippedLoad: 3,
+    });
+    expect(riskForecast.map((f) => f.totalPoints)).toEqual([4, 1]);
+    expect(riskForecast.every((f) => f.currencyDelta === 0)).toBe(true);
+  });
+
+  it("triggers powerCircuit cutoff on excessive overload and cools down on pause", () => {
+    const day = resolveMissionDay(ROVER_SPRINT_TEMPLATE, 4);
+    const circuit = defaultPowerCircuit(ROVER_SPRINT_TEMPLATE);
+    const stats = { speed: 8, traction: 9, payload: 8 };
+
+    const overloaded = evaluateDualForecast({
+      stats,
+      day,
+      orders: { routeId: "short", paceA: "fast", paceB: "fast", extraCargo: true, reserveTarget: "A" },
+      circuit,
+      equippedLoad: 4,
+    });
+    expect(overloaded[0]?.sectorA.trippedCircuit).toBe(true);
+    expect(overloaded[0]?.sectorA.points).toBe(0);
+
+    const cooledOnA = evaluateDualForecast({
+      stats,
+      day,
+      orders: { routeId: "short", paceA: "pause", paceB: "normal", extraCargo: false, reserveTarget: "B" },
+      circuit,
+      equippedLoad: 4,
+    });
+    expect(cooledOnA[0]?.sectorA.trippedCircuit).toBe(false);
+    expect(cooledOnA[0]?.sectorB.passed).toBe(true);
+  });
+
+  it("eliminates incompatible hypotheses via probes, strips secrets for clients, and scores 3 - probes", () => {
+    const fullDiag = resolveDiagnosisDay(ROVER_SPRINT_TEMPLATE, 3, false);
+    const publicDiag = resolveDiagnosisDay(ROVER_SPRINT_TEMPLATE, 3, true);
+    expect(publicDiag.secretHypothesisId).toBe("hidden");
+
+    const step1 = evaluateProbeObservation(fullDiag, ["p1"]);
+    expect(Object.keys(step1.eliminatedHypotheses).length).toBeGreaterThan(0);
+    expect(step1.eliminatedHypotheses[fullDiag.secretHypothesisId]).toBeUndefined();
+
+    const winOneProbe = evaluateDiagnosisVerdict({
+      day: fullDiag,
+      hypothesisId: fullDiag.secretHypothesisId,
+      usedProbesCount: 1,
+    });
+    expect(winOneProbe).toEqual({ correct: true, points: 2, currencyDelta: 0 });
+
+    const wrongVerdict = evaluateDiagnosisVerdict({
+      day: fullDiag,
+      hypothesisId: "h1",
+      usedProbesCount: 1,
+    });
+    expect(wrongVerdict).toEqual({ correct: false, points: 0, currencyDelta: 0 });
+  });
+
+  it("detects Pareto dominance when threshold is skewed and rotates levers across 1..5 crew members", () => {
+    const day = resolveMissionDay(ROVER_SPRINT_TEMPLATE, 4);
+    const circuit = defaultPowerCircuit(ROVER_SPRINT_TEMPLATE);
+    const stats = { speed: 4, traction: 5, payload: 4 };
+
+    const brokenCheck = validateParetoStrategies({
+      day: {
+        ...day,
+        routesA: day.routesA.map((r, i) => (i === 0 ? { ...r, min: 8 } : r)),
+      },
+      referenceStats: stats,
+      circuit,
+    });
+    expect(brokenCheck.balanced).toBe(false);
+    expect(brokenCheck.suggestedMinA).toBe(7);
+
+    const balancedCheck = validateParetoStrategies({ day, referenceStats: stats, circuit });
+    expect(balancedCheck.balanced).toBe(true);
+
+    const day1Seats = [0, 1, 2, 3, 4].flatMap((idx) => assignMemberLevers(idx, 5, 1));
+    expect(new Set(day1Seats).size).toBe(5);
+    expect(resolveLexicon(NEUROFAUNA_TEMPLATE).currencyUnit).toBe("ДНК");
   });
 });

@@ -1,5 +1,5 @@
 import type { CardRarity, EffectScope } from "@stem/shared";
-import { Layers, ShieldCheck, Sparkles, Tag } from "lucide-react";
+import { Award, Layers, ShieldCheck, Tag, Zap } from "lucide-react";
 
 export const RARITY_LABEL: Record<CardRarity, string> = {
   common: "Обычная",
@@ -32,7 +32,7 @@ export function RarityBadge({
         compact ? "px-2 py-0.5 text-[11px]" : "px-2.5 py-0.5 text-xs"
       }`}
     >
-      {rarity === "legendary" && <Sparkles className="h-3 w-3 shrink-0" />}
+      {rarity === "legendary" && <Award className="h-3 w-3 shrink-0" />}
       {RARITY_LABEL[rarity]}
     </span>
   );
@@ -47,7 +47,7 @@ export function EffectScopeBadge({ scope }: { scope?: EffectScope }) {
         ? Tag
         : scope === "slot_synergy"
           ? Layers
-          : Sparkles;
+          : Zap;
   return (
     <span className="inline-flex items-center gap-1.5 rounded-lg border border-warn/40 bg-warn/10 px-2.5 py-1 text-xs font-medium text-fg">
       <IconComp className="h-3.5 w-3.5 shrink-0 text-warn" />

@@ -1,5 +1,5 @@
 import type { CardItem, CardRarity, EffectScope } from "@stem/shared";
-import { Flame, Gavel, Plus, Sparkles, Wand2 } from "lucide-react";
+import { CheckCircle2, Flame, Gavel, Plus, Wand2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { PartSticker } from "../../../entities/assembly/index.js";
 import { StatDeltaList } from "../../../entities/card/index.js";
@@ -283,7 +283,7 @@ export function CardsStudioTab({ snapshot, run }: { snapshot: GameSnapshot; run:
             <div className="space-y-3 rounded-2xl border border-ac/40 bg-ac/8 p-3.5">
               <div className="flex items-center justify-between gap-2">
                 <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-fg">
-                  <Sparkles className="h-4 w-4 text-ac" />
+                  <CheckCircle2 className="h-4 w-4 text-ac" />
                   Черновик готов ({draft.cards.length} карт)
                 </span>
                 <span className="font-mono text-[11px] text-mu">проверка пройдена</span>

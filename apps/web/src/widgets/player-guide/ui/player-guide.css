@@ -1,0 +1,170 @@
+.fieldguide,
+.guidepreview {
+  width: min(100%, 480px);
+  margin: auto;
+  background: var(--bg, #fbf8ef);
+  color: var(--fg, #1a2f24);
+  font:
+    500 15.5px / 1.5 "Manrope Variable",
+    system-ui,
+    sans-serif;
+  text-align: left;
+}
+.fieldguide header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: calc(16px + var(--app-safe-top, 0px)) 20px 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.fieldguide header .guideskip {
+  min-height: 40px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mu);
+  border-color: var(--ln);
+}
+.guideplate {
+  position: relative;
+  margin: 0 20px;
+  isolation: isolate;
+  background: var(--sf2, #e7ede1);
+  border: 1px solid var(--ln);
+  border-radius: 16px;
+  overflow: hidden;
+  height: clamp(176px, 28dvh, 240px);
+}
+.guidecover {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.guidestudy,
+.guidefinish {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  height: 100%;
+  gap: 10px;
+  padding: 16px;
+  background-image:
+    linear-gradient(#9cab8c28 1px, transparent 1px), linear-gradient(90deg, #9cab8c28 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.guidestudy .part-sticker {
+  width: 120px;
+  height: 106px;
+  object-fit: contain;
+}
+.guidefinish div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.guidefinish span {
+  display: grid;
+  place-items: center;
+  border: 1.5px solid #71866a;
+  border-radius: 100%;
+  width: 44px;
+  height: 44px;
+  font-weight: 800;
+  font-size: 18px;
+  background: #f4f3e4;
+  color: #1a2f24;
+}
+.guidefinish span:last-child {
+  background: #24533d;
+  border-color: #24533d;
+  color: white;
+}
+.guidebody,
+.guidehome {
+  padding: 20px 20px calc(24px + var(--app-safe-bottom, 0px));
+}
+.guideprogress,
+.guidechoices,
+.fieldguide footer {
+  display: flex;
+  gap: 8px;
+}
+.guideprogress span {
+  flex: 1;
+  border-top: 3px solid var(--ln);
+  padding-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mu);
+}
+.guideprogress span[data-current="true"] {
+  border-color: var(--ac);
+  color: var(--fg);
+  font-weight: 800;
+}
+.fieldguide h1,
+.guidehome h1 {
+  font-weight: 800;
+  font-size: clamp(1.65rem, 1.3rem + 1.5vw, 2.2rem);
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+  margin: 16px 0 10px;
+  text-wrap: balance;
+}
+.fieldguide p,
+.guidehome p {
+  margin: 8px 0 16px;
+  color: var(--mu);
+}
+.fieldguide button,
+.guidehome button {
+  min-height: 46px;
+  padding: 10px 14px;
+  border: 1px solid var(--ln);
+  border-radius: 12px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--fg);
+  background: var(--sf);
+  cursor: pointer;
+}
+.guidechoices {
+  flex-wrap: wrap;
+}
+.guidechoices button {
+  font-size: 13.5px;
+  flex: 1 1 140px;
+}
+.guidechoices [aria-pressed="true"] {
+  background: var(--sf2);
+  border-color: var(--ac);
+}
+.fieldguide footer {
+  margin-top: 20px;
+}
+.fieldguide .guideprimary {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  background: var(--ac);
+  color: var(--acfg);
+  border: 0;
+  padding-inline: 18px;
+}
+.guidepreview {
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top);
+}
+.guidecanvas {
+  min-height: 100dvh;
+  background: #e4e6dc;
+}
+.guidehome .guidecover {
+  height: 190px;
+  border-radius: 12px;
+}

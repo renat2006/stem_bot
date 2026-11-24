@@ -11,6 +11,7 @@
     "lint": "steiger ./src"
   },
   "dependencies": {
+    "@fontsource-variable/manrope": "^5.3.0",
     "@stem/art": "*",
     "@stem/shared": "*",
     "@tma.js/sdk-react": "^3.0.23",

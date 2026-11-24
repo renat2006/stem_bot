@@ -1,6 +1,7 @@
 import type {
   CardItem,
   CardRarity,
+  DayScheduleItem,
   EffectScope,
   FeatureFlags,
   GameSnapshot,
@@ -10,6 +11,7 @@ import type {
   QuickFixKind,
   ShiftPhase,
   ShiftWizardInput,
+  TemplateLexicon,
 } from "@stem/shared";
 import { patchJson, postJson, putJson, request } from "../../../shared/api/index.js";
 
@@ -93,3 +95,23 @@ export const decideMarketDraft = (
 
 export const createShiftFromWizard = (input: ShiftWizardInput) =>
   postJson<GameSnapshot>("/api/admin/shift/create", input);
+
+export const extendPhaseTimer = (seconds = 30) => postJson<LiveState>("/api/admin/timer/extend", { seconds });
+
+export const startRoundEngine = (input?: {
+  engine?: "mission" | "diagnosis";
+  durationSeconds?: number;
+  conditionId?: string;
+}) => postJson<LiveState>("/api/admin/round/start", input ?? {});
+
+export const revealMissionRound = (conditionId?: string) =>
+  postJson<LiveState>("/api/admin/round/reveal", conditionId ? { conditionId } : {});
+
+export const updateTemplateLexicon = (patch: Partial<TemplateLexicon>) =>
+  patchJson<GameSnapshot>("/api/admin/lexicon", patch);
+
+export const updateDaySchedule = (input: { totalDays?: number; daySchedule: DayScheduleItem[] }) =>
+  patchJson<GameSnapshot>("/api/admin/schedule", input);
+
+export const applyParetoFix = (day?: number) =>
+  postJson<GameSnapshot>("/api/admin/pareto-fix", day ? { day } : {});

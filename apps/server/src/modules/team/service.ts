@@ -1,7 +1,18 @@
 import { randomUUID } from "node:crypto";
-import { evaluateAuctionBid, validateP2PPrice } from "@stem/shared";
+import {
+  assignMemberLevers,
+  computeUnlockedActionTags,
+  evaluateAuctionBid,
+  evaluateDiagnosisVerdict,
+  evaluateProbeObservation,
+  resolveDiagnosisDay,
+  resolveMissionDay,
+  TeamRoundStateSchema,
+  validateP2PPrice,
+} from "@stem/shared";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { auctions, cardStock, ledger, marketListings, members, proposals, teams } from "../../db/schema.js";
+import { config } from "../../shared/config.js";
 import { DomainError } from "../../shared/errors.js";
 import { requireCaptain, requireMember } from "../event/access.js";
 import { type MutationContext, type MutationOptions, mutateEvent } from "../event/mutation.js";
@@ -23,13 +34,27 @@ function withBadge(badges: string[], badge: string): string[] {
   return badges.includes(badge) ? badges : [...badges, badge];
 }
 
-export function joinTeam(options: MutationOptions, input: { code: string; displayName: string }) {
+export function joinTeam(
+  options: MutationOptions,
+  input: { code?: string; teamId?: string; displayName: string },
+) {
   return mutateEvent(options, async (ctx) => {
-    const code = input.code.trim().toUpperCase();
-    const [team] = await ctx.tx
-      .select()
-      .from(teams)
-      .where(and(eq(teams.eventId, ctx.event.id), eq(teams.joinCode, code)));
+    let team: typeof teams.$inferSelect | undefined;
+    if (input.teamId && !input.code) {
+      if (config.isProduction) {
+        throw new DomainError("Вход возможен только по коду команды", 403);
+      }
+      [team] = await ctx.tx
+        .select()
+        .from(teams)
+        .where(and(eq(teams.eventId, ctx.event.id), eq(teams.id, input.teamId)));
+    } else {
+      const code = (input.code ?? "").trim().toUpperCase();
+      [team] = await ctx.tx
+        .select()
+        .from(teams)
+        .where(and(eq(teams.eventId, ctx.event.id), eq(teams.joinCode, code)));
+    }
     if (!team) throw new DomainError("Команда с таким кодом не найдена", 404);
 
     const [existing] = await ctx.tx
@@ -573,5 +598,213 @@ export function buyPerk(options: MutationOptions, perkId: string) {
       .where(eq(teams.id, team.id));
     ctx.log({ teamId: team.id, kind: "perk", amount: -perk.price, data: { perkId, perkName: perk.name } });
     return { perkId };
+  });
+}
+
+export function submitProgramOrder(
+  options: MutationOptions,
+  input: { leverIndex: number; value: string | boolean },
+) {
+  return mutateEvent(options, async (ctx) => {
+    const template = parseTemplate(ctx.event.template);
+    const { team, member } = await requireMember(ctx.tx, ctx.event.id, ctx.actor);
+    const teamMembers = await ctx.tx.select().from(members).where(eq(members.teamId, team.id));
+    const myIdx = Math.max(
+      0,
+      teamMembers.findIndex((m) => m.userId === member.userId),
+    );
+    const allowedLevers = assignMemberLevers(myIdx, teamMembers.length, ctx.event.currentDay);
+    if (!allowedLevers.includes(input.leverIndex)) {
+      throw new DomainError("Этим рычагом управляет другой участник вашей команды", 403);
+    }
+
+    const prevState = TeamRoundStateSchema.parse(team.roundState ?? {});
+    const nextOrders = { ...prevState.orders };
+
+    if (input.leverIndex === 0) {
+      const routeId = String(input.value);
+      const missionDay = resolveMissionDay(template, ctx.event.currentDay);
+      const route = missionDay.routesA.find((r) => r.id === routeId);
+      if (!route) throw new DomainError("Выбранный маршрут недоступен", 400);
+      if (route.requiredTag && template.features.actionTags) {
+        const equipped = Object.fromEntries(template.slots.map((s) => [s.id, team.equipped[s.id] ?? null]));
+        const unlocked = computeUnlockedActionTags(equipped, template);
+        if (!unlocked.has(route.requiredTag)) {
+          throw new DomainError(
+            `Для маршрута требуется деталь с тегом «${route.tagCardName ?? route.requiredTag}»`,
+            400,
+          );
+        }
+      }
+      nextOrders.routeId = routeId;
+    } else if (input.leverIndex === 1 || input.leverIndex === 2) {
+      const pace = String(input.value);
+      if (pace !== "normal" && pace !== "fast" && pace !== "pause") {
+        throw new DomainError("Недопустимый режим темпа", 400);
+      }
+      if (pace === "pause" && !template.features.powerCircuit) {
+        throw new DomainError("Пауза охлаждения доступна только при включённом контуре нагрузки", 400);
+      }
+      if (input.leverIndex === 1) nextOrders.paceA = pace;
+      else nextOrders.paceB = pace;
+    } else if (input.leverIndex === 3) {
+      nextOrders.extraCargo = input.value === true || input.value === "true";
+    } else if (input.leverIndex === 4) {
+      const target = String(input.value);
+      if (target !== "A" && target !== "B")
+        throw new DomainError("Резерв можно направить только в A или B", 400);
+      nextOrders.reserveTarget = target;
+    }
+
+    const readySet = new Set(prevState.readySlots);
+    readySet.add(input.leverIndex);
+    const nextPinged = prevState.pingedSlots.filter((s) => s !== input.leverIndex);
+    const nextState = {
+      ...prevState,
+      orders: nextOrders,
+      readySlots: [...readySet].sort((a, b) => a - b),
+      pingedSlots: nextPinged,
+    };
+
+    await ctx.tx.update(teams).set({ roundState: nextState }).where(eq(teams.id, team.id));
+    ctx.log({
+      teamId: team.id,
+      kind: "program-order",
+      data: { leverIndex: input.leverIndex, memberName: member.displayName },
+    });
+    return { orders: nextOrders, readySlots: nextState.readySlots };
+  });
+}
+
+export function pingTeamSlot(options: MutationOptions, input: { slotIndex: number }) {
+  return mutateEvent(options, async (ctx) => {
+    const { team, member } = await requireMember(ctx.tx, ctx.event.id, ctx.actor);
+    const prevState = TeamRoundStateSchema.parse(team.roundState ?? {});
+    const pingSet = new Set(prevState.pingedSlots);
+    pingSet.add(input.slotIndex);
+    const nextState = { ...prevState, pingedSlots: [...pingSet] };
+    await ctx.tx.update(teams).set({ roundState: nextState }).where(eq(teams.id, team.id));
+    ctx.log({
+      teamId: team.id,
+      kind: "program-ping",
+      data: { slotIndex: input.slotIndex, fromName: member.displayName },
+    });
+    return { pingedSlots: nextState.pingedSlots };
+  });
+}
+
+export function runDiagnosisProbe(options: MutationOptions, input: { probeId: string }) {
+  return mutateEvent(options, async (ctx) => {
+    const template = parseTemplate(ctx.event.template);
+    const { team } = await requireMember(ctx.tx, ctx.event.id, ctx.actor);
+    const prevState = TeamRoundStateSchema.parse(team.roundState ?? {});
+    if (prevState.diagnosisSubmitted) {
+      throw new DomainError("Диагноз команды уже зафиксирован в этом раунде", 409);
+    }
+    const diagDay = resolveDiagnosisDay(template, ctx.event.currentDay, false);
+    const probe = diagDay.probes.find((p) => p.id === input.probeId);
+    if (!probe) throw new DomainError("Выбранный замер не найден", 404);
+    if (prevState.usedProbes.includes(probe.id)) {
+      return {
+        usedProbes: prevState.usedProbes,
+        probeObservations: prevState.probeObservations,
+      };
+    }
+    if (prevState.usedProbes.length >= diagDay.maxProbes) {
+      throw new DomainError(`Лимит приборных замеров исчерпан (${diagDay.maxProbes})`, 400);
+    }
+
+    const nextUsed = [...prevState.usedProbes, probe.id];
+    const evalRes = evaluateProbeObservation(diagDay, nextUsed);
+    const nextState = {
+      ...prevState,
+      usedProbes: nextUsed,
+      probeObservations: evalRes.observations,
+      eliminatedHypotheses: evalRes.eliminatedHypotheses,
+    };
+
+    await ctx.tx.update(teams).set({ roundState: nextState }).where(eq(teams.id, team.id));
+    ctx.log({
+      teamId: team.id,
+      kind: "diagnosis-probe",
+      data: { probeId: probe.id, probeLabel: probe.label },
+    });
+    return {
+      usedProbes: nextUsed,
+      probeObservations: evalRes.observations,
+      eliminatedHypotheses: evalRes.eliminatedHypotheses,
+    };
+  });
+}
+
+export function submitDiagnosisVerdict(options: MutationOptions, input: { hypothesisId: string }) {
+  return mutateEvent(options, async (ctx) => {
+    const template = parseTemplate(ctx.event.template);
+    const { team } = await requireMember(ctx.tx, ctx.event.id, ctx.actor);
+    const prevState = TeamRoundStateSchema.parse(team.roundState ?? {});
+    if (prevState.diagnosisSubmitted) {
+      throw new DomainError("Вердикт диагностики уже отправлен", 409);
+    }
+    const diagDay = resolveDiagnosisDay(template, ctx.event.currentDay, false);
+    const exists = diagDay.hypotheses.some((h) => h.id === input.hypothesisId);
+    if (!exists) throw new DomainError("Гипотеза не найдена", 404);
+
+    const verdict = evaluateDiagnosisVerdict({
+      day: diagDay,
+      hypothesisId: input.hypothesisId,
+      usedProbesCount: prevState.usedProbes.length,
+    });
+
+    const nextTrack = Math.min(template.trackMax, team.trackPosition + verdict.points);
+    const nextBadges =
+      verdict.correct && prevState.usedProbes.length <= 1 && template.features.openMilestones !== false
+        ? withBadge(team.badges, "Точный диагноз")
+        : team.badges;
+
+    const nextState = {
+      ...prevState,
+      selectedHypothesisId: input.hypothesisId,
+      diagnosisSubmitted: true,
+      lastRoundPoints: verdict.points,
+      seasonPoints: prevState.seasonPoints + verdict.points,
+    };
+
+    await ctx.tx
+      .update(teams)
+      .set({
+        trackPosition: nextTrack,
+        badges: nextBadges,
+        roundState: nextState,
+      })
+      .where(eq(teams.id, team.id));
+
+    ctx.log({
+      teamId: team.id,
+      kind: "diagnosis-verdict",
+      amount: verdict.points,
+      data: {
+        correct: verdict.correct,
+        points: verdict.points,
+        currencyDelta: 0,
+        probesUsed: prevState.usedProbes.length,
+      },
+    });
+    return verdict;
+  });
+}
+
+export function saveTransferNote(options: MutationOptions, input: { note: string }) {
+  return mutateEvent(options, async (ctx) => {
+    const { team } = await requireMember(ctx.tx, ctx.event.id, ctx.actor);
+    const prevState = TeamRoundStateSchema.parse(team.roundState ?? {});
+    const cleanNote = input.note.trim();
+    const nextState = { ...prevState, transferNote: cleanNote };
+    await ctx.tx.update(teams).set({ roundState: nextState }).where(eq(teams.id, team.id));
+    ctx.log({
+      teamId: team.id,
+      kind: "transfer-note",
+      data: { note: cleanNote },
+    });
+    return { transferNote: cleanNote };
   });
 }

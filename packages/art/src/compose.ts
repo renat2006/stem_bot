@@ -15,6 +15,8 @@ export interface AssemblyLayer {
   previousCard: CardItem | null;
   isPreview: boolean;
   onShelf: boolean;
+  baseCard?: CardItem;
+  support?: { left: number; right: number; top: number; leftFoot: number; rightFoot: number };
 }
 
 export function composeAssembly(
@@ -24,6 +26,7 @@ export function composeAssembly(
   preview?: AssemblyPreview,
 ) {
   const rig = RIGS[template.objectRig];
+  if (pack?.rig !== rig.id) pack = undefined;
   const cards = new Map(template.cards.map((card) => [card.id, card]));
   let shelfIndex = 0;
   const layers: AssemblyLayer[] = template.slots.map((slot) => {
@@ -47,7 +50,9 @@ export function composeAssembly(
     const candidate = preview?.slotId === slot.id ? cards.get(preview.cardId) : undefined;
     const validCurrent = current?.slotId === slot.id ? current : null;
     const isPreview = Boolean(candidate?.slotId === slot.id);
+    const baseCard = cards.get(pack?.baseAppearance?.[slot.id] ?? "");
     return {
+      baseCard: baseCard?.slotId === slot.id ? baseCard : undefined,
       slotId: slot.id,
       label: slot.label,
       socket,
@@ -62,7 +67,7 @@ export function composeAssembly(
   const place = (layer: AssemblyLayer) => {
     if (resolved.has(layer.slotId) || resolving.has(layer.slotId)) return;
     resolving.add(layer.slotId);
-    const asset = pack?.parts.find((part) => part.cardId === layer.card?.id);
+    const asset = pack?.parts.find((part) => part.cardId === (layer.card ?? layer.baseCard)?.id);
     if (asset?.contentBox) {
       const [, , naturalWidth, naturalHeight] = asset.contentBox;
       const [x, y, width, height] = layer.socket.box;
@@ -76,6 +81,10 @@ export function composeAssembly(
         fittedHeight,
       ];
     }
+    const reference = pack?.registeredPose?.[layer.slotId];
+    if (reference?.socketBox && (!layer.card || layer.card.id === reference.cardId)) {
+      layer.socket.box = reference.socketBox;
+    }
     const attachment = layer.socket.attach;
     const parent = attachment
       ? layers.find((candidate) => candidate.slotId === attachment.parentSlotId)
@@ -84,13 +93,24 @@ export function composeAssembly(
       place(parent);
       const [px, py, pw, ph] = parent.socket.box;
       const [, , width, height] = layer.socket.box;
-      const parentAsset = pack?.parts.find((part) => part.cardId === parent.card?.id);
+      const parentAsset = pack?.parts.find((part) => part.cardId === (parent.card ?? parent.baseCard)?.id);
       const parentPoint = resolveAnchor(
         parentAsset,
         attachment.parentAnchor,
         attachment.parentPoint,
         parent.socket.mirror,
       );
+      if (attachment.supportAnchors && layer.card) {
+        const [l, r] = attachment.supportAnchors.map((name) => parentAsset?.anchors[name]);
+        if (l && r)
+          layer.support = {
+            left: px + pw * l[0],
+            right: px + pw * r[0],
+            top: py + ph * parentPoint[1],
+            leftFoot: py + ph * l[1],
+            rightFoot: py + ph * r[1],
+          };
+      }
       const partPoint = resolveAnchor(
         asset,
         attachment.partAnchor,

@@ -10,6 +10,7 @@ import { DomainError } from "../shared/errors.js";
 import type { Identity } from "../shared/identity.js";
 import { runtime, setRuntime } from "../shared/runtime.js";
 import {
+  applyParetoFix,
   applyQuickFix,
   applyTurn,
   closeAuctionNow,
@@ -18,23 +19,34 @@ import {
   decideMarketDraft,
   generateMarketDraft,
   nextDay,
+  revealMissionRound,
   rewardTeams,
   setPhase,
   startAuction,
+  startRoundEngine,
+  undoLastRewardBatch,
+  updateDaySchedule,
   updateFeatures,
+  updateTemplateLexicon,
   upsertCard,
 } from "./admin/service.js";
+import { loadEvent } from "./event/repository.js";
 import { ensureActiveEvent } from "./event/seed.js";
-import { buildLiveState } from "./event/snapshot.js";
+import { buildLiveState, buildRules } from "./event/snapshot.js";
 import {
   buyCard,
   buyP2PListing,
   createP2PListing,
   equipFromInventory,
   joinTeam,
+  pingTeamSlot,
   placeAuctionBid,
   proposeCard,
   resolveProposal,
+  runDiagnosisProbe,
+  saveTransferNote,
+  submitDiagnosisVerdict,
+  submitProgramOrder,
   undoLastPurchase,
 } from "./team/service.js";
 
@@ -376,6 +388,12 @@ describe("dual telegram bots (playerBot & adminBot)", () => {
 
     await adminBot.handleUpdate(makeCmd(5, 1, "/balance"));
     expect(sent[sent.length - 1]?.text).toContain("Индекс баланса");
+
+    await playerBot.handleUpdate(makeCmd(6, 101, "/playground"));
+    expect(sent[sent.length - 1]?.text).toContain("0 валюты");
+
+    await adminBot.handleUpdate(makeCmd(7, 1, "/pulse"));
+    expect(sent[sent.length - 1]?.text).toContain("Пульс зала");
   });
 
   it("returns direct JSON sendMessage payload from webhook HTTP response without outbound Bot API call", async () => {
@@ -421,5 +439,114 @@ describe("dual telegram bots (playerBot & adminBot)", () => {
     const body = (await res.json()) as { method?: string; chat_id?: number; text?: string };
     expect(body.method).toBe("sendMessage");
     expect(body.chat_id).toBe(857932226);
+  });
+});
+
+describe("Engine 3.0 five-phone program, diagnosis, reward undo & constructor APIs", () => {
+  it("enforces 5-phone lever ownership, reveals mission with currencyDelta=0, runs diagnosis & undoes batch reward", async () => {
+    const created = await createTeam({ eventId, actor: admin }, { name: "Экипаж Пять" });
+    const c0 = player(501, "Аня");
+    const crew = [c0, player(502, "Макс"), player(503, "Илья"), player(504, "Даша"), player(505, "Егор")];
+    for (const member of crew) {
+      await joinTeam({ eventId, actor: member }, { code: created.joinCode, displayName: member.displayName });
+    }
+
+    await rewardTeams(
+      { eventId, actor: admin },
+      { teamIds: [created.teamId], amount: 4, reason: "Замер на стенде" },
+    );
+    let state = await buildLiveState(handle.db, eventId, admin);
+    expect(state.teams.find((t) => t.id === created.teamId)?.currency).toBe(4);
+    expect(state.gameState.canUndoLastReward).toBe(true);
+
+    await undoLastRewardBatch({ eventId, actor: admin });
+    state = await buildLiveState(handle.db, eventId, admin);
+    expect(state.teams.find((t) => t.id === created.teamId)?.currency).toBe(0);
+
+    await rewardTeams(
+      { eventId, actor: admin },
+      { teamIds: [created.teamId], amount: 3, reason: "Защита расчёта" },
+    );
+
+    await startRoundEngine(
+      { eventId, actor: admin },
+      { engine: "mission", durationSeconds: 120, conditionId: "calm" },
+    );
+
+    const p0State = await buildLiveState(handle.db, eventId, c0);
+    const myLever = p0State.viewer.assignedLevers?.[0] ?? 0;
+    const forbiddenLever = (myLever + 1) % 5;
+
+    await expect(
+      submitProgramOrder({ eventId, actor: c0 }, { leverIndex: forbiddenLever, value: "normal" }),
+    ).rejects.toThrow(DomainError);
+
+    for (const member of crew) {
+      const mState = await buildLiveState(handle.db, eventId, member);
+      const lever = mState.viewer.assignedLevers?.[0] ?? 0;
+      const val = lever === 0 ? "detour" : lever === 1 || lever === 2 ? "normal" : lever === 3 ? true : "B";
+      await submitProgramOrder({ eventId, actor: member }, { leverIndex: lever, value: val });
+    }
+
+    await pingTeamSlot({ eventId, actor: c0 }, { slotIndex: 4 });
+    await saveTransferNote({ eventId, actor: c0 }, { note: "Проверим ток сервопривода мультиметром" });
+
+    const beforeReveal = await buildLiveState(handle.db, eventId, c0);
+    const teamBefore = beforeReveal.teams.find((t) => t.id === created.teamId);
+    expect(teamBefore?.roundState?.readySlots).toEqual([0, 1, 2, 3, 4]);
+    expect(teamBefore?.roundState?.pingedSlots).toContain(4);
+    expect(teamBefore?.currency).toBe(3);
+
+    await revealMissionRound({ eventId, actor: admin }, { conditionId: "calm" });
+
+    const afterReveal = await buildLiveState(handle.db, eventId, c0);
+    const teamAfter = afterReveal.teams.find((t) => t.id === created.teamId);
+    expect(afterReveal.gameState.roundMode).toBe("revealed");
+    expect(afterReveal.gameState.revealedConditionId).toBe("calm");
+    expect(teamAfter?.currency).toBe(3);
+    expect(teamAfter?.roundState?.lastRoundPoints).toBeGreaterThan(0);
+
+    await nextDay({ eventId, actor: admin });
+    await startRoundEngine({ eventId, actor: admin }, { engine: "diagnosis", durationSeconds: 180 });
+
+    const evtRow = await loadEvent(handle.db, eventId);
+    const clientRules = buildRules(evtRow, false);
+    expect(clientRules.currentDiagnosisDay?.secretHypothesisId).toBe("hidden");
+
+    const firstProbeId = clientRules.currentDiagnosisDay?.probes[0]?.id ?? "p1";
+    const probeRes = await runDiagnosisProbe({ eventId, actor: c0 }, { probeId: firstProbeId });
+    expect(probeRes.usedProbes).toEqual([firstProbeId]);
+
+    const adminRules = buildRules(evtRow, true);
+    const secretHyp = adminRules.currentDiagnosisDay?.secretHypothesisId ?? "h3";
+    const verdict = await submitDiagnosisVerdict({ eventId, actor: c0 }, { hypothesisId: secretHyp });
+    expect(verdict).toEqual({ correct: true, points: 2, currencyDelta: 0 });
+
+    const afterDiag = await buildLiveState(handle.db, eventId, c0);
+    expect(afterDiag.teams.find((t) => t.id === created.teamId)?.currency).toBe(3);
+
+    await updateTemplateLexicon(
+      { eventId, actor: admin },
+      { objectName: "Автономный катер", currencyLabel: "Кредиты лаборатории" },
+    );
+    await updateDaySchedule(
+      { eventId, actor: admin },
+      {
+        totalDays: 4,
+        daySchedule: [
+          { day: 1, engine: "mission" },
+          { day: 2, engine: "diagnosis" },
+          { day: 3, engine: "mission" },
+          { day: 4, engine: "legacy_track" },
+        ],
+      },
+    );
+    const paretoRes = await applyParetoFix({ eventId, actor: admin }, { day: 1 });
+    expect(paretoRes.suggestedMinA).toBeGreaterThan(0);
+
+    const updatedRow = await loadEvent(handle.db, eventId);
+    const updatedRules = buildRules(updatedRow, false);
+    expect(updatedRules.lexicon?.objectName).toBe("Автономный катер");
+    expect(updatedRules.template.totalDays).toBe(4);
   });
 });

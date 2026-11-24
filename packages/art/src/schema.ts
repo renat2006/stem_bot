@@ -11,6 +11,7 @@ export const SlotSocketSchema = z.object({
   rotation: z.number().min(-180).max(180).default(0),
   attach: z
     .object({
+      supportAnchors: z.tuple([z.string(), z.string()]).optional(),
       parentSlotId: z.string().min(1),
       parentAnchor: z.string().optional(),
       partAnchor: z.string().optional(),
@@ -55,6 +56,7 @@ export const PartFragmentSchema = z.object({
 });
 export const PartAssetSchema = z.object({
   cardId: z.string().min(1),
+  additionalMounts: z.array(PointSchema).optional(),
   anchors: z.record(z.string(), PointSchema).default({}),
   fragments: z
     .array(PartFragmentSchema)
@@ -80,6 +82,21 @@ export const ArtPackSchema = z.object({
       (palette) => !Object.values(palette).some((color) => color.toUpperCase() === "#FF00FF"),
       "Chroma key is not a palette color",
     ),
+  poseUnderlay: z.object({ src: AssetPathSchema, box: SlotSocketSchema.shape.box }).optional(),
+  poseRoot: z.string().optional(),
+  registeredPose: z
+    .record(
+      z.string(),
+      z.object({
+        src: AssetPathSchema,
+        box: SlotSocketSchema.shape.box,
+        socketBox: SlotSocketSchema.shape.box.optional(),
+        z: z.number().int().optional(),
+        cardId: z.string().optional(),
+      }),
+    )
+    .optional(),
+  baseAppearance: z.record(z.string(), z.string()).optional(),
   rigOverrides: z.array(SlotSocketSchema.partial().required({ slotId: true })).default([]),
   parts: z
     .array(PartAssetSchema)

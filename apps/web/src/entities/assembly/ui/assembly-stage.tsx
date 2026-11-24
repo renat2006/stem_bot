@@ -37,7 +37,7 @@ export function AssemblyStage({
   onSlotTap,
   teamName,
 }: AssemblyStageProps) {
-  const pack = useArtPack(template.artPackId);
+  const pack = useArtPack(template.artPackId ?? template.eventKey);
   const motionEnabled = useMotionEnabled();
   const [paused, setPaused] = useState(false);
   const [recoilTick, setRecoilTick] = useState(0);
@@ -113,6 +113,14 @@ export function AssemblyStage({
     transformOrigin: `${layer.socket.pivot[0] * 100}% ${layer.socket.pivot[1] * 100}%`,
   });
 
+  const ground = pack?.baseAppearance
+    ? Math.max(
+        ...drawables
+          .filter((layer) => layer.card && !layer.onShelf)
+          .map((layer) => layer.socket.box[1] + layer.socket.box[3]),
+        rig.frame[1],
+      ) + 7
+    : rig.frame[1] + rig.frame[3] - 45;
   const captionPrefix = RIG_CAPTION[rig.id] ?? "МОДЕЛЬ";
 
   return (
@@ -121,6 +129,7 @@ export function AssemblyStage({
       data-low-power={lowPower || undefined}
       data-paused={paused || undefined}
       data-rig={rig.id}
+      data-kit={pack?.baseAppearance ? "model" : undefined}
       aria-label={label}
     >
       {size === "hero" && motionEnabled && !lowPower && (
@@ -145,7 +154,7 @@ export function AssemblyStage({
           viewBox={`${rig.frame[0]} ${rig.frame[1]} ${rig.frame[2]} ${height}`}
           aria-hidden="true"
         >
-          <ellipse {...rig.shadow} cy={rig.frame[1] + rig.frame[3] - 45} className="assembly-shadow" />
+          <ellipse {...rig.shadow} cy={ground} className="assembly-shadow" />
           {rig.id === "campus" && (
             <path d="M70 650 L500 420 L940 650 L500 900Z" className="assembly-plinth" />
           )}
@@ -163,10 +172,62 @@ export function AssemblyStage({
           animate={{ y: 0, scale: 1 }}
           transition={{ type: "spring", stiffness: 420, damping: 22 }}
         >
+          {pack?.poseUnderlay &&
+            drawables.some((layer) => layer.slotId === pack.poseRoot && layer.poseSrc) &&
+            drawables.some(
+              (layer) => layer.card && !layer.poseSrc && pack.registeredPose?.[layer.slotId],
+            ) && (
+              <img
+                alt=""
+                className="assembly-undercoat"
+                src={`/art/${pack.id}/${pack.poseUnderlay.src}`}
+                style={{
+                  left: `${((pack.poseUnderlay.box[0] - rig.frame[0]) / rig.frame[2]) * 100}%`,
+                  top: `${((pack.poseUnderlay.box[1] - rig.frame[1]) / height) * 100}%`,
+                  width: `${(pack.poseUnderlay.box[2] / rig.frame[2]) * 100}%`,
+                  height: `${(pack.poseUnderlay.box[3] / height) * 100}%`,
+                }}
+              />
+            )}
+          {layers.some((layer) => layer.support) && (
+            <svg
+              className="assembly-supports"
+              viewBox={`${rig.frame[0]} ${rig.frame[1]} ${rig.frame[2]} ${height}`}
+              aria-hidden="true"
+            >
+              {layers.map(({ support, slotId }) => {
+                if (!support) return null;
+                const { left, right, top, leftFoot, rightFoot } = support;
+                return (
+                  <g key={slotId}>
+                    <path
+                      fill="#83745c"
+                      stroke="#524b3e"
+                      strokeWidth="2"
+                      d={`M${left} ${top} H${right} V${rightFoot + 3} L${left} ${leftFoot + 3}Z`}
+                    />
+                    <rect
+                      x={left - 4}
+                      y={top - 2}
+                      width={right - left + 8}
+                      height={7}
+                      rx="2"
+                      fill="#beb39b"
+                    />
+                    <circle cx={left + 4} cy={top + 2} r="2" fill="#544d42" />
+                    <circle cx={right - 4} cy={top + 2} r="2" fill="#544d42" />
+                  </g>
+                );
+              })}
+            </svg>
+          )}
           {drawables.map((layer) => (
             <div
               key={layer.id}
               data-plane={layer.plane}
+              data-base={layer.isBase || undefined}
+              data-slot={layer.slotId}
+              data-registered={Boolean(layer.poseSrc) || undefined}
               className="assembly-socket"
               data-preview={layer.isPreview || undefined}
               data-selected={selectedSlotId === layer.slotId || undefined}
@@ -182,45 +243,53 @@ export function AssemblyStage({
                   animationDelay: layer.plane === "far" ? "-2.9s" : `${layer.socket.z * -0.35}s`,
                 }}
               >
-                {layer.previousCard && (
-                  <div className="assembly-replaced">
-                    <PartSticker
-                      card={layer.previousCard}
-                      template={template}
-                      pack={pack}
-                      mirrored={layer.socket.mirror}
-                      fragmentId={layer.fragmentId}
-                    />
-                  </div>
-                )}
-                <AnimatePresence mode="popLayout" initial={false}>
-                  {layer.card ? (
-                    <motion.div
-                      key={layer.card.id}
-                      className="assembly-part"
-                      data-align={layer.socket.align}
-                      initial={canAnimate ? { opacity: 0, scale: 1.14, y: -14 } : false}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={canAnimate ? { opacity: 0, scale: 0.88, y: 12 } : { opacity: 0 }}
-                      transition={{ type: "spring", stiffness: 360, damping: 24 }}
-                    >
-                      <PartSticker
-                        card={layer.card}
-                        template={template}
-                        pack={pack}
-                        thumbnail={size === "token"}
-                        mirrored={layer.socket.mirror}
-                        fragmentId={layer.fragmentId}
-                      />
-                    </motion.div>
-                  ) : (
-                    size !== "token" && (
-                      <div key="empty" className="assembly-empty" aria-hidden="true">
-                        <span className="assembly-empty-pill">+</span>
+                {layer.poseSrc && pack ? (
+                  <img className="assembly-registered" alt="" src={`/art/${pack.id}/${layer.poseSrc}`} />
+                ) : (
+                  <>
+                    {layer.previousCard && !pack?.baseAppearance && (
+                      <div className="assembly-replaced">
+                        <PartSticker
+                          card={layer.previousCard}
+                          template={template}
+                          pack={pack}
+                          mirrored={layer.socket.mirror}
+                          fragmentId={layer.fragmentId}
+                        />
                       </div>
-                    )
-                  )}
-                </AnimatePresence>
+                    )}
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      {layer.card ? (
+                        <motion.div
+                          key={layer.card.id}
+                          className="assembly-part"
+                          data-align={layer.socket.align}
+                          initial={canAnimate ? { opacity: 0, scale: 1.14, y: -14 } : false}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={canAnimate ? { opacity: 0, scale: 0.88, y: 12 } : { opacity: 0 }}
+                          transition={{ type: "spring", stiffness: 360, damping: 24 }}
+                        >
+                          <PartSticker
+                            card={layer.card}
+                            template={template}
+                            pack={pack}
+                            thumbnail={size === "token" && !pack?.baseAppearance}
+                            mirrored={layer.socket.mirror}
+                            fragmentId={layer.fragmentId}
+                          />
+                        </motion.div>
+                      ) : (
+                        interactive &&
+                        !pack?.baseAppearance &&
+                        size !== "token" && (
+                          <div key="empty" className="assembly-empty" aria-hidden="true">
+                            <span className="assembly-empty-pill">+</span>
+                          </div>
+                        )
+                      )}
+                    </AnimatePresence>
+                  </>
+                )}
               </div>
             </div>
           ))}
@@ -238,7 +307,9 @@ export function AssemblyStage({
                   : `Добавить в слот «${layer.label}»`
               }
               onClick={() => onSlotTap?.(layer.slotId)}
-              style={boxStyle(layer)}
+              style={boxStyle(
+                drawables.find((item) => item.slotId === layer.slotId && item.poseSrc) ?? layer,
+              )}
             />
           ))}
         </div>

@@ -1,6 +1,16 @@
 import type { LiveBalanceDashboard } from "./advisor.js";
 import type { BalanceReport, TeamComputedStats } from "./engine.js";
-import type { AuctionLot, GameState, GameTemplate, P2PListing, Team } from "./schema.js";
+import type { ParetoCheckResult } from "./engine3.js";
+import type {
+  AuctionLot,
+  DiagnosisDayConfig,
+  GameState,
+  GameTemplate,
+  MissionDayConfig,
+  P2PListing,
+  Team,
+  TemplateLexicon,
+} from "./schema.js";
 
 export type MemberRole = "captain" | "member";
 
@@ -11,6 +21,7 @@ export interface ViewerInfo {
   botSurface: "player" | "admin";
   teamId: string | null;
   role: MemberRole | null;
+  assignedLevers?: number[];
   needsJoin: boolean;
   isProduction: boolean;
 }
@@ -76,6 +87,10 @@ export interface RulesPayload {
   template: GameTemplate;
   availableTemplates: TemplateSummary[];
   balanceReport: BalanceReport;
+  lexicon?: TemplateLexicon;
+  currentMissionDay?: MissionDayConfig;
+  currentDiagnosisDay?: DiagnosisDayConfig;
+  paretoCheck?: ParetoCheckResult;
 }
 
 export type GameSnapshot = LiveState & RulesPayload;

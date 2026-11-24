@@ -217,10 +217,18 @@ export function P2PMarketView({
 
             <div className="rounded-xl border border-ln bg-sf p-3.5">
               <StatDeltaList stats={template.stats} deltas={selectedCard.stats} size="lg" />
-              <p className="mt-2 font-mono text-xs text-mu">
-                Ваш шаг: {selectedPreview.beforeStats.step.total} → {selectedPreview.afterStats.step.total} (
-                {selectedPreview.stepDelta === 0 ? "без изменений" : formatSigned(selectedPreview.stepDelta)})
-              </p>
+              <div className="mt-2.5 flex flex-wrap items-center gap-1.5 font-mono text-xs tabular-nums">
+                <span className="rounded-md bg-sf2 px-2 py-0.5 text-mu">
+                  Шаг сейчас: {selectedPreview.beforeStats.step.total}
+                </span>
+                <span className="rounded-md bg-ac/14 px-2 py-0.5 font-bold text-ac">
+                  После покупки: {selectedPreview.afterStats.step.total} (
+                  {selectedPreview.stepDelta === 0
+                    ? "без изменений"
+                    : formatSigned(selectedPreview.stepDelta)}
+                  )
+                </span>
+              </div>
             </div>
 
             {isCaptain ? (

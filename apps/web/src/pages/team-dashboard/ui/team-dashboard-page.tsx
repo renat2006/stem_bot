@@ -1,19 +1,23 @@
-import type { CardItem } from "@stem/shared";
-import { Compass, ShoppingBag, Wrench } from "lucide-react";
+import { type CardItem, resolveLexicon } from "@stem/shared";
+import { Compass, Settings, ShoppingBag, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { GameSnapshot, TeamWithStats } from "../../../entities/game/index.js";
 import { undoLastPurchase } from "../../../features/purchase/index.js";
-import { type RunAction, useCountdown, useTelegramBackButton } from "../../../shared/lib/index.js";
-import { BottomSheet, ToastWithUndo } from "../../../shared/ui/index.js";
+import {
+  type RunAction,
+  useCountdown,
+  useTelegram,
+  useTelegramBackButton,
+} from "../../../shared/lib/index.js";
+import { BottomSheet, Mark, SpiralBoard, ToastWithUndo } from "../../../shared/ui/index.js";
+import { PlayerGuide } from "../../../widgets/player-guide/index.js";
 import { SettingsSheet } from "../../../widgets/settings-sheet/index.js";
 import { Shop } from "../../../widgets/shop/index.js";
 import { buildRulesSections, type HelpKey } from "../lib/rules-sections.js";
 import { HomeScreen } from "./home-screen.js";
 import { LoreBriefingSheet } from "./lore-sheet.js";
-import { Onboarding } from "./onboarding.js";
 import { RulesRows } from "./rules-rows.js";
 import { RulesScreen } from "./rules-screen.js";
-import { TrackScreen } from "./track-screen.js";
 
 type Screen = "home" | "market" | "race";
 
@@ -33,23 +37,17 @@ function readOnboarded(templateId: string) {
   }
 }
 
-function readSeenDayLore(templateId: string, day: number) {
-  try {
-    return localStorage.getItem(`stem_lore:${templateId}:${day}`) === "1";
-  } catch {
-    return true;
-  }
-}
-
 interface TeamDashboardPageProps {
   snapshot: GameSnapshot;
   team: TeamWithStats;
   clockOffsetMs: number;
   settingsOpen: boolean;
+  onOpenSettings: () => void;
   onCloseSettings: () => void;
   loreOpen: boolean;
   onOpenLore: () => void;
   onCloseLore: () => void;
+  onOpenPlayground: () => void;
   run: RunAction;
 }
 
@@ -58,13 +56,17 @@ export function TeamDashboardPage({
   team,
   clockOffsetMs,
   settingsOpen,
+  onOpenSettings,
   onCloseSettings,
   loreOpen,
   onOpenLore,
   onCloseLore,
+  onOpenPlayground,
   run,
 }: TeamDashboardPageProps) {
+  const { hapticTap } = useTelegram();
   const { template, gameState, viewer } = snapshot;
+  const lexicon = snapshot.lexicon ?? resolveLexicon(template);
   const [screen, setScreen] = useState<Screen>("home");
   const [onboarded, setOnboarded] = useState(() => readOnboarded(template.id));
   const [slotFilter, setSlotFilter] = useState("all");
@@ -74,24 +76,6 @@ export function TeamDashboardPage({
   useEffect(() => {
     setOnboarded(readOnboarded(template.id));
   }, [template.id]);
-
-  useEffect(() => {
-    if (!onboarded || !template.features.storyBriefings) return;
-    const hasBriefing = template.dayBriefings.some((b) => b.day === gameState.currentDay);
-    if (hasBriefing && !readSeenDayLore(template.id, gameState.currentDay)) {
-      try {
-        localStorage.setItem(`stem_lore:${template.id}:${gameState.currentDay}`, "1");
-      } catch {}
-      onOpenLore();
-    }
-  }, [
-    onboarded,
-    template.id,
-    template.features.storyBriefings,
-    template.dayBriefings,
-    gameState.currentDay,
-    onOpenLore,
-  ]);
 
   const countdown = useCountdown(gameState.phaseEndsAt, clockOffsetMs);
   const secondsLeft = gameState.phaseEndsAt ? countdown : null;
@@ -120,12 +104,14 @@ export function TeamDashboardPage({
     setOnboarded(true);
   };
 
-  if (!onboarded) return <Onboarding template={template} team={team} onDone={finishOnboarding} />;
+  if (!onboarded) {
+    return <PlayerGuide template={template} teamName={team.name} onDone={finishOnboarding} />;
+  }
 
   const captain = team.captainUsername || "капитану";
   const onCardBought = (card: CardItem) => {
     setScreen("home");
-    setToast({ text: `«${card.name}» в сборке · −${card.price} ${template.currencyName}`, canUndo: true });
+    setToast({ text: `«${card.name}» в сборке (−${card.price} ${template.currencyName})`, canUndo: true });
   };
   const handleUndo = () => {
     setToast(null);
@@ -136,35 +122,84 @@ export function TeamDashboardPage({
     });
   };
 
+  const boardLabels =
+    template.boardCells.length > 0
+      ? template.boardCells.map((c) => c.label)
+      : ["Старт", "Ресурс", "Охота", "Мутация", "Хищник", "Катастрофа", "Ресурс", "Охота"];
+
+  const switchScreen = (next: Screen) => {
+    hapticTap();
+    setScreen(next);
+  };
+
+  const rankedTeams = [...snapshot.teams].sort((a, b) => b.trackPosition - a.trackPosition);
+
   return (
-    <div className="space-y-3.5">
-      <div className="sticky z-20 -mx-1 bg-bg py-1" style={{ top: "var(--app-safe-top, 0px)" }}>
-        <nav aria-label="Разделы игрока" className="grid grid-cols-3 gap-1 rounded-xl bg-sf2 p-1">
-          {TABS.map((t) => {
-            const TabIcon = t.icon;
-            const showBadge = t.id === "market" && openAuctionCount > 0 && template.features.auctions;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setScreen(t.id)}
-                className={`relative flex min-h-[46px] flex-col items-center justify-center gap-0.5 rounded-[9px] text-[13px] font-medium transition ${
-                  screen === t.id ? "bg-sf font-semibold text-fg shadow-xs" : "text-mu"
-                }`}
-              >
-                <TabIcon className="h-4 w-4" />
-                <span>{t.label}</span>
-                {showBadge && (
-                  <span
-                    className="absolute top-1.5 right-2.5 h-2 w-2 rounded-full bg-warn"
-                    aria-hidden="true"
-                  />
-                )}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
+    <article className="atlas-player">
+      <header>
+        <button
+          type="button"
+          className="story-btn"
+          aria-label="Сюжетная сводка дня"
+          onClick={() => {
+            hapticTap();
+            onOpenLore();
+          }}
+        >
+          <Mark kind="team" />
+        </button>
+        <div className="min-w-0">
+          <span className="block truncate text-sm font-extrabold text-fg">{team.name}</span>
+          <span className="block text-xs font-semibold text-mu">
+            День {gameState.currentDay} · {team.currency} {lexicon.currencyUnit}
+          </span>
+        </div>
+        <div className="header-actions">
+          {template.features.offClassPlayground !== false && (
+            <button
+              type="button"
+              aria-label="Полигон 3 минуты"
+              onClick={() => {
+                hapticTap();
+                onOpenPlayground();
+              }}
+              className="atlas-icon-btn"
+            >
+              <Mark kind="practice" />
+            </button>
+          )}
+          <button
+            type="button"
+            aria-label="Настройки отображения"
+            onClick={() => {
+              hapticTap();
+              onOpenSettings();
+            }}
+            className="atlas-icon-btn"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
+        </div>
+      </header>
+
+      <nav aria-label="Разделы игрока" className="atlas-desktop-tabs">
+        {TABS.map((t) => {
+          const TabIcon = t.icon;
+          const showBadge = t.id === "market" && openAuctionCount > 0 && template.features.auctions;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              aria-current={screen === t.id ? "page" : undefined}
+              onClick={() => switchScreen(t.id)}
+            >
+              <TabIcon className="h-4 w-4" />
+              <span>{t.label}</span>
+              {showBadge && <span className="h-2 w-2 rounded-full bg-warn" aria-hidden="true" />}
+            </button>
+          );
+        })}
+      </nav>
 
       {screen === "home" && (
         <HomeScreen
@@ -181,6 +216,7 @@ export function TeamDashboardPage({
           }}
           onOpenTrack={() => setScreen("race")}
           onOpenLore={onOpenLore}
+          onCardBought={onCardBought}
           onToast={(text) => setToast({ text })}
         />
       )}
@@ -207,10 +243,76 @@ export function TeamDashboardPage({
 
       {screen === "race" && (
         <div className="space-y-5">
-          <TrackScreen teams={snapshot.teams} myTeamId={team.id} template={template} />
+          <div className="tablepage">
+            {template.boardCells.length > 0 && (
+              <>
+                <h2 className="atlas-h2">Поле событий</h2>
+                <SpiralBoard
+                  labels={boardLabels}
+                  tokens={snapshot.teams.map((t) => ({
+                    id: t.id,
+                    name: t.name,
+                    position: t.boardPosition,
+                    highlight: t.id === team.id,
+                  }))}
+                  spiral={false}
+                />
+              </>
+            )}
+
+            <h2 className="atlas-h2">{template.trackName}</h2>
+            <SpiralBoard
+              labels={Array.from({ length: template.trackMax }, (_, i) => String(i + 1))}
+              tokens={snapshot.teams.map((t) => ({
+                id: t.id,
+                name: t.name,
+                position: t.trackPosition,
+                highlight: t.id === team.id,
+              }))}
+              spiral
+            />
+
+            <div className="space-y-1.5 pt-1">
+              {rankedTeams.map((t, idx) => (
+                <div
+                  key={t.id}
+                  className="flex items-center justify-between rounded-lg bg-sf px-3 py-2 text-xs font-bold text-fg"
+                >
+                  <span>
+                    #{idx + 1} {t.name}
+                  </span>
+                  <span className="tabular-nums text-ac">
+                    {t.trackPosition}/{template.trackMax}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <RulesScreen sections={sections} rulesNote={gameState.rulesUpdatedNote} />
         </div>
       )}
+
+      <nav aria-label="Нижняя панель игрока" className="atlas-mobile-dock">
+        {TABS.map((t) => {
+          const TabIcon = t.icon;
+          const showBadge = t.id === "market" && openAuctionCount > 0 && template.features.auctions;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              aria-current={screen === t.id ? "page" : undefined}
+              onClick={() => switchScreen(t.id)}
+            >
+              <TabIcon className="h-5 w-5" />
+              <span>{t.label}</span>
+              {showBadge && (
+                <span className="absolute top-2 right-5 h-2 w-2 rounded-full bg-warn" aria-hidden="true" />
+              )}
+            </button>
+          );
+        })}
+      </nav>
 
       <BottomSheet
         open={Boolean(helpSection)}
@@ -219,16 +321,10 @@ export function TeamDashboardPage({
       >
         {helpSection && (
           <>
-            <span className="font-mono text-[11px] font-medium tracking-[0.06em] text-mu">
-              {helpSection.module}
-            </span>
-            <h3 className="text-xl leading-tight font-semibold text-fg">{helpSection.title}</h3>
+            <span className="text-xs font-bold text-ac">{helpSection.module}</span>
+            <h3 className="atlas-h2">{helpSection.title}</h3>
             <RulesRows rows={helpSection.rows} tone="sf" />
-            <button
-              type="button"
-              onClick={() => setHelpKey(null)}
-              className="mt-1 h-12 w-full rounded-xl bg-ac text-base font-semibold text-acfg"
-            >
+            <button type="button" onClick={() => setHelpKey(null)} className="atlas-primary mt-2">
               Понятно
             </button>
           </>
@@ -255,6 +351,6 @@ export function TeamDashboardPage({
           onUndo={toast.canUndo ? handleUndo : undefined}
         />
       )}
-    </div>
+    </article>
   );
 }

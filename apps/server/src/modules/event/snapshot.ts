@@ -1,17 +1,26 @@
 import {
   type AuctionLot,
   analyzeLiveBalance,
+  assignMemberLevers,
   calculateTeamStats,
   DEFAULT_TEMPLATES,
+  defaultPowerCircuit,
   type GameState,
   type GameTemplate,
   GameTemplateSchema,
   type LiveState,
   type P2PListing,
+  type RoundLiveMode,
   type RulesPayload,
+  resolveDayEngine,
+  resolveDiagnosisDay,
+  resolveLexicon,
+  resolveMissionDay,
   type Team,
   type TeamMemberInfo,
+  TeamRoundStateSchema,
   validateGameBalance,
+  validateParetoStrategies,
 } from "@stem/shared";
 import type { Db } from "../../db/client.js";
 import type { EventRow, MemberRow, TeamRow } from "../../db/schema.js";
@@ -25,7 +34,22 @@ export function isMarketOpen(event: Pick<EventRow, "currentPhase" | "phaseEndsAt
 }
 
 export function normalizeTemplate(raw: GameTemplate): GameTemplate {
-  return GameTemplateSchema.parse(raw);
+  const parsed = GameTemplateSchema.parse(raw);
+  return parsed.artPackId ? parsed : { ...parsed, artPackId: parsed.eventKey };
+}
+
+export function resolveEffectiveRoundMode(
+  event: Pick<EventRow, "roundState">,
+  now = new Date(),
+): RoundLiveMode {
+  const rawMode = event.roundState?.mode ?? "idle";
+  if (rawMode === "blind_draft" && event.roundState?.blindEndsAt) {
+    const blindEnd = Date.parse(event.roundState.blindEndsAt);
+    if (!Number.isNaN(blindEnd) && now.getTime() >= blindEnd) {
+      return "negotiation";
+    }
+  }
+  return rawMode;
 }
 
 export function toTeam(
@@ -36,6 +60,7 @@ export function toTeam(
 ): Team {
   const captain = teamMembers.find((m) => m.role === "captain");
   const equippedCards = Object.fromEntries(template.slots.map((s) => [s.id, row.equipped[s.id] ?? null]));
+  const roundState = TeamRoundStateSchema.parse(row.roundState ?? {});
   return {
     id: row.id,
     name: row.name,
@@ -53,6 +78,7 @@ export function toTeam(
     badges: Array.isArray(row.badges) ? row.badges : [],
     activePerkId: row.activePerkId,
     statModifiers: row.statModifiers,
+    roundState,
   };
 }
 
@@ -116,6 +142,11 @@ export function shapeLiveState(graph: EventGraph, identity?: Identity): LiveStat
     status: row.status,
   }));
 
+  const roundMode = resolveEffectiveRoundMode(event, now);
+  const roundEngine = resolveDayEngine(template, event.currentDay);
+  const revealedConditionId =
+    roundMode === "revealed" ? (event.roundState?.revealedConditionId ?? null) : null;
+
   const gameState: GameState = {
     activeTemplateId: template.id,
     currentDay: event.currentDay,
@@ -135,6 +166,10 @@ export function shapeLiveState(graph: EventGraph, identity?: Identity): LiveStat
         .filter((s) => s.left === 0 && s.soldToTeamId)
         .map((s) => [s.cardId, teamNames.get(s.soldToTeamId ?? "") ?? "другая команда"]),
     ),
+    roundMode,
+    roundEngine,
+    revealedConditionId,
+    canUndoLastReward: Boolean(event.roundState?.lastRewardBatch?.length),
   };
 
   const liveBalance = analyzeLiveBalance({
@@ -150,6 +185,16 @@ export function shapeLiveState(graph: EventGraph, identity?: Identity): LiveStat
     : graph.memberRows.filter((m) => m.teamId === member?.teamId);
   const members: Record<string, TeamMemberInfo[]> = {};
   for (const m of visibleMembers) members[m.teamId] = [...(members[m.teamId] ?? []), toMemberInfo(m)];
+
+  let assignedLevers: number[] = [0, 1, 2, 3, 4];
+  if (member) {
+    const myTeamMembers = membersByTeam.get(member.teamId) ?? [];
+    const idx = Math.max(
+      0,
+      myTeamMembers.findIndex((m) => m.userId === member.userId),
+    );
+    assignedLevers = assignMemberLevers(idx, myTeamMembers.length, event.currentDay);
+  }
 
   const feedRows = isAdmin
     ? graph.feedRows
@@ -171,6 +216,7 @@ export function shapeLiveState(graph: EventGraph, identity?: Identity): LiveStat
       botSurface: identity?.botSurface ?? (isAdmin ? "admin" : "player"),
       teamId: member?.teamId ?? null,
       role: member?.role ?? null,
+      assignedLevers,
       needsJoin: !member,
       isProduction: config.isProduction,
     },
@@ -197,11 +243,29 @@ export function shapeLiveState(graph: EventGraph, identity?: Identity): LiveStat
   };
 }
 
-export function buildRules(event: Pick<EventRow, "template" | "rulesVersion">): RulesPayload {
-  const template = normalizeTemplate(event.template);
+export function buildRules(
+  event: Pick<EventRow, "template" | "rulesVersion" | "currentDay">,
+  isAdmin = false,
+): RulesPayload {
+  const rawTemplate = normalizeTemplate(event.template);
+  const day = event.currentDay ?? 1;
+  const sanitizedTemplate: GameTemplate = isAdmin
+    ? rawTemplate
+    : {
+        ...rawTemplate,
+        diagnosisDays: rawTemplate.diagnosisDays.map((d) => ({
+          ...d,
+          secretHypothesisId: "hidden",
+          probes: d.probes.map((p) => ({ ...p, resultByHypothesis: {} })),
+        })),
+      };
+  const s0 = rawTemplate.stats[0]?.id ?? "speed";
+  const s1 = rawTemplate.stats[1]?.id ?? s0;
+  const s2 = rawTemplate.stats[2]?.id ?? s1;
+  const missionDay = resolveMissionDay(rawTemplate, day);
   return {
     rulesVersion: event.rulesVersion,
-    template,
+    template: sanitizedTemplate,
     availableTemplates: DEFAULT_TEMPLATES.map(
       ({ id, title, theme, eventTag, objectName, totalDays, currencyName, currencyIcon }) => ({
         id,
@@ -214,6 +278,14 @@ export function buildRules(event: Pick<EventRow, "template" | "rulesVersion">): 
         currencyIcon,
       }),
     ),
-    balanceReport: validateGameBalance(template),
+    balanceReport: validateGameBalance(rawTemplate),
+    lexicon: resolveLexicon(rawTemplate),
+    currentMissionDay: missionDay,
+    currentDiagnosisDay: resolveDiagnosisDay(rawTemplate, day, !isAdmin),
+    paretoCheck: validateParetoStrategies({
+      day: missionDay,
+      referenceStats: { [s0]: 4, [s1]: 5, [s2]: 4 },
+      circuit: defaultPowerCircuit(rawTemplate),
+    }),
   };
 }

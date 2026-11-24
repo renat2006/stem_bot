@@ -5,7 +5,7 @@ import {
   type GameTemplate,
   previewCardEffect,
 } from "@stem/shared";
-import { Flame } from "lucide-react";
+import { ChevronRight, Flame } from "lucide-react";
 import { useState } from "react";
 import {
   AssemblyStage,
@@ -420,18 +420,18 @@ export function Shop({
               />
             </div>
 
-            <div className="grid grid-cols-[1fr_24px_1fr] items-center gap-2">
+            <div className="grid grid-cols-[1fr_20px_1fr] items-center gap-2">
               <div className="flex flex-col gap-0.5 rounded-xl border border-dashed border-ln bg-sf p-2.5">
                 <span className="font-mono text-[10px] text-mu">СЕЙЧАС</span>
                 <span className="truncate text-xs font-medium text-fg">
                   {selectedPreview.replacedCard
                     ? template.features.slotInventory
-                      ? `${selectedPreview.replacedCard.name} → склад`
+                      ? `${selectedPreview.replacedCard.name} (на склад)`
                       : selectedPreview.replacedCard.name
                     : "пусто"}
                 </span>
               </div>
-              <div className="text-center font-mono text-sm text-mu">→</div>
+              <ChevronRight className="mx-auto h-4 w-4 text-mu" />
               <div className="flex flex-col gap-0.5 rounded-xl border border-ac bg-sf p-2.5">
                 <span className="font-mono text-[10px] text-ac">СТАНЕТ</span>
                 <span className="truncate text-xs font-semibold text-fg">{selectedCard.name}</span>

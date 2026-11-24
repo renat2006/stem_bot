@@ -74,6 +74,30 @@ export function describeLedger(entry: LedgerLike, template: GameTemplate): strin
       return "Участник исключён из команды";
     case "settings":
       return `Лимит покупок: ${d.purchaseLimit === null ? "без ограничений" : String(d.purchaseLimit)}`;
+    case "reward-undo":
+      return `Отменено последнее групповое начисление (${currency})`;
+    case "program-start":
+      return `Запущена программа раунда (${String(d.engine ?? "mission")})`;
+    case "program-order":
+      return `${String(d.memberName ?? "Участник")} обновил решение экипажа`;
+    case "program-ping":
+      return `Запрос обсуждения рычага №${Number(d.slotIndex ?? 0) + 1}`;
+    case "diagnosis-probe":
+      return `Выполнен приборный замер: ${String(d.probeLabel ?? d.probeId ?? "")}`;
+    case "diagnosis-verdict":
+      return d.correct
+        ? `Точный диагноз команды: +${String(d.points ?? 0)} очк. (бюджет: 0)`
+        : `Диагноз команды не совпал с замерами (0 очк.)`;
+    case "round-reveal":
+      return String(d.summary ?? `Вскрытие раунда: +${amount} очк.`);
+    case "transfer-note":
+      return `Записан параметр проверки на стенде: «${String(d.note ?? "")}»`;
+    case "lexicon-updated":
+      return "Обновлён словарь терминов смены";
+    case "schedule-updated":
+      return "Обновлено расписание механик по дням";
+    case "pareto-fix":
+      return `Выровнен порог маршрута (${String(d.note ?? "Парето 3.0")})`;
     default:
       return entry.kind;
   }

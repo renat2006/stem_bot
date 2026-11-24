@@ -329,3 +329,70 @@
     }
   }
 }
+
+.assembly-stage[data-kit="model"] {
+  background: radial-gradient(ellipse at 48% 63%, #f7f2df, #e3e4d6);
+  color: #273c32;
+}
+.assembly-stage[data-kit="model"] .assembly-ghost path {
+  display: none;
+}
+.assembly-stage[data-kit="model"] .assembly-socket .part-sticker {
+  filter: none;
+}
+.assembly-stage[data-kit="model"] .assembly-socket[data-base] {
+  filter: saturate(0.4);
+}
+.assembly-stage[data-kit="model"] .assembly-socket[data-plane="far"] {
+  filter: brightness(0.74);
+}
+
+.assembly-stage[data-kit="model"] .assembly-socket[data-selected],
+.assembly-stage[data-kit="model"] .assembly-socket[data-preview] {
+  outline: none;
+}
+.assembly-stage[data-kit="model"] .assembly-socket[data-selected] .part-sticker,
+.assembly-stage[data-kit="model"] .assembly-socket[data-preview] .part-sticker {
+  filter: drop-shadow(0 0 3px #72997f);
+}
+
+.assembly-registered {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.assembly-stage[data-kit="model"] .assembly-socket[data-registered] {
+  filter: none;
+}
+.assembly-stage[data-kit="model"][data-rig="creature"]
+  .assembly-socket:not([data-registered]):is([data-slot="front"], [data-slot="back"])
+  .assembly-part {
+  mask-image: linear-gradient(to bottom, transparent, #000 25%);
+}
+.assembly-stage[data-kit="model"] .assembly-label {
+  color: #e7efdf;
+  background: #283c35;
+}
+
+.assembly-supports {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.assembly-undercoat {
+  position: absolute;
+  pointer-events: none;
+}
+.assembly-stage[data-kit="model"][data-rig="creature"]
+  .assembly-socket[data-slot="head"]:not([data-registered]) {
+  z-index: 5 !important;
+}
+.assembly-stage[data-kit="model"][data-rig="creature"]
+  .assembly-socket[data-slot="head"]:not([data-registered])
+  .assembly-part {
+  mask-image: linear-gradient(90deg, #000 59%, transparent 100%);
+}

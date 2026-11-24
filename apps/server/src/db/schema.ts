@@ -1,4 +1,4 @@
-import type { CardItem, GameTemplate } from "@stem/shared";
+import type { CardItem, GameTemplate, RoundLiveMode, TeamRoundState } from "@stem/shared";
 import {
   bigint,
   bigserial,
@@ -12,6 +12,14 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+
+export interface EventRoundRuntime {
+  mode?: RoundLiveMode;
+  secretConditionId?: string | null;
+  revealedConditionId?: string | null;
+  blindEndsAt?: string | null;
+  lastRewardBatch?: Array<{ teamId: string; prevCurrency: number }> | null;
+}
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 const telegramId = (name: string) => bigint(name, { mode: "number" });
@@ -29,6 +37,7 @@ export const events = pgTable("events", {
   purchaseLimit: integer("purchase_limit"),
   rulesVersion: integer("rules_version").notNull().default(1),
   rulesNote: text("rules_note").notNull().default(""),
+  roundState: jsonb("round_state").$type<EventRoundRuntime>().notNull().default({}),
   version: integer("version").notNull().default(1),
   createdAt: createdAt(),
 });
@@ -52,6 +61,7 @@ export const teams = pgTable(
     badges: jsonb("badges").$type<string[]>().notNull().default([]),
     activePerkId: text("active_perk_id"),
     statModifiers: jsonb("stat_modifiers").$type<Record<string, number>>().notNull().default({}),
+    roundState: jsonb("round_state").$type<Partial<TeamRoundState>>().notNull().default({}),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("teams_join_code_uq").on(t.joinCode), index("teams_event_idx").on(t.eventId)],

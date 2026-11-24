@@ -15,7 +15,7 @@ export function PackSymbol({
   label: string;
   size?: number;
 }) {
-  const pack = useArtPack(template.artPackId);
+  const pack = useArtPack(template.artPackId ?? template.eventKey);
   const [failed, setFailed] = useState<string>();
   const path =
     kind === "currency"

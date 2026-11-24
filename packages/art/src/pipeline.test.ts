@@ -1,6 +1,8 @@
-import { NEUROFAUNA_TEMPLATE } from "@stem/shared";
+import { NEUROFAUNA_TEMPLATE, ROVER_SPRINT_TEMPLATE } from "@stem/shared";
 import { describe, expect, it } from "vitest";
 import manifest from "../packs/neurofauna/manifest.json";
+import roverManifest from "../packs/rovers/manifest.json";
+import { composeAssembly } from "./compose.js";
 import { keyMagenta } from "./processing.js";
 import { buildAssetPrompts } from "./prompts/index.js";
 import { ArtPackSchema } from "./schema.js";
@@ -41,7 +43,7 @@ describe("asset prompts and validation", () => {
     expect(head?.prompt).toContain("LOWER LEFT");
     expect(head?.prompt).toContain("Tier II");
     expect(head?.prompt).toContain("Сила");
-    expect(head?.prompt).toContain("printed field-bestiary");
+    expect(head?.prompt).toContain("modular expedition model kit");
     expect(new Set(prompts.map((p) => p.id)).size).toBe(prompts.length);
     expect(prompts.filter((p) => p.kind === "part")).toHaveLength(NEUROFAUNA_TEMPLATE.cards.length);
   });
@@ -131,4 +133,45 @@ describe("layered limbs", () => {
     ]);
     expect(equipped.front).toBe("scorpion-claws");
   });
+});
+
+describe("starter appearance", () => {
+  it("mounts the base wheels twice while keeping inventory and empty slots intact", () => {
+    const pack = ArtPackSchema.parse(roverManifest);
+    const scene = composeAssembly(ROVER_SPRINT_TEMPLATE, {}, pack);
+    expect(scene.layers.every((layer) => layer.card === null)).toBe(true);
+    const wheels = scene.drawables.filter((layer) => layer.slotId === "drive");
+    expect(wheels).toHaveLength(2);
+    expect(wheels.every((layer) => layer.isBase)).toBe(true);
+    expect(wheels[1]?.socket.box[0]).toBeGreaterThan(wheels[0]?.socket.box[0] ?? 0);
+    const swap = composeAssembly(ROVER_SPRINT_TEMPLATE, {}, pack, {
+      slotId: "drive",
+      cardId: "kevlar-tracks",
+    });
+    expect(
+      swap.drawables
+        .filter((layer) => layer.slotId === "drive")
+        .every((layer) => layer.card?.id === "kevlar-tracks" && !layer.isBase),
+    ).toBe(true);
+  });
+});
+
+it("keeps unmodified pieces in their reference pose when a team replaces a limb", () => {
+  const pack = ArtPackSchema.parse(manifest);
+  const start = composeAssembly(NEUROFAUNA_TEMPLATE, {}, pack);
+  expect(start.drawables.filter((d) => d.poseSrc)).toHaveLength(5);
+  const changed = composeAssembly(NEUROFAUNA_TEMPLATE, { front: "scorpion-claws" }, pack);
+  expect(changed.drawables.filter((d) => d.poseSrc)).toHaveLength(4);
+  expect(changed.drawables.filter((d) => d.slotId === "front" && d.fragmentId)).toHaveLength(2);
+});
+it("uses the selected chassis shape for the sensor support", () => {
+  const pack = ArtPackSchema.parse(roverManifest);
+  const support = (id: string) =>
+    composeAssembly(ROVER_SPRINT_TEMPLATE, { chassis: id, sensors: "stereo-lidar" }, pack).layers.find(
+      (l) => l.slotId === "sensors",
+    )?.support;
+  const arch = support("titan-exoframe");
+  expect(arch).toBeDefined();
+  expect(arch?.leftFoot).toBeGreaterThan(arch?.rightFoot ?? 0);
+  expect(arch?.top).not.toBe(support("alu-frame")?.top);
 });

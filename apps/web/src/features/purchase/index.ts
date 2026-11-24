@@ -5,8 +5,13 @@ export {
   cancelP2PListing,
   createP2PListing,
   equipFromInventory,
+  pingTeamSlot,
   placeAuctionBid,
   proposeCard,
   resolveProposal,
+  runDiagnosisProbe,
+  saveTransferNote,
+  submitDiagnosisVerdict,
+  submitProgramOrder,
   undoLastPurchase,
 } from "./api/purchase-api.js";

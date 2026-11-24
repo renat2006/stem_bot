@@ -30,6 +30,10 @@ const scenes = Array.from({ length: 5 }, (_, index) => {
   const scene = composeAssembly(template, equipped, pack);
   return `<div class="scene" style="aspect-ratio:${scene.rig.frame[2]}/${scene.height}">${scene.drawables
     .map((layer) => {
+      if (layer.poseSrc) {
+        const [x, y, w, h] = layer.socket.box;
+        return `<img src="${layer.poseSrc}" alt="${escapeHtml(layer.label)}" style="position:absolute;left:${((x - scene.rig.frame[0]) / scene.rig.frame[2]) * 100}%;top:${((y - scene.rig.frame[1]) / scene.height) * 100}%;width:${(w / scene.rig.frame[2]) * 100}%;height:${(h / scene.height) * 100}%;z-index:${layer.socket.z}">`;
+      }
       const asset = pack.parts.find((part) => part.cardId === layer.card?.id);
       if (!asset) return "";
       const image = asset.fragments.find((fragment) => fragment.id === layer.fragmentId) ?? asset;
@@ -40,6 +44,6 @@ const scenes = Array.from({ length: 5 }, (_, index) => {
 }).join("");
 await writeFile(
   new URL("contact-sheet.html", directory),
-  `<!doctype html><html lang="ru"><meta charset="utf-8"><title>${escapeHtml(pack.id)} · printed bestiary</title><style>body{font:14px system-ui;background:#ece9e1;color:#202629;padding:24px}h1{font-size:28px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}article{background:#fff;padding:12px;border-radius:12px}h3{margin:0 0 12px}.row{display:flex}.row>div{width:50%;padding:8px}.light{background:#faf8f0}.dark,.scene{background:#181c1f}.row img{width:100%}.scene{position:relative;aspect-ratio:1;border-radius:16px;border:1px solid #bbc1bd}.scenes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:24px}svg{overflow:visible;filter:drop-shadow(1px 0 0 #f5efdf) drop-shadow(-1px 0 0 #f5efdf)}</style><h1>${escapeHtml(pack.id)} · Печатный полевой бестиарий</h1><p>Пять сборок и детали на светлом/тёмном фоне. ${pack.parts.length} карт.</p><div class="scenes">${scenes}</div><div class="grid">${parts}</div></html>`,
+  `<!doctype html><html lang="ru"><meta charset="utf-8"><title>${escapeHtml(pack.id)} · каталог деталей</title><style>body{font:14px system-ui;background:#ece9e1;color:#202629;padding:24px}h1{font-size:28px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}article{background:#fff;padding:12px;border-radius:12px}h3{margin:0 0 12px}.row{display:flex}.row>div{width:50%;padding:8px}.light{background:#faf8f0}.dark,.scene{background:#181c1f}.row img{width:100%}.scene{position:relative;background:#e9e5d7;aspect-ratio:1;border-radius:16px;border:1px solid #bbc1bd}.scenes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:24px}svg{overflow:visible;filter:none}</style><h1>${escapeHtml(pack.id)} · Каталог деталей</h1><p>Пять сборок и детали на светлом/тёмном фоне. ${pack.parts.length} карт.</p><div class="scenes">${scenes}</div><div class="grid">${parts}</div></html>`,
 );
 process.stdout.write(`Contact sheet written for ${pack.id}\n`);

@@ -1,5 +1,5 @@
 import type { TemplateSummary } from "@stem/shared";
-import { Rocket, Sparkles } from "lucide-react";
+import { CheckCircle2, Rocket } from "lucide-react";
 import { useState } from "react";
 import { createShiftFromWizard, updateFeatures } from "../../../features/control-shift/index.js";
 import type { RunAction } from "../../../shared/lib/index.js";
@@ -203,7 +203,7 @@ export function ShiftWizardSheet({
             )}
             <div className="rounded-xl border border-ac/30 bg-ac/8 p-3 text-xs text-mu">
               <p className="flex items-center gap-1.5 font-semibold text-fg">
-                <Sparkles className="h-3.5 w-3.5 text-ac" />
+                <CheckCircle2 className="h-3.5 w-3.5 text-ac" />
                 Баланс редкостей настроен автоматически
               </p>
               <p className="mt-1">

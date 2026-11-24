@@ -1,0 +1,95 @@
+.kitcatalog {
+  max-width: 1040px;
+  margin: auto;
+  min-height: 100dvh;
+  padding: clamp(16px, 4vw, 48px);
+  background: #f7f4e9;
+  color: #243e33;
+  font:
+    500 16px / 1.45 "Manrope Variable",
+    sans-serif;
+  --sf: #eee9da;
+  --fg: #243e33;
+  --mu: #657062;
+  --ac: #296147;
+  --ln: #c6cab8;
+}
+.kitcatalog header,
+.kitcatalog nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.kitcatalog a {
+  color: inherit;
+}
+.kitcatalog h1 {
+  font:
+    500 clamp(40px, 7vw, 68px) / 1 Georgia,
+    serif;
+  letter-spacing: -0.055em;
+  margin: 24px 0;
+}
+.kitcatalog nav {
+  justify-content: flex-start;
+  margin-bottom: 16px;
+}
+.kitcatalog button,
+.kitcatalog select {
+  font: inherit;
+  border: 1px solid #bdc4b3;
+  border-radius: 9px;
+  background: #faf8ef;
+  color: inherit;
+  padding: 8px 14px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.kitcatalog button[aria-pressed="true"] {
+  background: #27563f;
+  color: white;
+}
+.kitcatalog button:disabled {
+  opacity: 0.5;
+}
+.kitgrid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 24px;
+}
+.kitgrid section {
+  min-width: 0;
+}
+.kitgrid label {
+  display: grid;
+  gap: 6px;
+}
+.kitparts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin: 10px 0;
+}
+.kitparts button {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+}
+.kitcatalog .assembly-controls button {
+  background: transparent;
+  border: 0;
+}
+.kitcatalog .assembly-pause-btn {
+  min-height: 30px;
+  padding: 5px;
+}
+.kitcatalog p {
+  font-size: 14px;
+  margin: 12px 0;
+}
+@media (max-width: 640px) {
+  .kitgrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}

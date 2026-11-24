@@ -240,10 +240,10 @@ jobs:
               -d "{\"url\":\"${hook_base}/telegram/webhook\",\"secret_token\":\"${WEBHOOK_SECRET}\",\"allowed_updates\":[\"message\",\"callback_query\"]}" >/dev/null
             curl -fsS -X POST "https://api.telegram.org/bot${BOT_TOKEN}/setChatMenuButton" \
               -H "Content-Type: application/json" \
-              -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"Открыть игру\",\"web_app\":{\"url\":\"${base}\"}}}" >/dev/null
+              -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"Полевой атлас\",\"web_app\":{\"url\":\"${base}\"}}}" >/dev/null
             curl -fsS -X POST "https://api.telegram.org/bot${BOT_TOKEN}/setMyCommands" \
               -H "Content-Type: application/json" \
-              -d '{"commands":[{"command":"start","description":"Войти в игру смены"},{"command":"story","description":"Сюжетная сводка дня"},{"command":"faq","description":"Памятка по механикам"}]}' >/dev/null
+              -d '{"commands":[{"command":"start","description":"Войти в кабинет команды"},{"command":"story","description":"Задача и легенда дня"},{"command":"playground","description":"Полигон 3 мин (вне зачёта)"},{"command":"faq","description":"Памятка по механикам"}]}' >/dev/null
           fi
           if [ -n "$ADMIN_BOT_TOKEN" ] && [ -n "$WEBHOOK_SECRET" ]; then
             curl -fsS -X POST "https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/setWebhook" \
@@ -254,7 +254,7 @@ jobs:
               -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"Студия смены\",\"web_app\":{\"url\":\"${base}/?surface=admin\"}}}" >/dev/null
             curl -fsS -X POST "https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/setMyCommands" \
               -H "Content-Type: application/json" \
-              -d '{"commands":[{"command":"start","description":"Открыть пульт ведущего"},{"command":"wizard","description":"Конструктор новой смены"},{"command":"balance","description":"Советник баланса и динамики"}]}' >/dev/null
+              -d '{"commands":[{"command":"start","description":"Пульт живого урока"},{"command":"pulse","description":"Пульс зала и готовность команд"},{"command":"wizard","description":"Конструктор смены за 4 шага"},{"command":"balance","description":"Советник баланса и Парето"}]}' >/dev/null
           fi
 
       - name: Summary

@@ -1,11 +1,13 @@
 import {
   CardRaritySchema,
+  DayScheduleItemSchema,
   EffectScopeSchema,
   FeatureFlagsSchema,
   LoreBriefingSchema,
   MarketGenerationInputSchema,
   ShiftPhaseSchema,
   ShiftWizardInputSchema,
+  TemplateLexiconSchema,
 } from "@stem/shared";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -15,25 +17,32 @@ import { requireAdmin } from "../../shared/telegram-auth.js";
 import { validateJson } from "../../shared/validate-json.js";
 import {
   adjustTrack,
+  applyParetoFix,
   applyQuickFix,
   applyTurn,
   closeAuctionNow,
   createShiftFromWizard,
   createTeam,
   decideMarketDraft,
+  extendPhaseTimer,
   generateMarketDraft,
   getPendingDraft,
   nextDay,
   removeMember,
   resetEvent,
+  revealMissionRound,
   rewardTeams,
   saveDayBriefing,
   setCaptain,
   setPhase,
   startAuction,
+  startRoundEngine,
+  undoLastRewardBatch,
+  updateDaySchedule,
   updateFeatures,
   updateMarketDraft,
   updateSettings,
+  updateTemplateLexicon,
   upsertCard,
 } from "./service.js";
 
@@ -122,12 +131,41 @@ const DraftDecisionInput = z.object({
   decision: z.enum(["approve", "reject"]),
   mode: z.enum(["append", "replace"]).default("append"),
 });
+const ExtendTimerInput = z.object({
+  seconds: z.number().int().min(10).max(1800).default(30),
+});
+const StartRoundInput = z
+  .object({
+    engine: z.enum(["mission", "diagnosis"]).optional(),
+    durationSeconds: z.number().int().min(15).max(1800).optional(),
+    conditionId: z.string().max(40).optional(),
+  })
+  .optional();
+const RevealRoundInput = z
+  .object({
+    conditionId: z.string().max(40).optional(),
+  })
+  .optional();
+const ScheduleUpdateInput = z.object({
+  totalDays: z.number().int().min(1).max(14).optional(),
+  daySchedule: z.array(DayScheduleItemSchema).min(1).max(14),
+});
+const ParetoFixInput = z
+  .object({
+    day: z.number().int().min(1).max(14).optional(),
+  })
+  .optional();
 
 export const adminRouter = new Hono<AppEnv>()
   .use("*", requireAdmin)
   .post("/reward", validateJson(RewardInput), async (c) => {
     const options = await mutationOptions(c);
     await rewardTeams(options, c.req.valid("json"));
+    return stateResponse(c, options.eventId);
+  })
+  .post("/reward/undo", async (c) => {
+    const options = await mutationOptions(c);
+    await undoLastRewardBatch(options);
     return stateResponse(c, options.eventId);
   })
   .post("/track", validateJson(TrackInput), async (c) => {
@@ -231,5 +269,41 @@ export const adminRouter = new Hono<AppEnv>()
   .post("/reset", validateJson(ResetInput), async (c) => {
     const options = await mutationOptions(c);
     await resetEvent(options, c.req.valid("json"));
+    return snapshotResponse(c);
+  })
+  .post("/timer/extend", validateJson(ExtendTimerInput), async (c) => {
+    const options = await mutationOptions(c);
+    await extendPhaseTimer(options, c.req.valid("json"));
+    return stateResponse(c, options.eventId);
+  })
+  .post("/round/start", async (c) => {
+    const options = await mutationOptions(c);
+    const body = await c.req.json().catch(() => undefined);
+    const parsed = StartRoundInput.safeParse(body);
+    await startRoundEngine(options, parsed.success && parsed.data ? parsed.data : {});
+    return stateResponse(c, options.eventId);
+  })
+  .post("/round/reveal", async (c) => {
+    const options = await mutationOptions(c);
+    const body = await c.req.json().catch(() => undefined);
+    const parsed = RevealRoundInput.safeParse(body);
+    await revealMissionRound(options, parsed.success ? parsed.data : undefined);
+    return stateResponse(c, options.eventId);
+  })
+  .patch("/lexicon", validateJson(TemplateLexiconSchema.partial()), async (c) => {
+    const options = await mutationOptions(c);
+    await updateTemplateLexicon(options, c.req.valid("json"));
+    return snapshotResponse(c);
+  })
+  .patch("/schedule", validateJson(ScheduleUpdateInput), async (c) => {
+    const options = await mutationOptions(c);
+    await updateDaySchedule(options, c.req.valid("json"));
+    return snapshotResponse(c);
+  })
+  .post("/pareto-fix", async (c) => {
+    const options = await mutationOptions(c);
+    const body = await c.req.json().catch(() => undefined);
+    const parsed = ParetoFixInput.safeParse(body);
+    await applyParetoFix(options, parsed.success ? parsed.data : undefined);
     return snapshotResponse(c);
   });

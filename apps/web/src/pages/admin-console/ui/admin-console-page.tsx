@@ -1,29 +1,48 @@
-import { Gauge, Layers, PlayCircle, Sparkles, Tv, Users } from "lucide-react";
+import { resolveDayEngine, resolveLexicon } from "@stem/shared";
+import { ChevronRight, Monitor, Plus, Settings, Undo2 } from "lucide-react";
 import { useState } from "react";
 import type { GameSnapshot } from "../../../entities/game/index.js";
-import { ShiftControls, TemplateSwitcher } from "../../../features/control-shift/index.js";
-import { RewardPanel } from "../../../features/manage-team/index.js";
-import type { RunAction } from "../../../shared/lib/index.js";
+import {
+  applyTurn,
+  extendPhaseTimer,
+  nextDay,
+  revealMissionRound,
+  ShiftControls,
+  setPhase,
+  startRoundEngine,
+  TemplateSwitcher,
+} from "../../../features/control-shift/index.js";
+import { RewardPanel, rewardTeams, undoRewardBatch } from "../../../features/manage-team/index.js";
+import { type RunAction, useCountdown, useTelegram } from "../../../shared/lib/index.js";
 import { EventFeed } from "../../../widgets/event-feed/index.js";
 import { TeamsBoard } from "../../../widgets/teams-board/index.js";
+import { AtlasConstructor } from "./atlas-constructor.js";
 import { BriefingEditor } from "./briefing-editor.js";
 import { CardsStudioTab } from "./cards-studio-tab.js";
 import { MechanicsTab } from "./mechanics-tab.js";
 import { ShiftWizardSheet } from "./shift-wizard.js";
 
+type StudioMode = "live" | "constructor";
 type AdminTab = "round" | "cards" | "balance" | "teams";
 
-const ADMIN_TABS: Array<{ id: AdminTab; label: string; icon: typeof PlayCircle }> = [
-  { id: "round", label: "Раунд", icon: PlayCircle },
-  { id: "cards", label: "Карты", icon: Layers },
-  { id: "balance", label: "Баланс", icon: Gauge },
-  { id: "teams", label: "Команды", icon: Users },
+const ADMIN_TABS: Array<{ id: AdminTab; label: string }> = [
+  { id: "round", label: "Раунд" },
+  { id: "cards", label: "Карты" },
+  { id: "balance", label: "Баланс" },
+  { id: "teams", label: "Команды" },
 ];
 
 interface AdminConsolePageProps {
   snapshot: GameSnapshot;
   clockOffsetMs: number;
   run: RunAction;
+  onOpenSettings?: () => void;
+}
+
+function initialStudioMode(): StudioMode {
+  if (typeof window === "undefined") return "live";
+  const params = new URLSearchParams(window.location.search);
+  return params.get("mode") === "constructor" ? "constructor" : "live";
 }
 
 function initialWizardState(): boolean {
@@ -31,12 +50,22 @@ function initialWizardState(): boolean {
   return new URLSearchParams(window.location.search).get("tab") === "wizard";
 }
 
-export function AdminConsolePage({ snapshot, clockOffsetMs, run }: AdminConsolePageProps) {
-  const { template, gameState } = snapshot;
+export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings }: AdminConsolePageProps) {
+  const { template, gameState, teams } = snapshot;
+  const { hapticTap, hapticSuccess } = useTelegram();
+  const lexicon = snapshot.lexicon ?? resolveLexicon(template);
+  const [studioMode, setStudioMode] = useState<StudioMode>(initialStudioMode);
   const [tab, setTab] = useState<AdminTab>("round");
   const [wizardOpen, setWizardOpen] = useState(initialWizardState);
+  const [fastChecks, setFastChecks] = useState<Record<string, [boolean, boolean]>>({});
 
+  const countdown = useCountdown(gameState.phaseEndsAt, clockOffsetMs);
   const criticalAlerts = snapshot.liveBalance.alerts.filter((a) => a.severity !== "info").length;
+
+  const dayEngine = gameState.roundEngine ?? resolveDayEngine(template, gameState.currentDay);
+  const roundMode = gameState.roundMode ?? "idle";
+  const readyPhones = teams.reduce((sum, t) => sum + (t.roundState?.readySlots.length ?? 0), 0);
+  const maxPhones = Math.max(5, teams.length * 5);
 
   const openProjector = () => {
     const url = new URL(window.location.href);
@@ -44,80 +73,402 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run }: AdminConsoleP
     window.open(url.toString(), "_blank", "noopener");
   };
 
+  const handlePrimaryLiveAction = () => {
+    if (gameState.currentPhase === "scoring") {
+      void run(() => setPhase("market", 15));
+      return;
+    }
+    if (gameState.currentPhase === "market") {
+      if (dayEngine === "legacy_track") {
+        void run(() => setPhase("turn", null));
+      } else {
+        void run(() =>
+          startRoundEngine({
+            engine: dayEngine === "diagnosis" ? "diagnosis" : "mission",
+            durationSeconds: dayEngine === "diagnosis" ? 180 : 120,
+          }),
+        );
+      }
+      return;
+    }
+    if (gameState.currentPhase === "turn" && roundMode !== "revealed") {
+      if (dayEngine === "legacy_track") {
+        void run(() => applyTurn());
+      } else if (dayEngine === "diagnosis") {
+        void run(() => setPhase("summary", null));
+      } else {
+        void run(() => revealMissionRound());
+      }
+      return;
+    }
+    if (gameState.currentDay < template.totalDays) {
+      void run(() => nextDay());
+    } else {
+      void run(() => setPhase("scoring", null));
+    }
+  };
+
+  const primaryActionLabel =
+    gameState.currentPhase === "scoring"
+      ? "Открыть мастерскую (15 мин)"
+      : gameState.currentPhase === "market"
+        ? dayEngine === "diagnosis"
+          ? "Запустить раунд диагностики (3:00)"
+          : dayEngine === "legacy_track"
+            ? "Перейти к ходу на поле"
+            : "Запустить программу экипажей (2:00)"
+        : gameState.currentPhase === "turn" && roundMode !== "revealed"
+          ? dayEngine === "legacy_track"
+            ? "Применить ход по треку"
+            : dayEngine === "diagnosis"
+              ? "Завершить диагностику и подвести итоги"
+              : `Вскрыть условие (${lexicon.environmentLabel})`
+          : gameState.currentDay < template.totalDays
+            ? `Открыть День ${gameState.currentDay + 1}`
+            : "Вернуться к оценке";
+
+  const handleFastBatchAward = async () => {
+    const twoIds: string[] = [];
+    const fourIds: string[] = [];
+    for (const t of teams) {
+      const c = fastChecks[t.id] ?? [false, false];
+      const pts = (c[0] ? 2 : 0) + (c[1] ? 2 : 0);
+      if (pts === 2) twoIds.push(t.id);
+      if (pts === 4) fourIds.push(t.id);
+    }
+    if (twoIds.length === 0 && fourIds.length === 0) return;
+    await run(async () => {
+      let lastRes = null;
+      if (twoIds.length > 0) {
+        lastRes = await rewardTeams(twoIds, 2, "Критерии занятия (+2)");
+      }
+      if (fourIds.length > 0) {
+        lastRes = await rewardTeams(fourIds, 4, "Результат и замер (+4)");
+      }
+      setFastChecks({});
+      return lastRes;
+    });
+  };
+
+  const hasAnyFastCheck = teams.some((t) => {
+    const c = fastChecks[t.id];
+    return Boolean(c?.[0] || c?.[1]);
+  });
+
   return (
-    <div className="space-y-3.5">
-      <div className="flex items-center justify-between gap-2 rounded-2xl border border-ln bg-sf px-3.5 py-2.5">
-        <button
-          type="button"
-          onClick={() => setWizardOpen(true)}
-          className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-ac px-3 text-xs font-semibold text-acfg"
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          Новая смена
-        </button>
-        <button
-          type="button"
-          onClick={openProjector}
-          className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-ln bg-sf2 px-3 text-xs font-medium text-fg"
-        >
-          <Tv className="h-3.5 w-3.5 text-ac" />
-          Табло 16:9
-        </button>
-      </div>
-
-      <nav aria-label="Разделы студии ведущего" className="grid grid-cols-4 gap-1 rounded-xl bg-sf2 p-1">
-        {ADMIN_TABS.map((item) => {
-          const TabIcon = item.icon;
-          const hasAlert = item.id === "balance" && criticalAlerts > 0;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setTab(item.id)}
-              className={`relative flex min-h-[46px] flex-col items-center justify-center gap-0.5 rounded-[9px] text-xs font-medium transition ${
-                tab === item.id ? "bg-sf font-semibold text-fg shadow-xs" : "text-mu"
-              }`}
-            >
-              <TabIcon className="h-4 w-4" />
-              <span>{item.label}</span>
-              {hasAlert && (
-                <span className="absolute top-1.5 right-2 h-2 w-2 rounded-full bg-warn" aria-hidden />
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
-      {tab === "round" && (
-        <div className="space-y-4">
-          <ShiftControls
-            gameState={gameState}
-            totalDays={template.totalDays}
-            clockOffsetMs={clockOffsetMs}
-            run={run}
-          />
-          {template.features.storyBriefings && (
-            <BriefingEditor template={template} currentDay={gameState.currentDay} run={run} />
-          )}
-          {snapshot.teams.length > 0 && <RewardPanel teams={snapshot.teams} template={template} run={run} />}
-          <EventFeed feed={snapshot.feed} teams={snapshot.teams} title="Журнал смены" />
+    <article className="atlas-studio">
+      <header className="atlas-studio-header">
+        <div className="min-w-0">
+          <div className="text-sm font-extrabold tracking-tight text-fg">Полевой атлас · Студия ведущего</div>
+          <div className="mt-0.5 text-xs font-medium text-mu">
+            День {gameState.currentDay} из {template.totalDays} · {template.title}
+          </div>
         </div>
-      )}
 
-      {tab === "cards" && <CardsStudioTab snapshot={snapshot} run={run} />}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="atlas-segmented">
+            <button
+              type="button"
+              aria-pressed={studioMode === "live"}
+              onClick={() => {
+                hapticTap();
+                setStudioMode("live");
+              }}
+            >
+              Пульт урока
+            </button>
+            <button
+              type="button"
+              aria-pressed={studioMode === "constructor"}
+              onClick={() => {
+                hapticTap();
+                setStudioMode("constructor");
+              }}
+            >
+              Конструктор смены
+            </button>
+          </div>
 
-      {tab === "balance" && <MechanicsTab snapshot={snapshot} run={run} />}
+          <button
+            type="button"
+            onClick={() => {
+              hapticTap();
+              setWizardOpen(true);
+            }}
+            className="atlas-quiet text-xs"
+          >
+            <Plus className="h-3.5 w-3.5 text-ac" />
+            <span>Новая смена</span>
+          </button>
 
-      {tab === "teams" && (
-        <div className="space-y-4">
-          <TeamsBoard
-            teams={snapshot.teams}
-            members={snapshot.members}
-            template={template}
-            purchaseLimit={gameState.dailyPurchaseLimit}
-            run={run}
-          />
-          <TemplateSwitcher templates={snapshot.availableTemplates} activeId={template.id} run={run} />
+          <button type="button" onClick={openProjector} className="atlas-quiet text-xs">
+            <Monitor className="h-3.5 w-3.5 text-ac" />
+            <span>Табло 16:9</span>
+          </button>
+
+          {onOpenSettings && (
+            <button
+              type="button"
+              aria-label="Настройки отображения"
+              onClick={onOpenSettings}
+              className="atlas-icon-btn"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </header>
+
+      {studioMode === "constructor" ? (
+        <AtlasConstructor
+          snapshot={snapshot}
+          run={run}
+          onOpenCardsTab={() => {
+            setStudioMode("live");
+            setTab("cards");
+          }}
+          onSwitchToLive={() => {
+            setStudioMode("live");
+            setTab("round");
+          }}
+        />
+      ) : (
+        <div className="space-y-6">
+          <nav aria-label="Разделы студии ведущего" className="atlas-pills">
+            {ADMIN_TABS.map((item) => {
+              const hasAlert = item.id === "balance" && criticalAlerts > 0;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  aria-pressed={tab === item.id}
+                  onClick={() => {
+                    hapticTap();
+                    setTab(item.id);
+                  }}
+                >
+                  {item.label}
+                  {hasAlert && (
+                    <span className="ml-1.5 inline-block h-2 w-2 rounded-full bg-warn" aria-hidden="true" />
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+
+          {tab === "round" && (
+            <div className="space-y-6">
+              <h1 className="atlas-h1">Пульт урока</h1>
+
+              <section className="live-action-plate">
+                <div>
+                  <h2 className="atlas-h2">
+                    {gameState.currentPhase === "market"
+                      ? "Мастерская открыта"
+                      : gameState.currentPhase === "turn"
+                        ? "Решения команд"
+                        : gameState.currentPhase === "summary"
+                          ? "Разбор итогов"
+                          : "Задача дня"}
+                  </h2>
+                  <p className="mt-1 text-sm text-mu tabular-nums">
+                    {readyPhones} из {maxPhones} пультов готовы
+                    {gameState.phaseEndsAt
+                      ? ` · ${Math.floor(countdown / 60)}:${String(countdown % 60).padStart(2, "0")}`
+                      : ""}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {gameState.phaseEndsAt && (
+                    <button
+                      type="button"
+                      onClick={() => void run(() => extendPhaseTimer(30))}
+                      className="atlas-quiet text-xs"
+                    >
+                      +30 сек
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      hapticSuccess();
+                      handlePrimaryLiveAction();
+                    }}
+                    className="atlas-primary !w-auto"
+                  >
+                    <span>{primaryActionLabel}</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </section>
+
+              {(roundMode === "blind_draft" || roundMode === "negotiation" || roundMode === "diagnosis") && (
+                <section className="room-strip space-y-2.5">
+                  <h2 className="atlas-h2">Кто уже выбрал</h2>
+                  <div>
+                    {teams.map((t) => {
+                      const readyCount = t.roundState?.readySlots.length ?? 0;
+                      return (
+                        <figure key={t.id}>
+                          <div className="crew-readiness" role="img" aria-label={`Готовы ${readyCount} из 5`}>
+                            {[0, 1, 2, 3, 4].map((idx) => (
+                              <i key={idx} data-ready={Boolean(t.roundState?.readySlots.includes(idx))} />
+                            ))}
+                          </div>
+                          <figcaption>{t.name}</figcaption>
+                        </figure>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {teams.length > 0 && (
+                <section className="space-y-3">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <div>
+                      <h2 className="atlas-h2">Работа на занятии ({lexicon.currencyLabel})</h2>
+                      <p className="text-xs text-mu">
+                        Единственный источник валюты (испытания и полигон дают 0)
+                      </p>
+                    </div>
+                  </div>
+
+                  <section aria-label="Таблица оценки команд" tabIndex={0} className="atlas-table-region">
+                    <table>
+                      <thead>
+                        <tr className="border-b border-ln text-left text-sm font-bold text-fg">
+                          <th className="py-2.5 pr-3 pl-4">Команда</th>
+                          {(["Результат +2", "Замер +2"] as const).map((colLabel, colIdx) => (
+                            <th key={colLabel} className="px-2 py-2.5">
+                              <label className="inline-flex cursor-pointer items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={teams.every((t) => Boolean(fastChecks[t.id]?.[colIdx]))}
+                                  onChange={(e) => {
+                                    const checked = e.target.checked;
+                                    setFastChecks((prev) =>
+                                      Object.fromEntries(
+                                        teams.map((t) => {
+                                          const row: [boolean, boolean] = [...(prev[t.id] ?? [false, false])];
+                                          row[colIdx] = checked;
+                                          return [t.id, row];
+                                        }),
+                                      ),
+                                    );
+                                  }}
+                                />
+                                <span>{colLabel}</span>
+                              </label>
+                            </th>
+                          ))}
+                          <th className="py-2.5 pr-4 pl-2 text-right">Бюджет</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-ln text-sm">
+                        {teams.map((t) => {
+                          const rowChecks = fastChecks[t.id] ?? [false, false];
+                          const readySlots = t.roundState?.readySlots ?? [];
+                          return (
+                            <tr key={t.id}>
+                              <td className="py-2.5 pr-3 pl-4">
+                                <strong className="font-bold text-fg">{t.name}</strong>
+                                <div className="crew-readiness" aria-hidden="true">
+                                  {[0, 1, 2, 3, 4].map((slotIdx) => (
+                                    <i key={slotIdx} data-ready={readySlots.includes(slotIdx)} />
+                                  ))}
+                                </div>
+                              </td>
+                              {[0, 1].map((colIdx) => (
+                                <td key={colIdx} className="px-2 py-2.5">
+                                  <input
+                                    type="checkbox"
+                                    aria-label={`${t.name} ${colIdx === 0 ? "результат" : "замер"}`}
+                                    checked={Boolean(rowChecks[colIdx])}
+                                    onChange={() =>
+                                      setFastChecks((prev) => {
+                                        const nextRow: [boolean, boolean] = [
+                                          ...(prev[t.id] ?? [false, false]),
+                                        ];
+                                        nextRow[colIdx] = !nextRow[colIdx];
+                                        return { ...prev, [t.id]: nextRow };
+                                      })
+                                    }
+                                  />
+                                </td>
+                              ))}
+                              <td className="py-2.5 pr-4 pl-2 text-right font-mono font-bold text-fg tabular-nums">
+                                {t.currency}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </section>
+
+                  <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                    <button
+                      type="button"
+                      disabled={!hasAnyFastCheck}
+                      onClick={() => void handleFastBatchAward()}
+                      className="atlas-primary !w-auto"
+                    >
+                      Начислить отмеченным
+                    </button>
+
+                    {gameState.canUndoLastReward && (
+                      <button
+                        type="button"
+                        onClick={() => void run(() => undoRewardBatch())}
+                        className="atlas-quiet text-xs"
+                      >
+                        <Undo2 className="h-4 w-4" />
+                        <span>Отменить начисление</span>
+                      </button>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              <details className="border-t border-ln pt-3">
+                <summary className="cursor-pointer py-1.5 text-sm font-bold text-mu">
+                  Расширенные критерии, таймеры и ручной ход по треку
+                </summary>
+                <div className="mt-4 space-y-4">
+                  {teams.length > 0 && <RewardPanel teams={teams} template={template} run={run} />}
+                  <ShiftControls
+                    gameState={gameState}
+                    totalDays={template.totalDays}
+                    clockOffsetMs={clockOffsetMs}
+                    run={run}
+                  />
+                  {template.features.storyBriefings && (
+                    <BriefingEditor template={template} currentDay={gameState.currentDay} run={run} />
+                  )}
+                  <EventFeed feed={snapshot.feed} teams={teams} title="Журнал смены" />
+                </div>
+              </details>
+            </div>
+          )}
+
+          {tab === "cards" && <CardsStudioTab snapshot={snapshot} run={run} />}
+
+          {tab === "balance" && <MechanicsTab snapshot={snapshot} run={run} />}
+
+          {tab === "teams" && (
+            <div className="space-y-4">
+              <TeamsBoard
+                teams={teams}
+                members={snapshot.members}
+                template={template}
+                purchaseLimit={gameState.dailyPurchaseLimit}
+                run={run}
+              />
+              <TemplateSwitcher templates={snapshot.availableTemplates} activeId={template.id} run={run} />
+            </div>
+          )}
         </div>
       )}
 
@@ -126,8 +477,11 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run }: AdminConsoleP
         onClose={() => setWizardOpen(false)}
         templates={snapshot.availableTemplates}
         run={run}
-        onCreated={() => setTab("teams")}
+        onCreated={() => {
+          setStudioMode("live");
+          setTab("teams");
+        }}
       />
-    </div>
+    </article>
   );
 }

@@ -1,5 +1,5 @@
 import type { BalanceReport as BalanceReportData, LiveBalanceDashboard } from "@stem/shared";
-import { AlertTriangle, CheckCircle2, Sparkles, Wand2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, Wand2 } from "lucide-react";
 import { applyQuickFix } from "../../../features/control-shift/index.js";
 import type { RunAction } from "../../../shared/lib/index.js";
 import { Badge, ModuleCard } from "../../../shared/ui/index.js";
@@ -67,7 +67,7 @@ export function BalanceReport({
                         className={`mt-0.5 h-4 w-4 shrink-0 ${isCrit ? "text-neg" : "text-warn"}`}
                       />
                     ) : (
-                      <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-ac" />
+                      <Info className="mt-0.5 h-4 w-4 shrink-0 text-ac" />
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-fg">{alert.title}</p>

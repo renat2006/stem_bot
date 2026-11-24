@@ -113,10 +113,11 @@ if (playerBot) {
   configureBotDelivery(playerBot, {
     webhook: playerWebhook,
     polling: allowPolling,
-    menuButton: { text: "Открыть игру", url: config.webAppUrl },
+    menuButton: { text: "Полевой атлас", url: config.webAppUrl },
     commands: [
-      { command: "start", description: "Войти в игру смены" },
-      { command: "story", description: "Сюжетная сводка дня" },
+      { command: "start", description: "Войти в кабинет команды" },
+      { command: "story", description: "Задача и легенда дня" },
+      { command: "playground", description: "Полигон 3 мин (вне зачёта)" },
       { command: "faq", description: "Памятка по механикам" },
     ],
   }).catch((error) => {
@@ -130,9 +131,10 @@ if (adminBot) {
     polling: allowPolling,
     menuButton: { text: "Студия смены", url: config.adminWebAppUrl },
     commands: [
-      { command: "start", description: "Открыть пульт ведущего" },
-      { command: "wizard", description: "Конструктор новой смены" },
-      { command: "balance", description: "Советник баланса и динамики" },
+      { command: "start", description: "Пульт живого урока" },
+      { command: "pulse", description: "Пульс зала и готовность команд" },
+      { command: "wizard", description: "Конструктор смены за 4 шага" },
+      { command: "balance", description: "Советник баланса и Парето" },
     ],
   }).catch((error) => {
     console.error("Admin bot delivery setup failed", error);

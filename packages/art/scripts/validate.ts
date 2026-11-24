@@ -38,6 +38,16 @@ for (const template of DEFAULT_TEMPLATES) {
     continue;
   }
   let total = 0;
+  for (const layer of [
+    ...Object.values(pack.registeredPose ?? {}),
+    ...(pack.poseUnderlay ? [pack.poseUnderlay] : []),
+  ]) {
+    const path = new URL(layer.src, directory);
+    const bytes = (await stat(path)).size;
+    const meta = await sharp(path.pathname).metadata();
+    if (!meta.hasAlpha || bytes > 60000) errors.push(`Invalid pose layer: ${layer.src}`);
+    total += bytes;
+  }
   for (const [src, limits] of files) {
     try {
       const path = new URL(src, directory);

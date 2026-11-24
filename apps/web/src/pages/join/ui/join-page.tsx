@@ -1,52 +1,82 @@
-import { Sparkles } from "lucide-react";
+import { resolveLexicon } from "@stem/shared";
+import { Settings } from "lucide-react";
 import { PackIllustration } from "../../../entities/assembly/index.js";
 import type { GameSnapshot } from "../../../entities/game/index.js";
 import { JoinForm } from "../../../features/join-team/index.js";
 import type { RunAction } from "../../../shared/lib/index.js";
+import { Mark } from "../../../shared/ui/index.js";
 
-interface JoinPageProps {
+export function JoinPage({
+  snapshot,
+  run,
+  onJoined,
+  onOpenPlayground,
+  onOpenSettings,
+}: {
   snapshot: GameSnapshot;
   run: RunAction;
   onJoined: () => void;
-}
-
-export function JoinPage({ snapshot, run, onJoined }: JoinPageProps) {
+  onOpenPlayground?: () => void;
+  onOpenSettings?: () => void;
+}) {
   const { template, viewer } = snapshot;
-  const intro = template.dayBriefings.find((b) => b.day === 0) ?? template.dayBriefings[0] ?? undefined;
+  const lexicon = snapshot.lexicon ?? resolveLexicon(template);
 
   return (
-    <div className="space-y-4 pt-1">
-      <div className="overflow-hidden rounded-2xl border border-ln bg-sf">
+    <article className="atlas-player">
+      <header>
+        <span className="story-btn" aria-hidden="true">
+          <Mark kind="team" />
+        </span>
+        <span>Полевой атлас · {template.title}</span>
+        <div className="header-actions">
+          {template.features.offClassPlayground !== false && onOpenPlayground && (
+            <button
+              type="button"
+              aria-label="Полигон 3 минуты"
+              onClick={onOpenPlayground}
+              className="atlas-icon-btn"
+            >
+              <Mark kind="practice" />
+              <span>Тренировка</span>
+            </button>
+          )}
+          {onOpenSettings && (
+            <button
+              type="button"
+              aria-label="Настройки отображения"
+              onClick={onOpenSettings}
+              className="atlas-icon-btn"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </header>
+
+      <div className="overflow-hidden rounded-lg bg-sf2">
         <PackIllustration
           template={template}
           kind="hero"
-          label={template.title}
-          className="h-44 w-full object-cover"
+          label={lexicon.objectName}
+          className="h-48 w-full object-cover"
         />
-        <div className="space-y-2 p-4">
-          <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-medium tracking-[0.06em] uppercase text-ac">
-            <Sparkles className="h-3.5 w-3.5" />
-            {template.eventTag}
-          </span>
-          <h2 className="text-[22px] leading-tight font-semibold text-fg">{template.title}</h2>
-          <p className="text-xs leading-relaxed text-mu">{intro ? intro.story : template.theme}</p>
-        </div>
       </div>
 
-      {template.facts.length > 0 && (
-        <div className="grid grid-cols-3 gap-2">
-          {template.facts.map((fact) => (
-            <div key={fact.label} className="flex flex-col gap-1 rounded-xl border border-ln bg-sf p-3">
-              <span className="font-mono text-lg leading-none font-semibold text-fg">{fact.value}</span>
-              <span className="text-[11px] text-mu">{fact.label}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="rounded-2xl border border-ln bg-sf p-4">
-        <JoinForm defaultName={viewer.displayName} run={run} onJoined={onJoined} />
+      <div className="space-y-2">
+        <h1 className="atlas-h1">Вход в команду</h1>
+        <p className="atlas-lead">
+          Введите код стола с карточки ведущего. Первый вошедший становится капитаном и подтверждает покупки{" "}
+          {lexicon.currencyLabel.toLowerCase()}.
+        </p>
       </div>
-    </div>
+
+      <JoinForm
+        defaultName={viewer.displayName || ""}
+        devTeams={!viewer.isProduction ? snapshot.teams : undefined}
+        run={run}
+        onJoined={onJoined}
+      />
+    </article>
   );
 }

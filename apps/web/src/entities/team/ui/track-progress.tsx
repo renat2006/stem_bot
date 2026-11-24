@@ -56,8 +56,9 @@ export function TrackProgress({
 
       <div className="flex items-center justify-between font-mono text-xs text-mu">
         <span>{label}</span>
-        <span className="font-semibold text-fg">
-          клетка {position} {stepForecast > 0 ? `→ ${target}` : ""} из {max}
+        <span className="font-semibold text-fg tabular-nums">
+          клетка {position} из {max}
+          {stepForecast > 0 ? ` (+${target - position})` : ""}
         </span>
       </div>
     </div>

@@ -18,12 +18,18 @@ export function useLiveGame() {
     setState(next);
   }, []);
 
-  const applyRules = useCallback(
-    ({ rulesVersion, template, availableTemplates, balanceReport }: RulesPayload) => {
-      setRules({ rulesVersion, template, availableTemplates, balanceReport });
-    },
-    [],
-  );
+  const applyRules = useCallback((nextRules: RulesPayload) => {
+    setRules({
+      rulesVersion: nextRules.rulesVersion,
+      template: nextRules.template,
+      availableTemplates: nextRules.availableTemplates,
+      balanceReport: nextRules.balanceReport,
+      lexicon: nextRules.lexicon,
+      currentMissionDay: nextRules.currentMissionDay,
+      currentDiagnosisDay: nextRules.currentDiagnosisDay,
+      paretoCheck: nextRules.paretoCheck,
+    });
+  }, []);
 
   const applySnapshot = useCallback(
     (next: GameSnapshot) => {

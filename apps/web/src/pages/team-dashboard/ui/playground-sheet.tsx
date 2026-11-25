@@ -91,7 +91,7 @@ export function PlaygroundSheet({ open, onClose, template, onToast }: Playground
   };
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Полигон вне занятий · 3 минуты">
+    <BottomSheet open={open} onClose={onClose} title="Тренировка без зачёта · 3 минуты">
       <div className="space-y-4">
         <div className="flex items-center justify-between rounded-xl bg-sf2 px-3.5 py-2.5 text-xs font-bold text-fg">
           <span>Тренировка без зачёта</span>

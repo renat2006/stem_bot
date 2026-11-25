@@ -455,3 +455,22 @@ describe("Engine 3.0 mission, powerCircuit, diagnosis & Pareto validator", () =>
     expect(resolveLexicon(NEUROFAUNA_TEMPLATE).currencyUnit).toBe("ДНК");
   });
 });
+
+it("uses the physical cell and the highest matching hunt band", () => {
+  const template = NEUROFAUNA_TEMPLATE;
+  const cell = template.boardCells.find((c) => c.position === 4);
+  expect(cell?.label).toBe("Охота");
+  for (const [strength, track, currency] of [
+    [3, 0, 3],
+    [5, 2, 3],
+    [8, 3, 5],
+  ] as const) {
+    const result = resolveBoardTurn({
+      template,
+      team: makeTeam({ statModifiers: { strength } }),
+      cellOverride: cell,
+    });
+    expect(result.eventTrackDelta).toBe(track);
+    expect(result.currencyDelta).toBe(currency);
+  }
+});

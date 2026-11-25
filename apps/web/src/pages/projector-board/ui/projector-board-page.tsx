@@ -1,4 +1,10 @@
-import { resolveDayEngine, resolveLexicon, resolveMissionDay, TeamRoundStateSchema } from "@stem/shared";
+import {
+  resolveDayEngine,
+  resolveLexicon,
+  resolveMissionDay,
+  TeamRoundStateSchema,
+  usesPhysicalBoard,
+} from "@stem/shared";
 import { Award, Check, Circle, Flame } from "lucide-react";
 import { AssemblyStage, PartSticker } from "../../../entities/assembly/index.js";
 import { StatDeltaList } from "../../../entities/card/index.js";
@@ -29,6 +35,7 @@ export function ProjectorBoardPage({
   const roundMode = gameState.roundMode ?? "idle";
   const dayEngine = gameState.roundEngine ?? resolveDayEngine(template, gameState.currentDay);
 
+  const physical = usesPhysicalBoard(template, dayEngine);
   const ranked = [...teams].sort((a, b) => b.trackPosition - a.trackPosition);
   const secondsLeft = useCountdown(gameState.phaseEndsAt, clockOffsetMs);
   const openAuction = auctions.find((a) => a.status === "open");
@@ -149,11 +156,26 @@ export function ProjectorBoardPage({
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           <section className="space-y-4 lg:col-span-8">
+            {physical && (
+              <div className="hall-spiral-plate">
+                <h2 className="mb-2 text-2xl font-extrabold">Квадрат событий</h2>
+                <p className="mb-3 text-sm">
+                  Первая фишка показывает событие хода. Вторая показывает место на Спирали.
+                </p>
+                <SpiralBoard
+                  labels={template.boardCells.map((c) => c.label)}
+                  tokens={ranked.map((t) => ({ id: t.id, name: t.name, position: t.boardPosition }))}
+                  spiral={false}
+                />
+              </div>
+            )}
             <div className="hall-spiral-plate">
               <div className="mb-3 flex items-baseline justify-between">
                 <h2 className="text-2xl font-extrabold tracking-tight">
-                  {template.trackName} (
-                  {dayEngine === "diagnosis" ? lexicon.diagnosisLabel : lexicon.programLabel})
+                  {template.trackName}
+                  {!physical &&
+                    dayEngine !== "legacy_track" &&
+                    ` (${dayEngine === "diagnosis" ? lexicon.diagnosisLabel : lexicon.programLabel})`}
                 </h2>
                 <span className="font-mono text-xs font-bold tabular-nums">Финиш: {template.trackMax}</span>
               </div>

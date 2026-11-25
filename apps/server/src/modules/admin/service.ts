@@ -23,6 +23,7 @@ import {
   slugifyCardName,
   TeamRoundStateSchema,
   type TemplateLexicon,
+  usesPhysicalBoard,
   validateGeneratedMarket,
   validateParetoStrategies,
 } from "@stem/shared";
@@ -216,7 +217,10 @@ export function nextDay(options: MutationOptions) {
   });
 }
 
-export function applyTurn(options: MutationOptions, input?: { buyoffTeamIds?: string[] }) {
+export function applyTurn(
+  options: MutationOptions,
+  input?: { buyoffTeamIds?: string[]; boardPositions?: Record<string, number> },
+) {
   return mutateEvent(options, async (ctx) => {
     const day = ctx.event.currentDay;
     const [done] = await ctx.tx
@@ -235,19 +239,30 @@ export function applyTurn(options: MutationOptions, input?: { buyoffTeamIds?: st
     const template = normalizeTemplate(ctx.event.template);
     const rows = await ctx.tx.select().from(teams).where(eq(teams.eventId, ctx.event.id));
     const leaderPos = rows.reduce((max, r) => Math.max(max, r.trackPosition), 1);
+    const physical = usesPhysicalBoard(template, resolveDayEngine(template, day));
+    if (physical && ctx.event.currentPhase !== "turn")
+      throw new DomainError("Сначала закройте магазин и откройте ход на поле", 409);
+    if (physical && rows.length === 0) throw new DomainError("Добавьте команды перед ходом", 409);
     const buyoffSet = new Set(input?.buyoffTeamIds ?? []);
 
     for (const row of rows) {
+      const cell = physical
+        ? template.boardCells.find((c) => c.position === input?.boardPositions?.[row.id])
+        : undefined;
+      if (physical && !cell) throw new DomainError(`Укажите клетку команды «${row.name}»`, 400);
+      const team = toTeam(row, [], template, false);
       const outcome = resolveBoardTurn({
-        team: toTeam(row, [], template, false),
+        team,
+        cellOverride: cell?.type === "mutation" ? { ...cell, type: "start" } : cell,
         template,
         leaderTrackPosition: leaderPos,
-        useBuyoff: buyoffSet.has(row.id) || template.features.allowBuyoff,
+        useBuyoff: buyoffSet.has(row.id) || (!physical && template.features.allowBuyoff),
       });
 
       await ctx.tx
         .update(teams)
         .set({
+          boardPosition: cell?.position ?? row.boardPosition,
           trackPosition: outcome.nextTrackPosition,
           currency: outcome.nextCurrency,
         })
@@ -262,7 +277,10 @@ export function applyTurn(options: MutationOptions, input?: { buyoffTeamIds?: st
           from: row.trackPosition,
           to: outcome.nextTrackPosition,
           currencyDelta: outcome.currencyDelta,
-          summary: outcome.summary,
+          boardCell: cell?.label,
+          summary: cell
+            ? `${cell.label}: клетка ${cell.position}. Трек: ${row.trackPosition} → ${outcome.nextTrackPosition}. ${cell.type === "mutation" ? "Ведущий разыгрывает карточки мутации за столом." : outcome.summary}`
+            : outcome.summary,
         },
       });
       ctx.alert({

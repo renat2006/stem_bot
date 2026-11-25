@@ -133,13 +133,18 @@ export function resolveLexicon(template: GameTemplate): TemplateLexicon {
   };
 }
 
+export function usesPhysicalBoard(template: GameTemplate, engine: RoundEngineType): boolean {
+  return template.eventKey === "neurofauna" && engine === "legacy_track";
+}
+
 export function resolveDaySchedule(template: GameTemplate): DayScheduleItem[] {
   if (template.daySchedule && template.daySchedule.length > 0) {
     return template.daySchedule;
   }
   return Array.from({ length: template.totalDays }, (_, idx) => {
     const day = idx + 1;
-    const engine: RoundEngineType = day === 2 || day === 5 ? "diagnosis" : "mission";
+    const engine: RoundEngineType =
+      template.eventKey === "neurofauna" ? "legacy_track" : day === 2 || day === 5 ? "diagnosis" : "mission";
     return { day, engine };
   });
 }

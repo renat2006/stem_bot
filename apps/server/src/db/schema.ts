@@ -54,6 +54,7 @@ export const teams = pgTable(
     joinCode: text("join_code").notNull(),
     currency: integer("currency").notNull().default(0),
     heldCurrency: integer("held_currency").notNull().default(0),
+    boardPosition: integer("board_position").notNull().default(1),
     trackPosition: integer("track_position").notNull().default(1),
     purchasesToday: integer("purchases_today").notNull().default(0),
     equipped: jsonb("equipped").$type<Record<string, string | null>>().notNull().default({}),

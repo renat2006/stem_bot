@@ -2,6 +2,7 @@ import {
   type AuctionLot,
   analyzeLiveBalance,
   assignMemberLevers,
+  CLASSIC_EVENT_CELLS,
   calculateTeamStats,
   DEFAULT_TEMPLATES,
   defaultPowerCircuit,
@@ -35,7 +36,13 @@ export function isMarketOpen(event: Pick<EventRow, "currentPhase" | "phaseEndsAt
 
 export function normalizeTemplate(raw: GameTemplate): GameTemplate {
   const parsed = GameTemplateSchema.parse(raw);
-  return parsed.artPackId ? parsed : { ...parsed, artPackId: parsed.eventKey };
+  const boardCells =
+    parsed.eventKey === "neurofauna" &&
+    parsed.boardCells.length === 6 &&
+    parsed.boardCells[5]?.type === "apex"
+      ? CLASSIC_EVENT_CELLS
+      : parsed.boardCells;
+  return { ...parsed, boardCells, artPackId: parsed.artPackId ?? parsed.eventKey };
 }
 
 export function resolveEffectiveRoundMode(
@@ -71,7 +78,7 @@ export function toTeam(
     currency: row.currency,
     heldCurrency: row.heldCurrency ?? 0,
     trackPosition: row.trackPosition,
-    boardPosition: 1,
+    boardPosition: row.boardPosition,
     purchasesToday: row.purchasesToday,
     equippedCards,
     inventory: Array.isArray(row.inventory) ? row.inventory : [],

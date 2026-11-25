@@ -222,6 +222,7 @@ export const ExtraModuleSchema = z.object({
 });
 
 export const BoardCellSchema = z.object({
+  rewardBands: z.array(z.tuple([z.number().int(), z.number().int(), z.number().int()])).optional(),
   position: z.number().int().min(1),
   type: z.enum(["start", "mutation", "resource", "challenge", "catastrophe", "apex"]),
   label: z.string().min(1),

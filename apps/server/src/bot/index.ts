@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { timingSafeEqual } from "node:crypto";
 import { autoRetry } from "@grammyjs/auto-retry";
 import { apiThrottler } from "@grammyjs/transformer-throttler";
-import { resolveDayEngine, resolveLexicon } from "@stem/shared";
+import { resolveDayEngine, resolveLexicon, usesPhysicalBoard } from "@stem/shared";
 import { and, eq } from "drizzle-orm";
 import { Bot, InlineKeyboard } from "grammy";
 import type { Update } from "grammy/types";
@@ -114,8 +114,12 @@ export function createPlayerBot(token: string, webAppUrl: string): Bot {
     const lexicon = resolveLexicon(template);
     const intro = template.dayBriefings.find((b) => b.day === event.currentDay) ?? template.dayBriefings[0];
 
-    if (template.features.offClassPlayground !== false && !isPuzzle) {
-      keyboard.row().webApp("Полигон вне урока · 3 мин", `${baseUrl}/?playground=1`);
+    if (
+      template.features.offClassPlayground !== false &&
+      !isPuzzle &&
+      !usesPhysicalBoard(template, resolveDayEngine(template, event.currentDay))
+    ) {
+      keyboard.row().webApp("Тренировка без зачёта · 3 мин", `${baseUrl}/?playground=1`);
     }
 
     await ctx.reply(
@@ -150,9 +154,9 @@ export function createPlayerBot(token: string, webAppUrl: string): Bot {
 
   bot.command("playground", async (ctx) => {
     const baseUrl = webAppUrl.replace(/\/$/, "");
-    const keyboard = new InlineKeyboard().webApp("Открыть полигон · 3 мин", `${baseUrl}/?playground=1`);
+    const keyboard = new InlineKeyboard().webApp("Открыть тренировку · 3 мин", `${baseUrl}/?playground=1`);
     await ctx.reply(
-      "Тренировочный полигон (вне зачёта смены · 0 валюты):\n• Спаси заезд одной правкой\n• Приборная диагностика за 2 замера",
+      "Тренировка без зачёта. Баланс и место команды в смене не изменятся.\n• Спаси заезд одной правкой\n• Приборная диагностика за 2 замера",
       { reply_markup: keyboard },
     );
   });

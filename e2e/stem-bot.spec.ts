@@ -335,8 +335,8 @@ test.describe("STEM Bot Field Atlas + Engine 3.0 full lifecycle", () => {
     await crew2Page.setViewportSize({ width: 1280, height: 860 });
     await crew2Page.screenshot({ path: `${ARTIFACT_DIR}/atlas_prod_spread_desktop.png` });
     await crew2Page.setViewportSize({ width: 390, height: 844 });
-    await crew2Page.getByRole("button", { name: "Полигон 3 минуты" }).click();
-    await expect(crew2Page.getByRole("heading", { name: "Полигон вне занятий · 3 минуты" })).toBeVisible();
+    await crew2Page.getByRole("button", { name: "Тренировка без зачёта" }).click();
+    await expect(crew2Page.getByRole("heading", { name: "Тренировка без зачёта · 3 минуты" })).toBeVisible();
     await crew2Page.getByRole("button", { name: /Усилить .*B/ }).click();
     await expect(crew2Page.getByText(/Отлично! Правка увеличила результат/)).toBeVisible();
     await crew2Page.screenshot({ path: `${ARTIFACT_DIR}/atlas_prod_player_playground.png` });

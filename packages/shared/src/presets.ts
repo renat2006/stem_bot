@@ -1,5 +1,5 @@
 import { ROVER_SPRINT_TEMPLATE } from "./rover-preset.js";
-import { type CardRarity, type GameTemplate, GameTemplateSchema } from "./schema.js";
+import { BoardCellSchema, type CardRarity, type GameTemplate, GameTemplateSchema } from "./schema.js";
 
 function rarityForTier(tier: number): CardRarity {
   if (tier >= 5) return "legendary";
@@ -16,6 +16,68 @@ function buildPreset(raw: Record<string, unknown>): GameTemplate {
 }
 
 export { ROVER_SPRINT_TEMPLATE };
+
+const classicCells = {
+  start: { type: "start", label: "Старт" },
+  mutation: { type: "mutation", label: "Мутация" },
+  resource: { type: "resource", label: "Ресурс", rewardCurrency: 5 },
+  hunt: {
+    type: "challenge",
+    label: "Охота",
+    statId: "strength",
+    minStat: 3,
+    rewardBands: [
+      [3, 0, 3],
+      [5, 2, 3],
+      [8, 3, 5],
+    ],
+    buyoffCost: 5,
+  },
+  disaster: {
+    type: "catastrophe",
+    label: "Катастрофа",
+    statId: "survival",
+    minStat: 3,
+    rewardBands: [
+      [3, 1, 0],
+      [6, 2, 3],
+      [8, 3, 5],
+    ],
+    buyoffCost: 5,
+  },
+  predator: {
+    type: "challenge",
+    label: "Хищник",
+    statId: "speed",
+    minStat: 5,
+    rewardBands: [
+      [5, 1, 3],
+      [8, 2, 5],
+    ],
+    buyoffCost: 5,
+  },
+  bigMutation: { type: "mutation", label: "Большая мутация" },
+};
+export const CLASSIC_EVENT_CELLS = (
+  [
+    "start",
+    "mutation",
+    "resource",
+    "hunt",
+    "disaster",
+    "predator",
+    "mutation",
+    "resource",
+    "hunt",
+    "predator",
+    "disaster",
+    "resource",
+    "hunt",
+    "predator",
+    "disaster",
+    "bigMutation",
+  ] as const
+).map((type, i) => BoardCellSchema.parse({ ...classicCells[type], position: i + 1 }));
 
 export const NEUROFAUNA_TEMPLATE: GameTemplate = buildPreset({
   id: "neurofauna-classic",
@@ -337,14 +399,7 @@ export const NEUROFAUNA_TEMPLATE: GameTemplate = buildPreset({
       stepBonus: 2,
     },
   ],
-  boardCells: [
-    { position: 1, type: "start", label: "Старт" },
-    { position: 2, type: "mutation", label: "Мутация" },
-    { position: 3, type: "resource", label: "Ресурс" },
-    { position: 4, type: "challenge", label: "Охота", buyoffCost: 5 },
-    { position: 5, type: "catastrophe", label: "Катастрофа", buyoffCost: 5 },
-    { position: 6, type: "apex", label: "Хищник", buyoffCost: 5 },
-  ],
+  boardCells: CLASSIC_EVENT_CELLS,
   extraModule: {
     tag: "Поле событий",
     moduleLabel: "ПОЛЕ СОБЫТИЙ + DLC «ПРИРОДА»",

@@ -390,7 +390,7 @@ describe("dual telegram bots (playerBot & adminBot)", () => {
     expect(sent[sent.length - 1]?.text).toContain("Индекс баланса");
 
     await playerBot.handleUpdate(makeCmd(6, 101, "/playground"));
-    expect(sent[sent.length - 1]?.text).toContain("0 валюты");
+    expect(sent[sent.length - 1]?.text).toContain("Баланс и место команды в смене не изменятся");
 
     await adminBot.handleUpdate(makeCmd(7, 1, "/pulse"));
     expect(sent[sent.length - 1]?.text).toContain("Пульс зала");

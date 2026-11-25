@@ -535,8 +535,9 @@ export function resolveBoardTurn(params: {
   const buyoffCost = targetCell.buyoffCost ?? template.extraModule?.buyoffCost ?? 2;
 
   if (currentStat >= minRequired) {
-    const bonusTrack = targetCell.rewardTrack || (targetCell.type === "challenge" ? 1 : 0);
-    const bonusCurrency = targetCell.rewardCurrency || 0;
+    const band = targetCell.rewardBands?.filter(([min]) => currentStat >= min).sort((a, b) => b[0] - a[0])[0];
+    const bonusTrack = band?.[1] ?? (targetCell.rewardTrack || (targetCell.type === "challenge" ? 1 : 0));
+    const bonusCurrency = band?.[2] ?? targetCell.rewardCurrency;
     eventTrackDelta += bonusTrack;
     currencyDelta += bonusCurrency;
     const finalTrack = Math.min(template.trackMax, Math.max(1, landedPos + eventTrackDelta));

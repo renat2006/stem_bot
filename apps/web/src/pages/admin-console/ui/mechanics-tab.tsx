@@ -28,7 +28,7 @@ const FLAG_META: Array<{ key: BooleanFeatureKey; label: string; description: str
   },
   {
     key: "offClassPlayground",
-    label: "Полигон вне занятий · 3 мин (Ядро 3.0)",
+    label: "Тренировка без зачёта · 3 мин (Ядро 3.0)",
     description: "Короткие задачи одной правки и диагностики без влияния на учебную валюту смены",
   },
   {

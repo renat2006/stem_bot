@@ -88,7 +88,7 @@ export function ShiftControls({ gameState, totalDays, clockOffsetMs, run }: Shif
             variant="primary"
             className="w-full"
             confirmLabel="Подтвердить: сдвинуть все команды"
-            onConfirm={() => run(() => applyTurn())}
+            onConfirm={() => run(() => applyTurn(gameState.currentDay))}
           >
             Применить шаг по треку ко всем командам
           </ConfirmButton>
@@ -99,7 +99,7 @@ export function ShiftControls({ gameState, totalDays, clockOffsetMs, run }: Shif
             variant="primary"
             className="w-full"
             confirmLabel={`Подтвердить переход к дню ${gameState.currentDay + 1}`}
-            onConfirm={() => run(() => nextDay())}
+            onConfirm={() => run(() => nextDay(gameState.currentDay))}
           >
             {gameState.currentDay < totalDays ? `Начать день ${gameState.currentDay + 1}` : "Смена завершена"}
           </ConfirmButton>

@@ -36,6 +36,18 @@ function attachBotRuntime(bot: Bot, token: string, defaultUsername: string) {
     supports_join_request_queries: false,
   };
 
+  bot.api.config.use(
+    autoRetry({
+      maxRetryAttempts: 1,
+      maxDelaySeconds: 5,
+    }),
+  );
+  bot.api.config.use(
+    apiThrottler({
+      global: { reservoir: 28, reservoirRefreshAmount: 28, reservoirRefreshInterval: 1000 },
+      out: { maxConcurrent: 1, minTime: 1000 },
+    }),
+  );
   bot.api.config.use(async (prev, method, payload, signal) => {
     const store = webhookReplyStore.getStore();
     if (
@@ -49,19 +61,6 @@ function attachBotRuntime(bot: Bot, token: string, defaultUsername: string) {
     }
     return prev(method, payload, signal);
   });
-
-  bot.api.config.use(
-    apiThrottler({
-      global: { reservoir: 28, reservoirRefreshAmount: 28, reservoirRefreshInterval: 1000 },
-      out: { maxConcurrent: 1, minTime: 1000 },
-    }),
-  );
-  bot.api.config.use(
-    autoRetry({
-      maxRetryAttempts: 1,
-      maxDelaySeconds: 5,
-    }),
-  );
 }
 
 function secretsEqual(a: string, b: string): boolean {
@@ -89,9 +88,13 @@ export function createBotWebhookHandler(bot: Bot, secretToken: string) {
   };
 }
 
-export function createPlayerBot(token: string, webAppUrl: string): Bot {
+export function createPlayerBot(
+  token: string,
+  webAppUrl: string,
+  apiRoot: string = config.TELEGRAM_API_ROOT,
+): Bot {
   const bot = new Bot(token, {
-    client: { apiRoot: config.TELEGRAM_API_ROOT, timeoutSeconds: 10 },
+    client: { apiRoot, timeoutSeconds: 10 },
   });
   attachBotRuntime(bot, token, "stem_player_bot");
   registerPlayerHandlers(bot, webAppUrl);
@@ -104,9 +107,14 @@ export function createPlayerBot(token: string, webAppUrl: string): Bot {
   return bot;
 }
 
-export function createAdminBot(token: string, adminWebAppUrl: string, adminIds: ReadonlySet<number>): Bot {
+export function createAdminBot(
+  token: string,
+  adminWebAppUrl: string,
+  adminIds: ReadonlySet<number>,
+  apiRoot: string = config.TELEGRAM_API_ROOT,
+): Bot {
   const bot = new Bot(token, {
-    client: { apiRoot: config.TELEGRAM_API_ROOT, timeoutSeconds: 10 },
+    client: { apiRoot, timeoutSeconds: 10 },
   });
   attachBotRuntime(bot, token, "stem_admin_bot");
   registerAdminHandlers(bot, adminWebAppUrl, adminIds);

@@ -114,7 +114,7 @@ export function ModuleCard({
   children: ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-2xl border border-ln bg-sf">
+    <section className="module-card overflow-hidden rounded-2xl border border-ln bg-sf">
       <header className="flex min-h-[44px] items-center gap-2 border-b border-ln py-2 pr-2.5 pl-4">
         <span className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-ac" />
         <h3 className="text-[15px] font-semibold text-fg">{title}</h3>

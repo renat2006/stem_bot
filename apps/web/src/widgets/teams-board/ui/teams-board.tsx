@@ -50,7 +50,7 @@ export function TeamsBoard({ teams, members, template, purchaseLimit, run }: Tea
           <CreateTeamForm run={run} />
           <ul className="space-y-3">
             {ranked.map((team, index) => (
-              <li key={team.id} className="rounded-xl border border-ln bg-sf2 p-3.5">
+              <li key={team.id} className="border-b border-ln py-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex min-w-0 items-center gap-2.5">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ac font-mono text-sm font-semibold text-acfg">
@@ -104,27 +104,30 @@ export function TeamsBoard({ teams, members, template, purchaseLimit, run }: Tea
                   </div>
                 </div>
 
-                <div className="mt-2 flex flex-wrap items-center gap-3 rounded-lg bg-sf px-3 py-2">
-                  {template.stats.map((stat) => (
-                    <span key={stat.id} className="flex items-center gap-1.5 text-xs text-mu">
-                      <StatGlyph shape={stat.shape} color={stat.color} size={10} />
-                      <span>{stat.label}:</span>
-                      <span className="font-mono font-semibold text-fg">
-                        {formatStatValue(team.computedStats.total[stat.id] ?? 0)}
+                <details>
+                  <summary className="cursor-pointer py-3 text-sm font-semibold">Состав и управление</summary>
+                  <div className="mt-2 flex flex-wrap items-center gap-3 rounded-lg bg-sf px-3 py-2">
+                    {template.stats.map((stat) => (
+                      <span key={stat.id} className="flex items-center gap-1.5 text-xs text-mu">
+                        <StatGlyph shape={stat.shape} color={stat.color} size={10} />
+                        <span>{stat.label}:</span>
+                        <span className="font-mono font-semibold text-fg">
+                          {formatStatValue(team.computedStats.total[stat.id] ?? 0)}
+                        </span>
                       </span>
-                    </span>
-                  ))}
-                </div>
+                    ))}
+                  </div>
 
-                <div className="mt-3 flex justify-center">
-                  <AssemblyStage
-                    template={template}
-                    equipped={team.equippedCards}
-                    size="card"
-                    teamName={team.name}
-                  />
-                </div>
-                <TeamAdminActions teamId={team.id} members={members[team.id] ?? []} run={run} />
+                  <div className="mt-3 flex justify-center">
+                    <AssemblyStage
+                      template={template}
+                      equipped={team.equippedCards}
+                      size="card"
+                      teamName={team.name}
+                    />
+                  </div>
+                  <TeamAdminActions teamId={team.id} members={members[team.id] ?? []} run={run} />
+                </details>
               </li>
             ))}
           </ul>

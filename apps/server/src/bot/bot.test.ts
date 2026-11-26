@@ -200,28 +200,75 @@ describe("bot UX, feedback callbacks, and admin-to-player messaging", () => {
   });
 
   it("does not hijack playerBot sendMessage into adminBot webhookReplyStore during adm:msg:send", async () => {
+    const { createServer } = await import("node:http");
     const { Hono } = await import("hono");
     const secret = "test-webhook-secret-token-1234567890";
-    const app = new Hono();
-    app.post("/admin", createBotWebhookHandler(adminBot, secret));
+    const playerSent: Array<Record<string, unknown>> = [];
 
-    await adminBot.handleUpdate(makeCommand(40, 1, "/msg Проверка через вебхук"));
-    calls.length = 0;
-
-    const res = await app.request("/admin", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-telegram-bot-api-secret-token": secret,
-      },
-      body: JSON.stringify(makeCallback(41, 1, "adm:msg:send")),
+    const mockApi = createServer((req, res) => {
+      const chunks: Buffer[] = [];
+      req.on("data", (c: Buffer) => chunks.push(c));
+      req.on("end", () => {
+        const raw = Buffer.concat(chunks).toString("utf8");
+        const body = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+        if (req.url?.includes("123456:ABC") && req.url.endsWith("/sendMessage")) {
+          playerSent.push(body);
+        }
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ ok: true, result: true }));
+      });
     });
+    await new Promise<void>((resolve) => mockApi.listen(0, "127.0.0.1", resolve));
+    const addr = mockApi.address();
+    const port = typeof addr === "object" && addr ? addr.port : 0;
+    const mockApiRoot = `http://127.0.0.1:${port}`;
 
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { method?: string };
-    expect(body.method).toBe("answerCallbackQuery");
+    const freshPlayer = createPlayerBot(
+      "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+      "https://stem-bot.renat.site",
+      mockApiRoot,
+    );
+    const freshAdmin = createAdminBot(
+      "654321:XYZ-DEF1234ghIkl-zyx57W2v1u123ew22",
+      "https://stem-bot.renat.site/?surface=admin",
+      new Set([1]),
+      mockApiRoot,
+    );
+    const prevAlerts = runtime().alerts;
 
-    const deliveredToPlayers = calls.filter((c) => c.bot === "player" && c.method === "sendMessage");
-    expect(deliveredToPlayers).toHaveLength(2);
+    try {
+      setRuntime({
+        ...runtime(),
+        alerts: createAlertService({
+          playerBot: freshPlayer,
+          adminBot: freshAdmin,
+          adminIds: new Set([1]),
+          webAppUrl: "https://stem-bot.renat.site",
+          adminWebAppUrl: "https://stem-bot.renat.site/?surface=admin",
+        }),
+      });
+
+      const app = new Hono();
+      app.post("/admin", createBotWebhookHandler(freshAdmin, secret));
+
+      await freshAdmin.handleUpdate(makeCommand(40, 1, "/msg Проверка через вебхук"));
+
+      const res = await app.request("/admin", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-telegram-bot-api-secret-token": secret,
+        },
+        body: JSON.stringify(makeCallback(41, 1, "adm:msg:send")),
+      });
+
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { method?: string };
+      expect(body.method).toBe("answerCallbackQuery");
+      expect(playerSent).toHaveLength(2);
+    } finally {
+      setRuntime({ ...runtime(), alerts: prevAlerts });
+      await new Promise<void>((resolve) => mockApi.close(() => resolve()));
+    }
   });
 });

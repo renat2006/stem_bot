@@ -71,8 +71,10 @@ const ResetInput = z.object({
   templateId: z.string().min(1).optional(),
   demoTeams: z.boolean().default(false),
 });
+const ExpectedDay = z.number().int().positive().optional();
 const TurnInput = z
   .object({
+    expectedDay: ExpectedDay,
     buyoffTeamIds: z.array(z.string()).optional(),
     boardPositions: z.record(z.string(), z.number().int().positive()).optional(),
   })
@@ -191,9 +193,9 @@ export const adminRouter = new Hono<AppEnv>()
     await updateSettings(options, c.req.valid("json"));
     return stateResponse(c, options.eventId);
   })
-  .post("/next-day", async (c) => {
+  .post("/next-day", validateJson(z.object({ expectedDay: ExpectedDay })), async (c) => {
     const options = await mutationOptions(c);
-    await nextDay(options);
+    await nextDay(options, c.req.valid("json").expectedDay);
     return stateResponse(c, options.eventId);
   })
   .post("/apply-turn", async (c) => {

@@ -27,7 +27,7 @@ import {
   validateGeneratedMarket,
   validateParetoStrategies,
 } from "@stem/shared";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, sql } from "drizzle-orm";
 import { formatBroadcastHtml } from "../../bot/format.js";
 import {
   auctions,
@@ -168,9 +168,11 @@ export function updateSettings(options: MutationOptions, input: { purchaseLimit:
   });
 }
 
-export function nextDay(options: MutationOptions) {
+export function nextDay(options: MutationOptions, expectedDay?: number) {
   return mutateEvent(options, async (ctx) => {
     const template = normalizeTemplate(ctx.event.template);
+    if (expectedDay !== undefined && expectedDay !== ctx.event.currentDay)
+      throw new DomainError("День уже сменился. Проверьте текущий этап.", 409);
     const day = ctx.event.currentDay + 1;
     if (day > template.totalDays) throw new DomainError("Это был финальный день смены");
     await ctx.tx
@@ -228,10 +230,18 @@ export function nextDay(options: MutationOptions) {
 
 export function applyTurn(
   options: MutationOptions,
-  input?: { buyoffTeamIds?: string[]; boardPositions?: Record<string, number> },
+  input?: { expectedDay?: number; buyoffTeamIds?: string[]; boardPositions?: Record<string, number> },
 ) {
   return mutateEvent(options, async (ctx) => {
     const day = ctx.event.currentDay;
+    if (input?.expectedDay !== undefined && input.expectedDay !== day)
+      throw new DomainError("День уже сменился. Проверьте текущий этап.", 409);
+    const [shiftStart] = await ctx.tx
+      .select({ version: ledger.version })
+      .from(ledger)
+      .where(and(eq(ledger.eventId, ctx.event.id), inArray(ledger.kind, ["shift-created", "reset"])))
+      .orderBy(desc(ledger.id))
+      .limit(1);
     const [done] = await ctx.tx
       .select({ id: ledger.id })
       .from(ledger)
@@ -239,11 +249,21 @@ export function applyTurn(
         and(
           eq(ledger.eventId, ctx.event.id),
           eq(ledger.kind, "step"),
+          gt(ledger.version, shiftStart?.version ?? 0),
           sql`${ledger.data}->>'day' = ${String(day)}`,
         ),
       )
       .limit(1);
-    if (done) throw new DomainError(`Выезд дня ${day} уже проведён`, 409);
+    if (done) {
+      if (ctx.event.currentPhase === "turn") {
+        await ctx.tx
+          .update(events)
+          .set({ currentPhase: "summary", phaseEndsAt: null })
+          .where(eq(events.id, ctx.event.id));
+        ctx.log({ kind: "phase", data: { phase: "summary" } });
+      }
+      return { teams: 0 };
+    }
 
     const template = normalizeTemplate(ctx.event.template);
     const rows = await ctx.tx.select().from(teams).where(eq(teams.eventId, ctx.event.id));

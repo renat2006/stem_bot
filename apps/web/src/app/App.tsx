@@ -89,7 +89,7 @@ export function App() {
 function LiveApp() {
   const surfaceQuery = getSurfaceQuery();
   const { hapticSuccess, hapticError } = useTelegram();
-  const { snapshot, clockOffsetMs, error, setError, applyState, applySnapshot } = useLiveGame(
+  const { snapshot, clockOffsetMs, error, setError, applyState, applySnapshot, refresh } = useLiveGame(
     surfaceQuery === "projector",
   );
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -170,6 +170,7 @@ function LiveApp() {
       const message = err instanceof Error ? err.message : "Ошибка операции";
       setError(message);
       sonnerToast.error(message);
+      void refresh().catch(() => {});
       return false;
     }
   };

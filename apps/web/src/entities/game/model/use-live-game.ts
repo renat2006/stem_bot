@@ -34,6 +34,7 @@ export function useLiveGame(projectorMode = false) {
 
   const applySnapshot = useCallback(
     (next: GameSnapshot) => {
+      if (next.version < versionRef.current) return;
       versionRef.current = next.version;
       applyRules(next);
       setState(next);

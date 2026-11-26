@@ -1,5 +1,5 @@
 import { type GameSnapshot, type LiveState, resolveLexicon, resolveMissionDay } from "@stem/shared";
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { Component, lazy, type ReactNode, Suspense, useCallback, useEffect, useState } from "react";
 import { toast as sonnerToast, Toaster } from "sonner";
 import { PackIllustration } from "../entities/assembly/index.js";
 import { useLiveGame } from "../entities/game/index.js";
@@ -45,6 +45,31 @@ function isLiveState(value: unknown): value is LiveState {
   return typeof value === "object" && value !== null && "version" in value && "gameState" in value;
 }
 
+class AppErrorBoundary extends Component<{ children: ReactNode }, { message: string | null }> {
+  override state: { message: string | null } = { message: null };
+
+  static getDerivedStateFromError(error: unknown) {
+    return { message: error instanceof Error ? error.message : "Ошибка интерфейса" };
+  }
+
+  override render() {
+    if (this.state.message) {
+      return (
+        <div className="flex min-h-[var(--tg-viewport-stable-height,100dvh)] items-center justify-center p-6">
+          <div className="w-full max-w-md space-y-4 rounded-2xl border border-ln bg-sf p-6 text-center">
+            <h1 className="atlas-h2">Не удалось отобразить экран</h1>
+            <p className="text-sm text-mu">{this.state.message}</p>
+            <button type="button" onClick={() => window.location.reload()} className="atlas-primary">
+              Обновить страницу
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export function App() {
   const isDesignLab = hasDesignLabQuery();
   if (isDesignLab) {
@@ -54,18 +79,24 @@ export function App() {
       </Suspense>
     );
   }
-  return <LiveApp />;
+  return (
+    <AppErrorBoundary>
+      <LiveApp />
+    </AppErrorBoundary>
+  );
 }
 
 function LiveApp() {
+  const surfaceQuery = getSurfaceQuery();
   const { hapticSuccess, hapticError } = useTelegram();
-  const { snapshot, clockOffsetMs, error, setError, applyState, applySnapshot } = useLiveGame();
+  const { snapshot, clockOffsetMs, error, setError, applyState, applySnapshot } = useLiveGame(
+    surfaceQuery === "projector",
+  );
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [loreOpen, setLoreOpen] = useState(false);
   const [playgroundOpen, setPlaygroundOpen] = useState(hasPlaygroundQuery);
 
   const eventKey = snapshot?.template.eventKey ?? "rovers";
-  const surfaceQuery = getSurfaceQuery();
 
   useEffect(() => {
     syncPreferencesToDom();
@@ -82,9 +113,38 @@ function LiveApp() {
   const handleOpenPlayground = useCallback(() => setPlaygroundOpen(true), []);
 
   if (!snapshot) {
+    if (error) {
+      const openProjectorBoard = () => {
+        const url = new URL("/", window.location.origin);
+        url.searchParams.set("view", "projector");
+        window.location.assign(url.toString());
+      };
+      return (
+        <div className="flex min-h-[var(--tg-viewport-stable-height,100dvh)] items-center justify-center p-6">
+          <div className="w-full max-w-md space-y-4 rounded-2xl border border-ln bg-sf p-6 text-center shadow-sm">
+            <div className="mx-auto flex w-fit items-center gap-2 text-sm font-extrabold text-fg">
+              <Mark kind="team" />
+              <span>Полевой атлас</span>
+            </div>
+            <h1 className="atlas-h2">Откройте кабинет из Telegram</h1>
+            <p className="text-sm text-mu">{error}</p>
+            <div className="flex flex-col gap-2 pt-1">
+              {surfaceQuery !== "projector" && (
+                <button type="button" onClick={openProjectorBoard} className="atlas-primary">
+                  Открыть табло и поле 16:9
+                </button>
+              )}
+              <button type="button" onClick={() => window.location.reload()} className="atlas-quiet w-full">
+                Повторить
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
-      <div className="flex min-h-[var(--tg-viewport-stable-height,100dvh)] items-center justify-center p-4 text-center text-sm text-mu">
-        {error ?? "Загрузка Полевого атласа…"}
+      <div className="flex min-h-[var(--tg-viewport-stable-height,100dvh)] items-center justify-center p-4 text-center text-sm font-medium text-fg">
+        Загрузка Полевого атласа…
       </div>
     );
   }

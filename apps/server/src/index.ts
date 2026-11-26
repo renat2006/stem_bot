@@ -21,6 +21,7 @@ import { attachRealtime } from "./realtime/ws-server.js";
 import type { AppEnv } from "./shared/app-env.js";
 import { config } from "./shared/config.js";
 import { DomainError } from "./shared/errors.js";
+import { snapshotResponse } from "./shared/route-context.js";
 import { runtime, setRuntime } from "./shared/runtime.js";
 import { identityMiddleware } from "./shared/telegram-auth.js";
 
@@ -69,6 +70,7 @@ app.get("/api/health", (c) =>
   }),
 );
 
+app.get("/api/game/public", (c) => snapshotResponse(c));
 app.use("/api/*", identityMiddleware);
 app.route("/api/game", gameRouter);
 app.route("/api/team", teamRouter);

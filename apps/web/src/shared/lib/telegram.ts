@@ -70,31 +70,38 @@ export function initTelegramSdk() {
   if (initialized) return;
   initialized = true;
 
-  init();
-  if (themeParams.mount.isAvailable()) {
-    themeParams.mount();
-    if (themeParams.bindCssVars.isAvailable()) themeParams.bindCssVars();
+  try {
+    init();
+    if (themeParams.mount.isAvailable()) {
+      themeParams.mount();
+      if (themeParams.bindCssVars.isAvailable()) themeParams.bindCssVars();
+    }
+    if (miniApp.mount.isAvailable()) {
+      miniApp.mount();
+      if (miniApp.bindCssVars.isAvailable()) miniApp.bindCssVars();
+    }
+    if (backButton.mount.isAvailable()) {
+      backButton.mount();
+    }
+    if (viewport.mount.isAvailable()) {
+      void viewport
+        .mount()
+        .then(() => {
+          if (viewport.expand.isAvailable()) viewport.expand();
+          if (viewport.bindCssVars.isAvailable()) viewport.bindCssVars();
+        })
+        .catch(() => {});
+    }
+    if (swipeBehavior.mount.isAvailable()) {
+      swipeBehavior.mount();
+      if (swipeBehavior.disableVertical.isAvailable()) swipeBehavior.disableVertical();
+    }
+    initData.restore();
+    applyThemeAppearance(detectInitialTheme());
+    if (miniApp.ready.isAvailable()) miniApp.ready();
+  } catch {
+    applyThemeAppearance(detectInitialTheme());
   }
-  if (miniApp.mount.isAvailable()) {
-    miniApp.mount();
-    if (miniApp.bindCssVars.isAvailable()) miniApp.bindCssVars();
-  }
-  if (backButton.mount.isAvailable()) {
-    backButton.mount();
-  }
-  if (viewport.mount.isAvailable()) {
-    void viewport.mount().then(() => {
-      if (viewport.expand.isAvailable()) viewport.expand();
-      if (viewport.bindCssVars.isAvailable()) viewport.bindCssVars();
-    });
-  }
-  if (swipeBehavior.mount.isAvailable()) {
-    swipeBehavior.mount();
-    if (swipeBehavior.disableVertical.isAvailable()) swipeBehavior.disableVertical();
-  }
-  initData.restore();
-  applyThemeAppearance(detectInitialTheme());
-  if (miniApp.ready.isAvailable()) miniApp.ready();
 }
 
 export function useTelegramBackButton(visible: boolean, onBack: () => void) {
@@ -132,10 +139,18 @@ function notify(type: "success" | "error" | "warning") {
   }
 }
 
+function safeInitDataUser() {
+  try {
+    return initData.user();
+  } catch {
+    return undefined;
+  }
+}
+
 export function useTelegram() {
   return {
     isTelegram: isTMA(),
-    user: initData.user(),
+    user: safeInitDataUser(),
     hapticSuccess: () => notify("success"),
     hapticError: () => notify("error"),
     hapticTap: () => {

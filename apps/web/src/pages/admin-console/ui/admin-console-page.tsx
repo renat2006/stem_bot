@@ -87,8 +87,10 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
   const maxPhones = Math.max(5, teams.length * 5);
 
   const openProjector = () => {
-    const url = new URL(window.location.href);
+    const url = new URL("/", window.location.origin);
     url.searchParams.set("view", "projector");
+    const devAs = new URLSearchParams(window.location.search).get("as");
+    if (!snapshot.viewer.isProduction && devAs) url.searchParams.set("as", devAs);
     window.open(url.toString(), "_blank", "noopener");
   };
 

@@ -5,6 +5,10 @@
 
 ## [Unreleased]
 
+### Fixed (2026-11-26) — устранено зависание «Написать командам» и доставки в клиентский бот
+- **Релей Telegram Bot API (`deploy/compose.yml`, `.github/workflows/deploy.yml`)**: `TELEGRAM_API_ROOT` переведён на локальный SSH-туннель `http://tg-relay:18499` (`tg-relay:host-gateway` → `stem-tg-relay.service` на RU-origin → SE-1 Caddy `127.0.0.1:18499` → `https://api.telegram.org`), обходя блокировку исходящего `:443` с RU-хостинга.
+- **Изоляция `webhookReplyStore` (`apps/server/src/bot/index.ts`, `bot.test.ts`)**: перехват ответа вебхука привязан к конкретному экземпляру бота (`store.bot === bot`), чтобы отправка через `playerBot.api.sendMessage` внутри коллбэка `adminBot` (`adm:msg:send`) не перехватывалась как ответ вебхука админ-бота; сокращены таймауты (`timeoutSeconds: 10`, `maxRetryAttempts: 1`).
+
 ### Added (2026-11-26) — Интерактивный веб-гайд для команды (`/guide`) и печатный A4 PDF
 - **Публичная интерактивная страница гайда (`apps/web/src/pages/team-guide/`, `app/App.tsx`, `pages/admin-console/ui/admin-console-page.tsx`)**:
   - Добавлен маршрут `/guide` (и `/?view=guide`), открывающийся в любом браузере без Telegram `initData`, а также ссылки на гайд с посадочного экрана и из меню инструментов Студии ведущего.

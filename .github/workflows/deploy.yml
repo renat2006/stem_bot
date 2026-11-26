@@ -169,7 +169,7 @@ jobs:
             echo "NODE_ENV=production"
             echo "PUBLIC_URL=$PUBLIC_URL"
             echo "WEBAPP_URL=$PUBLIC_URL"
-            echo "TELEGRAM_API_ROOT=https://hype.renat.site/_tg_bot_relay"
+            echo "TELEGRAM_API_ROOT=http://tg-relay:18499"
             echo "WEBHOOK_PUBLIC_URL=https://hype.renat.site"
             echo "APP_DOMAINS=$APP_DOMAINS"
             echo "BOT_TOKEN=$BOT_TOKEN"

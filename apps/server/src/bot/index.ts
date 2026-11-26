@@ -13,7 +13,10 @@ import { registerAdminHandlers } from "./admin.js";
 import { withUrlQuery } from "./format.js";
 import { registerPlayerHandlers } from "./player.js";
 
-const webhookReplyStore = new AsyncLocalStorage<{ payload: Record<string, unknown> | null }>();
+const webhookReplyStore = new AsyncLocalStorage<{
+  bot: Bot;
+  payload: Record<string, unknown> | null;
+}>();
 
 function attachBotRuntime(bot: Bot, token: string, defaultUsername: string) {
   const botId = Number(token.split(":")[0]) || 1;
@@ -35,7 +38,12 @@ function attachBotRuntime(bot: Bot, token: string, defaultUsername: string) {
 
   bot.api.config.use(async (prev, method, payload, signal) => {
     const store = webhookReplyStore.getStore();
-    if (store && !store.payload && (method === "sendMessage" || method === "answerCallbackQuery")) {
+    if (
+      store &&
+      store.bot === bot &&
+      !store.payload &&
+      (method === "sendMessage" || method === "answerCallbackQuery")
+    ) {
       store.payload = { method, ...(payload as Record<string, unknown>) };
       return { ok: true, result: true as never };
     }
@@ -50,8 +58,8 @@ function attachBotRuntime(bot: Bot, token: string, defaultUsername: string) {
   );
   bot.api.config.use(
     autoRetry({
-      maxRetryAttempts: 2,
-      maxDelaySeconds: 15,
+      maxRetryAttempts: 1,
+      maxDelaySeconds: 5,
     }),
   );
 }
@@ -72,7 +80,7 @@ export function createBotWebhookHandler(bot: Bot, secretToken: string) {
     if (!update || typeof update.update_id !== "number") {
       return c.json({ error: "Invalid update" }, 400);
     }
-    const store: { payload: Record<string, unknown> | null } = { payload: null };
+    const store: { bot: Bot; payload: Record<string, unknown> | null } = { bot, payload: null };
     await webhookReplyStore.run(store, () => bot.handleUpdate(update));
     if (store.payload) {
       return c.json(store.payload, 200);
@@ -83,7 +91,7 @@ export function createBotWebhookHandler(bot: Bot, secretToken: string) {
 
 export function createPlayerBot(token: string, webAppUrl: string): Bot {
   const bot = new Bot(token, {
-    client: { apiRoot: config.TELEGRAM_API_ROOT, timeoutSeconds: 20 },
+    client: { apiRoot: config.TELEGRAM_API_ROOT, timeoutSeconds: 10 },
   });
   attachBotRuntime(bot, token, "stem_player_bot");
   registerPlayerHandlers(bot, webAppUrl);
@@ -98,7 +106,7 @@ export function createPlayerBot(token: string, webAppUrl: string): Bot {
 
 export function createAdminBot(token: string, adminWebAppUrl: string, adminIds: ReadonlySet<number>): Bot {
   const bot = new Bot(token, {
-    client: { apiRoot: config.TELEGRAM_API_ROOT, timeoutSeconds: 20 },
+    client: { apiRoot: config.TELEGRAM_API_ROOT, timeoutSeconds: 10 },
   });
   attachBotRuntime(bot, token, "stem_admin_bot");
   registerAdminHandlers(bot, adminWebAppUrl, adminIds);

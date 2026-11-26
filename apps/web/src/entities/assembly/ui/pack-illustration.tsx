@@ -18,7 +18,12 @@ export function PackIllustration({
   const [failed, setFailed] = useState<string>();
   const path =
     kind === "hero" ? pack?.covers.hero : kind === "story" ? pack?.covers.story : pack?.emptyStates[kind];
-  const src = path ? `/art/${pack?.id}/${path}` : "";
+  const src =
+    template.coverId && (kind === "hero" || kind === "story")
+      ? `/api/images/${template.coverId}`
+      : path
+        ? `/art/${pack?.id}/${path}`
+        : "";
 
   if (src && failed !== src) {
     const isCover = kind === "hero" || kind === "story";

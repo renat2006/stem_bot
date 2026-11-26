@@ -1,6 +1,7 @@
 import type { Server } from "node:http";
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
+import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import {
@@ -11,6 +12,7 @@ import {
   createPlayerBot,
 } from "./bot/index.js";
 import { connectPglite, connectPostgres } from "./db/client.js";
+import { studioImages } from "./db/schema.js";
 import { adminRouter } from "./modules/admin/routes.js";
 import { activeEventId, settleExpiredAuctions } from "./modules/event/repository.js";
 import { ensureActiveEvent } from "./modules/event/seed.js";
@@ -71,6 +73,20 @@ app.get("/api/health", (c) =>
 );
 
 app.get("/api/game/public", (c) => snapshotResponse(c));
+app.get("/api/images/:id", async (c) => {
+  const id = c.req.param("id");
+  if (!/^[0-9a-f]{64}$/.test(id)) return c.notFound();
+  const [image] = await database.db.select().from(studioImages).where(eq(studioImages.id, id));
+  if (!image) return c.notFound();
+  const bytes = Buffer.from(image.data, "base64");
+  return new Response(bytes, {
+    headers: {
+      "Content-Type": bytes[0] === 255 ? "image/jpeg" : "image/webp",
+      "Cache-Control": "public, max-age=31536000, immutable",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
+});
 app.use("/api/*", identityMiddleware);
 app.route("/api/game", gameRouter);
 app.route("/api/team", teamRouter);

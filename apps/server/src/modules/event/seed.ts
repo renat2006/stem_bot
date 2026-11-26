@@ -40,6 +40,7 @@ export async function resetEventContent(
   eventId: string,
   template: GameTemplate,
   demoTeams: boolean | number,
+  teamNames?: string[],
 ) {
   await tx.delete(auctions).where(eq(auctions.eventId, eventId));
   await tx.delete(marketListings).where(eq(marketListings.eventId, eventId));
@@ -55,7 +56,7 @@ export async function resetEventContent(
     const baseNames = DEMO_TEAMS_BY_KEY[template.eventKey] ?? DEMO_TEAMS_BY_KEY.rovers ?? [];
     const names = Array.from(
       { length: count },
-      (_, idx) => baseNames[idx] ?? `Команда-${String(idx + 1).padStart(2, "0")}`,
+      (_, idx) => teamNames?.[idx] ?? baseNames[idx] ?? `Команда-${String(idx + 1).padStart(2, "0")}`,
     );
     await tx.insert(teams).values(names.map((name, index) => newTeamValues(eventId, name, index, template)));
   }

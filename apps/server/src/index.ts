@@ -117,10 +117,11 @@ if (playerBot) {
     polling: allowPolling,
     menuButton: { text: "Полевой атлас", url: config.webAppUrl },
     commands: [
-      { command: "start", description: "Войти в кабинет команды" },
+      { command: "start", description: "Кабинет команды и статус" },
+      { command: "status", description: "Баланс, поле и текущая фаза" },
       { command: "story", description: "Задача и легенда дня" },
-      { command: "playground", description: "Полигон 3 мин (вне зачёта)" },
-      { command: "faq", description: "Памятка по механикам" },
+      { command: "faq", description: "Короткая памятка по правилам" },
+      { command: "playground", description: "Тренировка 3 мин (вне зачёта)" },
     ],
   }).catch((error) => {
     console.error("Player bot delivery setup failed", error);
@@ -133,8 +134,9 @@ if (adminBot) {
     polling: allowPolling,
     menuButton: { text: "Студия смены", url: config.adminWebAppUrl },
     commands: [
-      { command: "start", description: "Пульт живого урока" },
-      { command: "pulse", description: "Пульс зала и готовность команд" },
+      { command: "start", description: "Пульт живого урока и меню" },
+      { command: "msg", description: "Написать командам в клиентский бот" },
+      { command: "pulse", description: "Пульс зала и участники в боте" },
       { command: "wizard", description: "Конструктор смены за 4 шага" },
       { command: "balance", description: "Советник баланса и Парето" },
     ],

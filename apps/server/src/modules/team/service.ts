@@ -436,7 +436,10 @@ async function executeBuyP2P(ctx: MutationContext, buyerTeamId: string, listingI
   ctx.alert({
     target: "team",
     teamId: seller.id,
-    text: `🤝 Сделка на бирже! Команда «${buyer.name}» купила у вас деталь «${card.name}» (+${sellerGain} ${template.currencyIcon} ${template.currencyName}).`,
+    text: `Сделка на бирже: команда «${buyer.name}» купила деталь «${card.name}» (+${sellerGain} ${template.currencyName}).`,
+    silent: true,
+    ctaLabel: "Открыть магазин",
+    ctaPath: "/?tab=market",
   });
 
   return { listingId: listing.id, cardId: card.id };
@@ -491,7 +494,10 @@ export function placeAuctionBid(options: MutationOptions, input: { auctionId: st
         ctx.alert({
           target: "team",
           teamId: prevLeader.id,
-          text: `🔥 Вашу ставку на «${cardName}» перебила команда «${team.name}» (${input.amount} ${template.currencyIcon})! Зарезервированные ${check.refundAmount} ${template.currencyIcon} возвращены на счёт.`,
+          text: `Ставку на «${cardName}» перебила команда «${team.name}» (${input.amount} ${template.currencyName}). Резерв ${check.refundAmount} возвращён на счёт.`,
+          silent: true,
+          ctaLabel: "К аукциону",
+          ctaPath: "/?tab=market",
         });
       }
     }

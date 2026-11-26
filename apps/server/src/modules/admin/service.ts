@@ -28,6 +28,7 @@ import {
   validateParetoStrategies,
 } from "@stem/shared";
 import { and, desc, eq, sql } from "drizzle-orm";
+import { formatBroadcastHtml } from "../../bot/format.js";
 import {
   auctions,
   cardStock,
@@ -40,7 +41,7 @@ import {
 } from "../../db/schema.js";
 import { DomainError } from "../../shared/errors.js";
 import { currentEventId } from "../../shared/route-context.js";
-import { runtime } from "../../shared/runtime.js";
+import { type DispatchReport, runtime } from "../../shared/runtime.js";
 import { generateLoreWithAi, generateMarketCardsWithAi } from "../ai/service.js";
 import { requireTeam } from "../event/access.js";
 import { type MutationOptions, mutateEvent } from "../event/mutation.js";
@@ -71,7 +72,10 @@ export function rewardTeams(
         ctx.alert({
           target: "team",
           teamId: team.id,
-          text: `${template.currencyIcon} ${sign} ${template.currencyName}: ${input.reason}${input.comment ? ` (${input.comment})` : ""}`,
+          text: `${sign} ${template.currencyName}: ${input.reason}${input.comment ? ` (${input.comment})` : ""}`,
+          silent: true,
+          ctaLabel: "Открыть магазин",
+          ctaPath: "/?tab=market",
         });
       }
     }
@@ -144,7 +148,9 @@ export function setPhase(options: MutationOptions, input: { phase: ShiftPhase; m
     if (input.phase === "market") {
       ctx.alert({
         target: "all-teams",
-        text: `🛒 Рынок открыт${input.minutes ? ` на ${input.minutes} мин` : ""}! Самое время собрать «${template.objectName}» перед выездом.`,
+        text: `Магазин открыт${input.minutes ? ` на ${input.minutes} мин` : ""}. Можно докупить детали для «${template.objectName}».`,
+        ctaLabel: "Открыть магазин",
+        ctaPath: "/?tab=market",
       });
     }
     return { phase: input.phase, phaseEndsAt: phaseEndsAt?.toISOString() ?? null };
@@ -210,7 +216,10 @@ export function nextDay(options: MutationOptions) {
     if (template.features.storyBriefings && briefing) {
       ctx.alert({
         target: "all-teams",
-        text: `📡 ${briefing.title}\n\n${briefing.story}${briefing.challengeTitle ? `\n\n🎯 Ориентир дня: ${briefing.challengeTitle}` : ""}`,
+        text: `${briefing.title}\n\n${briefing.story}${briefing.challengeTitle ? `\n\nОриентир дня: ${briefing.challengeTitle}` : ""}`,
+        silent: true,
+        ctaLabel: "Открыть кабинет",
+        ctaPath: "/",
       });
     }
     return { day };
@@ -291,11 +300,14 @@ export function applyTurn(
       ctx.alert({
         target: "team",
         teamId: row.id,
-        text: `🏁 Итог дня ${day}: ${
+        text: `Итог дня ${day}: ${
           cell?.type === "mutation"
             ? `${cell.label} (кл. ${cell.position}) · Спираль: ${outcome.nextTrackPosition}. ${cell.description ?? ""}`
             : outcome.summary
         }`,
+        silent: true,
+        ctaLabel: "Посмотреть поле",
+        ctaPath: "/?tab=race",
       });
     }
     await ctx.tx
@@ -541,7 +553,9 @@ export function startAuction(
     });
     ctx.alert({
       target: "all-teams",
-      text: `🔥 Открыт аукцион за узел «${card.name}»! Старт от ${input.startingPrice} ${template.currencyIcon} (${input.durationMinutes} мин).`,
+      text: `Открыт аукцион за деталь «${card.name}» · старт от ${input.startingPrice} ${template.currencyName} (${input.durationMinutes} мин).`,
+      ctaLabel: "К аукциону",
+      ctaPath: "/?tab=market",
     });
     return { auctionId: id };
   });
@@ -585,7 +599,10 @@ export function closeAuctionNow(options: MutationOptions, auctionId: string) {
         ctx.alert({
           target: "team",
           teamId: winner.id,
-          text: `🏆 Победа на торгах! Деталь «${card?.name ?? lot.cardId}» досталась вашей команде за ${lot.currentBid} ${template.currencyIcon}.`,
+          text: `Победа на торгах: деталь «${card?.name ?? lot.cardId}» досталась вашей команде за ${lot.currentBid} ${template.currencyName}.`,
+          silent: true,
+          ctaLabel: "Открыть сборку",
+          ctaPath: "/",
         });
       }
     }
@@ -1014,7 +1031,10 @@ export function revealMissionRound(options: MutationOptions, input?: { condition
       ctx.alert({
         target: "team",
         teamId: row.id,
-        text: `🏁 Вскрытие дня ${day} (${condition.label}): ваша команда набрала +${outcome.totalPoints} очк.! Откройте разбор и контрфактуал.`,
+        text: `Вскрытие дня ${day} (${condition.label}): +${outcome.totalPoints} очк. Откройте разбор и контрфактуал.`,
+        silent: true,
+        ctaLabel: "Открыть разбор",
+        ctaPath: "/",
       });
     }
 
@@ -1133,4 +1153,59 @@ export function applyParetoFix(options: MutationOptions, input?: { day?: number 
     });
     return { suggestedMinA: check.suggestedMinA };
   });
+}
+
+export async function broadcastMessage(
+  options: MutationOptions,
+  input: { target: string; text: string; silent?: boolean },
+): Promise<{ report: DispatchReport; targetLabel: string }> {
+  const cleanText = input.text.trim();
+  if (!cleanText) throw new DomainError("Введите текст сообщения", 400);
+  if (cleanText.length > 1000) throw new DomainError("Сообщение длиннее 1000 символов", 400);
+
+  const meta = await mutateEvent(options, async (ctx) => {
+    let targetTeam: { id: string; name: string } | null = null;
+    if (input.target !== "all") {
+      const team = await requireTeam(ctx.tx, ctx.event.id, input.target);
+      targetTeam = { id: team.id, name: team.name };
+    }
+    const preview = cleanText.length > 140 ? `${cleanText.slice(0, 137)}…` : cleanText;
+    ctx.log({
+      teamId: targetTeam?.id ?? null,
+      kind: "announcement",
+      data: {
+        target: targetTeam?.id ?? "all",
+        teamName: targetTeam?.name ?? null,
+        silent: Boolean(input.silent),
+        preview,
+      },
+    });
+    return {
+      targetTeam,
+      targetLabel: targetTeam ? `команда «${targetTeam.name}»` : "всем командам",
+    };
+  });
+
+  const html = formatBroadcastHtml({
+    text: cleanText,
+    senderName: options.actor.displayName,
+    teamName: meta.targetTeam?.name ?? null,
+  });
+
+  const alerts = runtime().alerts;
+  const report: DispatchReport = alerts
+    ? await alerts.dispatch(options.eventId, [
+        {
+          target: meta.targetTeam ? "team" : "all-teams",
+          teamId: meta.targetTeam?.id,
+          text: html,
+          parseMode: "HTML",
+          silent: Boolean(input.silent),
+          ctaLabel: "Открыть кабинет команды",
+          ctaPath: "/",
+        },
+      ])
+    : { attempted: 0, delivered: 0, blocked: 0, teams: 0 };
+
+  return { report, targetLabel: meta.targetLabel };
 }

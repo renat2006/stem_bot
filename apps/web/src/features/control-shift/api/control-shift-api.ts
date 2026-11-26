@@ -115,3 +115,13 @@ export const updateDaySchedule = (input: { totalDays?: number; daySchedule: DayS
 
 export const applyParetoFix = (day?: number) =>
   postJson<GameSnapshot>("/api/admin/pareto-fix", day ? { day } : {});
+
+export interface BroadcastReport {
+  attempted: number;
+  delivered: number;
+  blocked: number;
+  teams: number;
+}
+
+export const broadcastToTeams = (input: { target: string; text: string; silent?: boolean }) =>
+  postJson<{ report: BroadcastReport; targetLabel: string }>("/api/admin/broadcast", input);

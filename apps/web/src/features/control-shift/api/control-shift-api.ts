@@ -40,10 +40,13 @@ export interface UpsertCardPayload {
 export const setPhase = (phase: ShiftPhase, minutes: number | null = null) =>
   postJson<LiveState>("/api/admin/phase", { phase, minutes });
 
-export const nextDay = () => postJson<LiveState>("/api/admin/next-day");
+export const nextDay = (expectedDay: number) => postJson<LiveState>("/api/admin/next-day", { expectedDay });
 
-export const applyTurn = (buyoffTeamIds?: string[], boardPositions?: Record<string, number>) =>
-  postJson<LiveState>("/api/admin/apply-turn", { buyoffTeamIds, boardPositions });
+export const applyTurn = (
+  expectedDay: number,
+  buyoffTeamIds?: string[],
+  boardPositions?: Record<string, number>,
+) => postJson<LiveState>("/api/admin/apply-turn", { expectedDay, buyoffTeamIds, boardPositions });
 
 export const updatePurchaseLimit = (purchaseLimit: number | null) =>
   postJson<LiveState>("/api/admin/settings", { purchaseLimit });

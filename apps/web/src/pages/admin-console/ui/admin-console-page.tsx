@@ -52,7 +52,7 @@ function initialWizardState(): boolean {
 
 export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings }: AdminConsolePageProps) {
   const { template, gameState, teams } = snapshot;
-  const { hapticTap, hapticSuccess } = useTelegram();
+  const { hapticTap } = useTelegram();
   const lexicon = snapshot.lexicon ?? resolveLexicon(template);
   const [studioMode, setStudioMode] = useState<StudioMode>(initialStudioMode);
   const [tab, setTab] = useState<AdminTab>("round");
@@ -94,16 +94,18 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
     window.open(url.toString(), "_blank", "noopener");
   };
 
-  const handlePrimaryLiveAction = () => {
+  const pending = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
+  const handlePrimaryLiveAction = async () => {
     if (gameState.currentPhase === "scoring") {
-      void run(() => setPhase("market", 15));
+      await run(() => setPhase("market", 15));
       return;
     }
     if (gameState.currentPhase === "market") {
       if (dayEngine === "legacy_track") {
-        void run(() => setPhase("turn", null));
+        await run(() => setPhase("turn", null));
       } else {
-        void run(() =>
+        await run(() =>
           startRoundEngine({
             engine: dayEngine === "diagnosis" ? "diagnosis" : "mission",
             durationSeconds: dayEngine === "diagnosis" ? 180 : 120,
@@ -114,20 +116,24 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
     }
     if (gameState.currentPhase === "turn" && roundMode !== "revealed") {
       if (dayEngine === "legacy_track") {
-        void run(() =>
-          applyTurn(physical ? buyoffTeamIds : undefined, physical ? boardPositions : undefined),
+        await run(() =>
+          applyTurn(
+            gameState.currentDay,
+            physical ? buyoffTeamIds : undefined,
+            physical ? boardPositions : undefined,
+          ),
         );
       } else if (dayEngine === "diagnosis") {
-        void run(() => setPhase("summary", null));
+        await run(() => setPhase("summary", null));
       } else {
-        void run(() => revealMissionRound());
+        await run(() => revealMissionRound());
       }
       return;
     }
     if (gameState.currentDay < template.totalDays) {
-      void run(() => nextDay());
+      await run(() => nextDay(gameState.currentDay));
     } else {
-      void run(() => setPhase("scoring", null));
+      await run(() => setPhase("scoring", null));
     }
   };
 
@@ -363,11 +369,19 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
                   )}
                   <button
                     type="button"
-                    onClick={() => {
-                      hapticSuccess();
-                      handlePrimaryLiveAction();
+                    onClick={async () => {
+                      if (pending.current) return;
+                      pending.current = true;
+                      setSubmitting(true);
+                      try {
+                        await handlePrimaryLiveAction();
+                      } finally {
+                        pending.current = false;
+                        setSubmitting(false);
+                      }
                     }}
                     disabled={
+                      submitting ||
                       physicalFinished ||
                       (physical &&
                         gameState.currentPhase === "turn" &&

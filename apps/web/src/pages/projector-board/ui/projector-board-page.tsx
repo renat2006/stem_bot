@@ -56,10 +56,10 @@ export function ProjectorBoardPage({
       <div className="hall-stage">
         <header className="flex flex-wrap items-end justify-between gap-4 border-b border-[#466353] pb-4">
           <div>
-            <p className="text-base font-semibold text-[#c5d6c3]">
+            <p className="text-base font-semibold text-mu">
               Полевой атлас · {template.title} · День {gameState.currentDay} из {template.totalDays}
             </p>
-            <h1 className="mt-1 text-4xl font-extrabold tracking-tight text-[#f4f7e8] sm:text-5xl">
+            <h1 className="mt-1 text-4xl font-extrabold tracking-tight text-fg sm:text-5xl">
               {roundMode === "revealed" && revealedCondition
                 ? `${lexicon.environmentLabel}: ${revealedCondition.label}`
                 : isProgram
@@ -69,7 +69,7 @@ export function ProjectorBoardPage({
           </div>
 
           {phaseTimer && (
-            <strong className="font-mono text-5xl font-extrabold tracking-tight text-[#c7f67c] tabular-nums sm:text-6xl">
+            <strong className="font-mono text-5xl font-extrabold tracking-tight text-ac tabular-nums sm:text-6xl">
               {phaseTimer}
             </strong>
           )}
@@ -89,7 +89,7 @@ export function ProjectorBoardPage({
               ].map((z) => (
                 <div key={z.name} style={{ flexGrow: z.grow }} data-active={z.active}>
                   <i />
-                  <span className="text-sm font-bold text-[#f4f7e8]">{z.name}</span>
+                  <span className="text-sm font-bold text-fg">{z.name}</span>
                 </div>
               ))}
             </div>
@@ -99,8 +99,8 @@ export function ProjectorBoardPage({
                 const rs = TeamRoundStateSchema.parse(team.roundState ?? {});
                 return (
                   <div key={team.id}>
-                    <h2 className="text-2xl font-bold text-[#f4f7e8]">{team.name}</h2>
-                    <div className="mt-2 flex items-center gap-1.5 text-[#c7f67c]">
+                    <h2 className="text-2xl font-bold text-fg">{team.name}</h2>
+                    <div className="mt-2 flex items-center gap-1.5 text-ac">
                       {[0, 1, 2, 3, 4].map((slot) =>
                         rs.readySlots.includes(slot) ? (
                           <Check key={slot} className="h-5 w-5" />
@@ -109,7 +109,7 @@ export function ProjectorBoardPage({
                         ),
                       )}
                     </div>
-                    <p className="mt-1.5 text-sm text-[#c5d6c3]">Подтверждено: {rs.readySlots.length} из 5</p>
+                    <p className="mt-1.5 text-sm text-mu">Подтверждено: {rs.readySlots.length} из 5</p>
                   </div>
                 );
               })}
@@ -124,15 +124,15 @@ export function ProjectorBoardPage({
                 const rs = TeamRoundStateSchema.parse(team.roundState ?? {});
                 return (
                   <div key={team.id}>
-                    <h2 className="text-2xl font-bold text-[#f4f7e8]">{team.name}</h2>
-                    <strong className="mt-1 block font-mono text-4xl font-extrabold tracking-tight text-[#c7f67c] tabular-nums">
+                    <h2 className="text-2xl font-bold text-fg">{team.name}</h2>
+                    <strong className="mt-1 block font-mono text-4xl font-extrabold tracking-tight text-ac tabular-nums">
                       +{rs.lastRoundPoints}
                     </strong>
-                    <p className="mt-1 text-sm text-[#c5d6c3]">
+                    <p className="mt-1 text-sm text-mu">
                       {missionDay.routesA.find((r) => r.id === rs.orders.routeId)?.label} · резерв{" "}
                       {rs.orders.reserveTarget}
                     </p>
-                    <p className="mt-1 text-sm font-semibold text-[#f4f7e8]">
+                    <p className="mt-1 text-sm font-semibold text-fg">
                       Сезон · {team.trackPosition}/{template.trackMax}
                     </p>
                   </div>
@@ -141,12 +141,12 @@ export function ProjectorBoardPage({
             </div>
 
             {template.features.openMilestones !== false && (
-              <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[#466353] pt-3 text-sm text-[#c7f67c]">
+              <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[#466353] pt-3 text-sm text-ac">
                 <span className="inline-flex items-center gap-2 font-bold">
                   <Award className="h-5 w-5" />
                   Открытые инженерные вехи смены (доступны всем командам одновременно)
                 </span>
-                <span className="text-[#f4f7e8]">
+                <span className="text-fg">
                   Награждаются за чистый проход обоих участков и точную диагностику
                 </span>
               </footer>
@@ -161,7 +161,7 @@ export function ProjectorBoardPage({
                 <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
                   <div>
                     <h2 className="text-2xl font-extrabold tracking-tight">Квадрат событий</h2>
-                    <p className="mt-0.5 text-sm opacity-80">
+                    <p className="mt-0.5 text-sm text-mu">
                       Внешнее кольцо 1–16 определяет событие хода · внутри {template.trackName} (1–
                       {template.trackMax})
                     </p>
@@ -175,7 +175,10 @@ export function ProjectorBoardPage({
                 />
                 <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
                   {ranked.map((t) => (
-                    <span key={t.id} className="rounded-lg border border-ln bg-sf px-2.5 py-1 tabular-nums">
+                    <span
+                      key={t.id}
+                      className="rounded-lg border border-ln bg-sf px-2.5 py-1 text-fg tabular-nums"
+                    >
                       {t.name}: кл. {t.boardPosition} · Спираль {t.trackPosition}/{template.trackMax}
                     </span>
                   ))}
@@ -203,7 +206,10 @@ export function ProjectorBoardPage({
                 />
                 <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
                   {ranked.map((t) => (
-                    <span key={t.id} className="rounded-lg border border-ln bg-sf px-2.5 py-1 tabular-nums">
+                    <span
+                      key={t.id}
+                      className="rounded-lg border border-ln bg-sf px-2.5 py-1 text-fg tabular-nums"
+                    >
                       {t.name}: {t.trackPosition}
                     </span>
                   ))}
@@ -213,7 +219,7 @@ export function ProjectorBoardPage({
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {ranked.slice(0, 4).map((team) => (
-                <div key={team.id} className="rounded-xl border border-[#3f5d4f] bg-[#1a362b] p-3">
+                <div key={team.id} className="rounded-xl border border-[#3f5d4f] bg-sf p-3">
                   <AssemblyStage
                     template={template}
                     equipped={team.equippedCards}
@@ -221,8 +227,8 @@ export function ProjectorBoardPage({
                     teamName={team.name}
                   />
                   <div className="mt-2 flex items-baseline justify-between">
-                    <strong className="truncate text-sm font-bold text-[#f4f7e8]">{team.name}</strong>
-                    <span className="font-mono text-sm font-bold text-[#c7f67c]">
+                    <strong className="truncate text-sm font-bold text-fg">{team.name}</strong>
+                    <span className="font-mono text-sm font-bold text-ac">
                       {team.trackPosition}/{template.trackMax}
                     </span>
                   </div>
@@ -233,13 +239,13 @@ export function ProjectorBoardPage({
 
           <aside className="space-y-4 lg:col-span-4">
             {openAuction && auctionCard && (
-              <div className="space-y-3 rounded-2xl border-2 border-[#c7f67c] bg-[#1a362b] p-5">
+              <div className="space-y-3 rounded-2xl border-2 border-[#c7f67c] bg-sf p-5">
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#c7f67c]">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-ac">
                     <Flame className="h-4 w-4" />
                     Живой аукцион
                   </span>
-                  <span className="font-mono text-xl font-bold text-[#f4f7e8]">
+                  <span className="font-mono text-xl font-bold text-fg">
                     {Math.floor(auctionSeconds / 60)}:{String(auctionSeconds % 60).padStart(2, "0")}
                   </span>
                 </div>
@@ -247,17 +253,17 @@ export function ProjectorBoardPage({
                   <PartSticker card={auctionCard} template={template} thumbnail />
                   <div>
                     <RarityBadge rarity={auctionCard.rarity} compact />
-                    <h3 className="mt-1 text-lg font-bold text-[#f4f7e8]">{auctionCard.name}</h3>
+                    <h3 className="mt-1 text-lg font-bold text-fg">{auctionCard.name}</h3>
                     <StatDeltaList stats={template.stats} deltas={auctionCard.stats} />
                   </div>
                 </div>
                 <div className="flex items-center justify-between rounded-xl bg-[#11231c] px-4 py-3">
-                  <span className="text-sm text-[#c5d6c3]">
+                  <span className="text-sm text-mu">
                     {openAuction.leaderTeamName
                       ? `Лидер: «${openAuction.leaderTeamName}»`
                       : "Ждём первую ставку"}
                   </span>
-                  <span className="font-mono text-2xl font-bold text-[#c7f67c]">
+                  <span className="font-mono text-2xl font-bold text-ac">
                     {openAuction.currentBid} {lexicon.currencyUnit}
                   </span>
                 </div>
@@ -265,8 +271,8 @@ export function ProjectorBoardPage({
             )}
 
             {template.features.p2pMarket && listings.length > 0 && (
-              <div className="space-y-2 rounded-2xl border border-[#3f5d4f] bg-[#1a362b] p-4">
-                <h3 className="text-sm font-bold text-[#f4f7e8]">Биржа команд</h3>
+              <div className="space-y-2 rounded-2xl border border-[#3f5d4f] bg-sf p-4">
+                <h3 className="text-sm font-bold text-fg">Биржа команд</h3>
                 {listings.slice(0, 4).map((listing) => {
                   const card = template.cards.find((c) => c.id === listing.cardId);
                   return (
@@ -274,10 +280,10 @@ export function ProjectorBoardPage({
                       key={listing.id}
                       className="flex items-center justify-between rounded-xl bg-[#11231c] px-3 py-2 text-xs"
                     >
-                      <span className="truncate font-medium text-[#f4f7e8]">
+                      <span className="truncate font-medium text-fg">
                         {card?.name ?? "Модуль"} · от «{listing.sellerTeamName}»
                       </span>
-                      <span className="font-mono font-bold text-[#c7f67c]">
+                      <span className="font-mono font-bold text-ac">
                         {listing.price} {lexicon.currencyUnit}
                       </span>
                     </div>
@@ -286,14 +292,11 @@ export function ProjectorBoardPage({
               </div>
             )}
 
-            <div className="space-y-2.5 rounded-2xl border border-[#3f5d4f] bg-[#1a362b] p-4">
-              <h3 className="text-sm font-bold text-[#f4f7e8]">Прямой эфир событий</h3>
+            <div className="space-y-2.5 rounded-2xl border border-[#3f5d4f] bg-sf p-4">
+              <h3 className="text-sm font-bold text-fg">Прямой эфир событий</h3>
               <ul className="space-y-2 text-xs">
                 {feed.slice(0, 8).map((entry) => (
-                  <li
-                    key={entry.id}
-                    className="rounded-xl bg-[#11231c] px-3 py-2 leading-snug text-[#f4f7e8]"
-                  >
+                  <li key={entry.id} className="rounded-xl bg-[#11231c] px-3 py-2 leading-snug text-fg">
                     {entry.text}
                   </li>
                 ))}

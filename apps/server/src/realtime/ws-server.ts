@@ -24,11 +24,12 @@ function parseMessage(raw: string): ClientMessage | null {
     const value = JSON.parse(raw) as Partial<ClientMessage>;
     if (value.type === "ping") return { type: "ping" };
     if (value.type === "auth") {
-      const message = value as { initData?: unknown; devUser?: unknown };
+      const message = value as { initData?: unknown; devUser?: unknown; mode?: unknown };
       return {
         type: "auth",
         initData: typeof message.initData === "string" ? message.initData : undefined,
         devUser: typeof message.devUser === "string" ? message.devUser : undefined,
+        mode: message.mode === "projector" ? "projector" : undefined,
       };
     }
   } catch {
@@ -85,7 +86,9 @@ export function attachRealtime(server: Server) {
       try {
         if (message.initData) client.identity = identityFromInitData(message.initData);
         else if (message.devUser) client.identity = identityFromDevUser(message.devUser) ?? undefined;
-        if (config.isProduction && !client.identity) throw new AuthError("Требуется авторизация Telegram");
+        if (config.isProduction && !client.identity && message.mode !== "projector") {
+          throw new AuthError("Требуется авторизация Telegram");
+        }
       } catch (error) {
         send({ type: "error", message: error instanceof AuthError ? error.message : "Ошибка авторизации" });
         return ws.close(4401, "unauthorized");

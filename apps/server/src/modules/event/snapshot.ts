@@ -64,6 +64,7 @@ export function toTeam(
   teamMembers: MemberRow[],
   template: GameTemplate,
   revealCode: boolean,
+  revealCaptain = true,
 ): Team {
   const captain = teamMembers.find((m) => m.role === "captain");
   const equippedCards = Object.fromEntries(template.slots.map((s) => [s.id, row.equipped[s.id] ?? null]));
@@ -73,7 +74,7 @@ export function toTeam(
     name: row.name,
     monogram: row.monogram,
     joinCode: revealCode ? row.joinCode : "",
-    captainUsername: captain?.displayName ?? "",
+    captainUsername: revealCaptain ? (captain?.displayName ?? "") : "",
     members: teamMembers.map((m) => m.displayName.trim().charAt(0).toUpperCase() || "•"),
     currency: row.currency,
     heldCurrency: row.heldCurrency ?? 0,
@@ -121,7 +122,13 @@ export function shapeLiveState(graph: EventGraph, identity?: Identity): LiveStat
   const leaderPos = graph.teamRows.reduce((max, r) => Math.max(max, r.trackPosition), 1);
 
   const plainTeams = graph.teamRows.map((row) =>
-    toTeam(row, membersByTeam.get(row.id) ?? [], template, isAdmin || row.id === member?.teamId),
+    toTeam(
+      row,
+      membersByTeam.get(row.id) ?? [],
+      template,
+      isAdmin || row.id === member?.teamId,
+      Boolean(identity),
+    ),
   );
   const teams = plainTeams.map((team) => ({
     ...team,

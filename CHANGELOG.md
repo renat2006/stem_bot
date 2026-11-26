@@ -5,6 +5,13 @@
 
 ## [Unreleased]
 
+### Fixed (2026-11-26) — публичное табло/поле 16:9 без initData и устойчивый запуск Mini App
+- **Публичный read-only режим проектора (`packages/shared/src/protocol.ts`, `apps/server/src/{index.ts,realtime/ws-server.ts,modules/event/snapshot.ts}`)**:
+  - Добавлен read-only эндпоинт `GET /api/game/public` и режим WebSocket `{ type: "auth", mode: "projector" }` для открытия табло и настольного поля `/?view=projector` на любом внешнем браузере/проекторе без Telegram `initData` (при этом скрываются `joinCode`, `captainUsername`, `members`, `proposals`, приватные записи ленты и секреты диагностики; все `/api/game/state`, `/api/team/*`, `/api/admin/*` остаются под строгой проверкой `initData`).
+- **Клиент (`apps/web/src/{app/App.tsx,shared/lib/telegram.ts,entities/game/*,pages/admin-console/ui/admin-console-page.tsx}`)**:
+  - Инициализация `@tma.js/sdk-react` (`initTelegramSdk`, `initData.user`) защищена от сбоев в нестандартных Telegram-клиентах и внешних браузерах; добавлен `AppErrorBoundary`.
+  - Кнопка «Табло 16:9» открывает чистый `/?view=projector` без утечки `#tgWebAppData`; при открытии корня сайта вне Telegram показывается понятная карточка с кнопкой перехода на «Табло и поле 16:9», а WebSocket прекращает бесконечные переподключения при `4401`.
+
 - Упрощена мобильная студия ведущего: действия смены в одном меню, начисление свернуто вне учебной фазы. Нижняя навигация игрока получила понятные названия.
 
 ### Changed (2026-11-26) — адаптация «Экспедиции Роверов» под новое настольное игровое поле заказчика (16 клеток + 30 Спираль)

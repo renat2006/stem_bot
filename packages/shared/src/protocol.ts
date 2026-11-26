@@ -95,7 +95,9 @@ export interface RulesPayload {
 
 export type GameSnapshot = LiveState & RulesPayload;
 
-export type ClientMessage = { type: "auth"; initData?: string; devUser?: string } | { type: "ping" };
+export type ClientMessage =
+  | { type: "auth"; initData?: string; devUser?: string; mode?: "projector" }
+  | { type: "ping" };
 
 export type ServerMessage =
   | ({ type: "snapshot" } & GameSnapshot)

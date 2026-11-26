@@ -1,10 +1,11 @@
 import type { GameSnapshot, LiveState, RulesPayload } from "@stem/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchGameSnapshot } from "../api/game-api.js";
+import { getDevUser, getRawInitData } from "../../../shared/lib/index.js";
+import { fetchGameSnapshot, fetchPublicGameSnapshot } from "../api/game-api.js";
 import { LiveConnection } from "./live-connection.js";
 import type { ConnectionStatus } from "./types.js";
 
-export function useLiveGame() {
+export function useLiveGame(projectorMode = false) {
   const [rules, setRules] = useState<RulesPayload | null>(null);
   const [state, setState] = useState<LiveState | null>(null);
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
@@ -42,9 +43,10 @@ export function useLiveGame() {
   );
 
   const refresh = useCallback(async () => {
-    const snapshot = await fetchGameSnapshot();
+    const usePublic = projectorMode && !getRawInitData() && !getDevUser();
+    const snapshot = await (usePublic ? fetchPublicGameSnapshot() : fetchGameSnapshot());
     applySnapshot(snapshot);
-  }, [applySnapshot]);
+  }, [applySnapshot, projectorMode]);
 
   useEffect(() => {
     refresh().catch((err) => setError(err instanceof Error ? err.message : "Ошибка загрузки"));
@@ -62,10 +64,11 @@ export function useLiveGame() {
         onError: setError,
       },
       refresh,
+      projectorMode,
     );
     connection.start();
     return () => connection.stop();
-  }, [refresh, applyRules, applyState]);
+  }, [refresh, applyRules, applyState, projectorMode]);
 
   const staleRules = Boolean(state && rules && state.gameState.rulesVersion !== rules.rulesVersion);
   useEffect(() => {

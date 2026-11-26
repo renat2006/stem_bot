@@ -307,7 +307,8 @@ describe("admin studio: card editor, AI draft, quick-fix, turn & shift wizard", 
       reason: "Бонус лаборатории",
     });
 
-    await applyTurn(opts(admin));
+    await setPhase(opts(admin), { phase: "turn" });
+    await applyTurn(opts(admin), { boardPositions: { [teamA]: 3, [teamB]: 4, [teamC]: 6 } });
     await expect(applyTurn(opts(admin))).rejects.toThrow("уже проведён");
     const dayRes = await nextDay(opts(admin));
     expect(dayRes.day).toBe(2);

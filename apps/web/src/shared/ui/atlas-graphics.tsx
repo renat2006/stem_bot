@@ -1,6 +1,6 @@
-import type { StatDefinition } from "@stem/shared";
-import { Check, CloudLightning, Compass, Gauge, Package, ShieldAlert, Sun, Zap } from "lucide-react";
-import { useId } from "react";
+import { type GameTemplate, resolveBoardTurn, type StatDefinition, type Team } from "@stem/shared";
+import { Award, Check, CloudLightning, Compass, Gauge, Package, ShieldAlert, Sun, Zap } from "lucide-react";
+import { useId, useState } from "react";
 
 export function Mark({ kind }: { kind: "team" | "reserve" | "practice" | "route" | "clock" }) {
   const paths = {
@@ -368,6 +368,315 @@ export function SpiralBoard({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+const SPIRAL_30_POINTS: ReadonlyArray<readonly [number, number]> = [
+  [54, 42],
+  [114, 34],
+  [174, 34],
+  [234, 44],
+  [288, 70],
+  [346, 58],
+  [406, 40],
+  [466, 40],
+  [506, 90],
+  [462, 130],
+  [404, 140],
+  [344, 154],
+  [284, 154],
+  [224, 132],
+  [164, 132],
+  [106, 150],
+  [66, 192],
+  [108, 232],
+  [168, 238],
+  [228, 234],
+  [288, 228],
+  [348, 222],
+  [408, 220],
+  [464, 234],
+  [504, 276],
+  [460, 314],
+  [400, 314],
+  [340, 314],
+  [280, 314],
+  [220, 314],
+];
+
+const RING_16_GRID: ReadonlyArray<readonly [number, number]> = [
+  [1, 1],
+  [2, 1],
+  [3, 1],
+  [4, 1],
+  [5, 1],
+  [5, 2],
+  [5, 3],
+  [5, 4],
+  [5, 5],
+  [4, 5],
+  [3, 5],
+  [2, 5],
+  [1, 5],
+  [1, 4],
+  [1, 3],
+  [1, 2],
+];
+
+function shortCellHint(cell: GameTemplate["boardCells"][number], currencyName: string): string {
+  if (cell.type === "start") return "Начало круга";
+  if (cell.type === "resource") return `+${cell.rewardCurrency || 5} ${currencyName}`;
+  if (cell.type === "mutation") return cell.position === 16 ? "2 замены" : "2 карты: 1 в руку";
+  if (cell.losePartMaxStat !== undefined) return `Откуп ${cell.buyoffCost ?? 5}`;
+  if (cell.minStat !== undefined) return `Порог ${cell.minStat}+`;
+  return "";
+}
+
+function WindingSpiral30({
+  tokens,
+  finishLabel = "Победитель заезда",
+}: {
+  tokens: SpiralToken[];
+  finishLabel?: string;
+}) {
+  const pathD = SPIRAL_30_POINTS.map(([x, y], i) => `${i === 0 ? "M" : "L"} ${x} ${y}`).join(" ");
+  return (
+    <div className="winding-spiral">
+      <svg viewBox="0 0 560 354" role="img" aria-label="Трек Спирали от 1 до 30">
+        <title>Спираль заезда (1–30)</title>
+        <path
+          d={pathD}
+          fill="none"
+          stroke="var(--ln)"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <line x1="202" y1="314" x2="174" y2="314" stroke="var(--ac)" strokeWidth="3" strokeDasharray="4 4" />
+        <g>
+          <rect
+            x="24"
+            y="293"
+            width="148"
+            height="42"
+            rx="10"
+            fill="var(--sf2)"
+            stroke="var(--ac)"
+            strokeWidth="1.75"
+          />
+          <text x="98" y="318" textAnchor="middle" fontSize="12.5" fontWeight="800" fill="var(--fg)">
+            {finishLabel}
+          </text>
+        </g>
+        {SPIRAL_30_POINTS.map(([cx, cy], idx) => {
+          const pos = idx + 1;
+          const cellTokens = tokens.filter((t) => Math.min(30, Math.max(1, t.position)) === pos);
+          const hasMine = cellTokens.some((t) => t.highlight);
+          const isOccupied = cellTokens.length > 0;
+          return (
+            <g key={pos}>
+              <circle
+                cx={cx}
+                cy={cy}
+                r="18"
+                fill={hasMine ? "var(--ac)" : isOccupied ? "var(--sf2)" : "var(--sf)"}
+                stroke={hasMine || isOccupied || pos === 30 ? "var(--ac)" : "#4c8b67"}
+                strokeWidth={hasMine || pos === 30 ? "2.6" : "2"}
+              />
+              <text
+                x={cx}
+                y={cy + 4.5}
+                textAnchor="middle"
+                fontSize="12.5"
+                fontWeight="800"
+                fill={hasMine ? "var(--acfg)" : "var(--fg)"}
+              >
+                {pos}
+              </text>
+              {cellTokens.map((t, tIdx) => {
+                const dx = (tIdx - (cellTokens.length - 1) / 2) * 14;
+                return (
+                  <g key={t.id} transform={`translate(${cx + dx}, ${cy - 21})`}>
+                    <circle
+                      r="9.5"
+                      fill={t.highlight ? "#216d53" : tIdx % 2 === 1 ? "#a44a27" : "#2e5d4b"}
+                      stroke="var(--sf)"
+                      strokeWidth="1.5"
+                    />
+                    <text y="3.5" textAnchor="middle" fontSize="9.5" fontWeight="800" fill="#ffffff">
+                      {t.name[0]}
+                    </text>
+                  </g>
+                );
+              })}
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+export function TabletopBoard({
+  template,
+  boardTokens,
+  spiralTokens,
+  viewerTeam,
+  compact = false,
+}: {
+  template: GameTemplate;
+  boardTokens: SpiralToken[];
+  spiralTokens: SpiralToken[];
+  viewerTeam?: Team;
+  compact?: boolean;
+}) {
+  const cells = template.boardCells;
+  const has16Ring = cells.length === 16;
+  const initialPos = viewerTeam?.boardPosition ?? cells[0]?.position ?? 1;
+  const [selectedPos, setSelectedPos] = useState<number>(initialPos);
+  const selectedCell = cells.find((c) => c.position === selectedPos) ?? cells[0];
+
+  const liveOutcome =
+    viewerTeam && selectedCell && selectedCell.type !== "start" && selectedCell.type !== "mutation"
+      ? resolveBoardTurn({
+          team: viewerTeam,
+          template,
+          cellOverride: selectedCell,
+        })
+      : null;
+
+  const stepLegend = (
+    <div className="tabletop-formula">
+      {template.stepThresholds.map((th) => {
+        const stat = template.stats.find((s) => s.id === th.statId);
+        return (
+          <span key={`${th.statId}-${th.min}`} className="tabletop-formula-pill">
+            <i style={{ background: stat?.color ?? "var(--ac)" }} aria-hidden="true" />
+            <span>
+              {stat?.label ?? th.statId} {th.min}+
+            </span>
+            <b>+{th.bonus}</b>
+          </span>
+        );
+      })}
+      {template.allStatsStepBonus && (
+        <span className="tabletop-formula-pill">
+          <span>Все три {template.allStatsStepBonus.min}+</span>
+          <b>+{template.allStatsStepBonus.bonus}</b>
+        </span>
+      )}
+      {template.elitePartStepBonus > 0 && (
+        <span className="tabletop-formula-pill">
+          <Award className="h-3.5 w-3.5 text-warn" />
+          <span>Элитная часть</span>
+          <b>+{template.elitePartStepBonus}</b>
+        </span>
+      )}
+    </div>
+  );
+
+  const spiralVisual =
+    template.trackMax === 30 ? (
+      <WindingSpiral30 tokens={spiralTokens} />
+    ) : (
+      <SpiralBoard
+        labels={Array.from({ length: template.trackMax }, (_, i) => String(i + 1))}
+        tokens={spiralTokens}
+        spiral
+      />
+    );
+
+  return (
+    <div className={`tabletop-shell ${compact ? "is-compact" : ""}`}>
+      {has16Ring && (
+        <section className="tabletop-ring" aria-label="Квадрат событий на 16 клеток">
+          {cells.map((cell, idx) => {
+            const coords = RING_16_GRID[idx];
+            const cellTokens = boardTokens.filter((t) => t.position === cell.position);
+            const active = selectedCell?.position === cell.position;
+            return (
+              <button
+                key={cell.position}
+                type="button"
+                aria-pressed={active}
+                data-cell-type={cell.type}
+                data-event={cell.label}
+                onClick={() => setSelectedPos(cell.position)}
+                className="tabletop-cell"
+                style={
+                  coords ? { ["--col" as string]: coords[0], ["--row" as string]: coords[1] } : undefined
+                }
+              >
+                <span className="tabletop-cell-head">
+                  <b>{cell.position}</b>
+                  {cellTokens.length > 0 && (
+                    <span className="fieldtokens">
+                      {cellTokens.map((t, tIdx) => (
+                        <i
+                          key={t.id}
+                          data-alt={tIdx % 2 === 1 ? "1" : undefined}
+                          data-mine={t.highlight ? "1" : undefined}
+                          title={t.name}
+                        >
+                          {t.name[0]}
+                        </i>
+                      ))}
+                    </span>
+                  )}
+                </span>
+                <strong>{cell.label}</strong>
+                <small>{shortCellHint(cell, template.currencyName)}</small>
+              </button>
+            );
+          })}
+
+          <div className="tabletop-center">
+            {stepLegend}
+            {spiralVisual}
+          </div>
+        </section>
+      )}
+
+      {!has16Ring && (
+        <div className="space-y-3">
+          {stepLegend}
+          {spiralVisual}
+        </div>
+      )}
+
+      {selectedCell && (
+        <div className="rounded-xl border border-ln bg-sf p-3.5 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <strong className="text-sm font-extrabold text-fg">
+              Клетка {selectedCell.position} · {selectedCell.label}
+            </strong>
+            {selectedCell.buyoffCost &&
+              selectedCell.type !== "resource" &&
+              selectedCell.type !== "mutation" && (
+                <span className="rounded-md bg-sf2 px-2 py-0.5 font-bold text-mu tabular-nums">
+                  Откуп: {selectedCell.buyoffCost} {template.currencyName}
+                </span>
+              )}
+          </div>
+          {selectedCell.description && (
+            <p className="mt-1.5 leading-relaxed text-mu">{selectedCell.description}</p>
+          )}
+          {liveOutcome && (
+            <p
+              className={`mt-2 rounded-lg px-2.5 py-1.5 font-bold ${
+                liveOutcome.passed
+                  ? "bg-pos/14 text-pos"
+                  : liveOutcome.losePartRequired
+                    ? "bg-neg/12 text-neg"
+                    : "bg-warn/15 text-warn"
+              }`}
+            >
+              Сейчас для вашей команды: {liveOutcome.summary}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

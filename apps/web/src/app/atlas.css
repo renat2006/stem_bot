@@ -595,26 +595,213 @@
   background: #a44a27;
 }
 
-.fieldcell[data-event="Охота"] {
-  background: #f1c5a3;
-  color: #233a2e;
+.fieldcell[data-event="Охота"],
+.fieldcell[data-event="Ускорение"],
+.tabletop-cell[data-event="Охота"],
+.tabletop-cell[data-event="Ускорение"] {
+  background: #f4d6bd;
+  color: #1f3328;
 }
-.fieldcell[data-event="Ресурс"] {
-  background: #f5dea2;
-  color: #233a2e;
+.fieldcell[data-event="Ресурс"],
+.fieldcell[data-event="Мастерская"],
+.tabletop-cell[data-event="Ресурс"],
+.tabletop-cell[data-event="Мастерская"] {
+  background: #f5e4b3;
+  color: #1f3328;
 }
 .fieldcell[data-event="Мутация"],
-.fieldcell[data-event="Большая мутация"] {
-  background: #ddcde5;
-  color: #233a2e;
+.fieldcell[data-event="Большая мутация"],
+.fieldcell[data-event="Пит-стоп"],
+.fieldcell[data-event="Апгрейд"],
+.tabletop-cell[data-event="Мутация"],
+.tabletop-cell[data-event="Большая мутация"],
+.tabletop-cell[data-event="Пит-стоп"],
+.tabletop-cell[data-event="Апгрейд"] {
+  background: #e2d6eb;
+  color: #1f3328;
 }
-.fieldcell[data-event="Катастрофа"] {
-  background: #bacbd1;
-  color: #233a2e;
+.fieldcell[data-event="Катастрофа"],
+.fieldcell[data-event="Завал"],
+.tabletop-cell[data-event="Катастрофа"],
+.tabletop-cell[data-event="Завал"] {
+  background: #c8dae0;
+  color: #1f3328;
 }
-.fieldcell[data-event="Хищник"] {
-  background: #d4bba2;
-  color: #233a2e;
+.fieldcell[data-event="Хищник"],
+.fieldcell[data-event="Болото"],
+.tabletop-cell[data-event="Хищник"],
+.tabletop-cell[data-event="Болото"] {
+  background: #d9c5b2;
+  color: #1f3328;
+}
+
+.tabletop-shell {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.tabletop-ring {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.tabletop-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2px;
+  min-height: 64px;
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: 12px;
+  border: 1.5px solid var(--ln);
+  background: var(--sf);
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tabletop-cell[aria-pressed="true"] {
+  border-color: var(--ac);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--ac) 32%, transparent);
+}
+
+.tabletop-cell-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.tabletop-cell b {
+  font-size: 11px;
+  font-weight: 800;
+  opacity: 0.72;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabletop-cell strong {
+  display: block;
+  width: 100%;
+  font-size: 11.5px;
+  line-height: 1.15;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.tabletop-cell small {
+  display: block;
+  font-size: 10px;
+  line-height: 1.15;
+  opacity: 0.78;
+}
+
+.tabletop-cell .fieldtokens i {
+  display: inline-grid;
+  place-items: center;
+  background: #216d53;
+  color: #fff;
+  border-radius: 100%;
+  width: 18px;
+  height: 18px;
+  font-size: 10px;
+  font-weight: 800;
+  font-style: normal;
+}
+
+.tabletop-cell .fieldtokens i[data-alt="1"] {
+  background: #a44a27;
+}
+
+.tabletop-center {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--ln);
+  background: var(--sf);
+}
+
+.tabletop-formula {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.tabletop-formula-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--ln);
+  background: var(--sf2);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.tabletop-formula-pill i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.tabletop-formula-pill b {
+  color: var(--ac);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.winding-spiral svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@container (min-width: 660px) {
+  .tabletop-ring {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows: auto auto auto auto auto;
+    gap: 8px;
+  }
+
+  .tabletop-cell {
+    grid-column: var(--col);
+    grid-row: var(--row);
+    min-height: 82px;
+    padding: 9px 10px;
+  }
+
+  .tabletop-cell strong {
+    font-size: 13px;
+  }
+
+  .tabletop-cell small {
+    font-size: 11px;
+  }
+
+  .tabletop-center {
+    grid-column: 2 / 5;
+    grid-row: 2 / 5;
+    align-content: center;
+    padding: 14px;
+  }
+}
+
+@container (max-width: 355px) {
+  .tabletop-ring {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .atlas-studio {

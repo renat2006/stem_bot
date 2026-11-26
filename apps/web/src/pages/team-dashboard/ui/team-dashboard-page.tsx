@@ -9,7 +9,7 @@ import {
   useTelegram,
   useTelegramBackButton,
 } from "../../../shared/lib/index.js";
-import { BottomSheet, Mark, SpiralBoard, ToastWithUndo } from "../../../shared/ui/index.js";
+import { BottomSheet, Mark, SpiralBoard, TabletopBoard, ToastWithUndo } from "../../../shared/ui/index.js";
 import { PlayerGuide } from "../../../widgets/player-guide/index.js";
 import { SettingsSheet } from "../../../widgets/settings-sheet/index.js";
 import { Shop } from "../../../widgets/shop/index.js";
@@ -126,10 +126,6 @@ export function TeamDashboardPage({
     template,
     gameState.roundEngine ?? resolveDayEngine(template, gameState.currentDay),
   );
-  const boardLabels =
-    template.boardCells.length > 0
-      ? template.boardCells.map((c) => c.label)
-      : ["Старт", "Ресурс", "Охота", "Мутация", "Хищник", "Катастрофа", "Ресурс", "Охота"];
 
   const switchScreen = (next: Screen) => {
     hapticTap();
@@ -248,42 +244,48 @@ export function TeamDashboardPage({
       {screen === "race" && (
         <div className="space-y-5">
           <div className="tablepage">
-            {physical && template.boardCells.length > 0 && (
+            {physical && template.boardCells.length === 16 ? (
               <>
-                <h2 className="atlas-h2">Квадрат событий</h2>
-                <p className="mb-2 text-sm text-mu">
-                  Первую фишку двигают по кубику. Клетка определяет событие хода.
-                </p>
-                <SpiralBoard
-                  labels={boardLabels}
-                  tokens={snapshot.teams.map((t) => ({
+                <div>
+                  <h2 className="atlas-h2">Квадрат событий</h2>
+                  <p className="mt-1 text-sm text-mu">
+                    Нажмите на любую клетку 1–16, чтобы увидеть её правило и расчёт для вашей сборки. Внутри —{" "}
+                    {template.trackName} до {template.trackMax}.
+                  </p>
+                </div>
+                <TabletopBoard
+                  template={template}
+                  boardTokens={snapshot.teams.map((t) => ({
                     id: t.id,
                     name: t.name,
                     position: t.boardPosition,
                     highlight: t.id === team.id,
                   }))}
-                  spiral={false}
+                  spiralTokens={snapshot.teams.map((t) => ({
+                    id: t.id,
+                    name: t.name,
+                    position: t.trackPosition,
+                    highlight: t.id === team.id,
+                  }))}
+                  viewerTeam={team}
+                  compact
+                />
+              </>
+            ) : (
+              <>
+                <h2 className="atlas-h2">{template.trackName}</h2>
+                <SpiralBoard
+                  labels={Array.from({ length: template.trackMax }, (_, i) => String(i + 1))}
+                  tokens={snapshot.teams.map((t) => ({
+                    id: t.id,
+                    name: t.name,
+                    position: t.trackPosition,
+                    highlight: t.id === team.id,
+                  }))}
+                  spiral
                 />
               </>
             )}
-
-            <h2 className="atlas-h2">{template.trackName}</h2>
-            {physical && (
-              <p className="mb-2 text-sm text-mu">
-                Вторую фишку передвиньте на позицию, которую объявит ведущий. Кто дойдёт до финиша первым или
-                окажется дальше всех в последний день, выигрывает.
-              </p>
-            )}
-            <SpiralBoard
-              labels={Array.from({ length: template.trackMax }, (_, i) => String(i + 1))}
-              tokens={snapshot.teams.map((t) => ({
-                id: t.id,
-                name: t.name,
-                position: t.trackPosition,
-                highlight: t.id === team.id,
-              }))}
-              spiral
-            />
 
             <div className="space-y-1.5 pt-1">
               {rankedTeams.map((t, idx) => (

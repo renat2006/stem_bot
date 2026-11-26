@@ -278,15 +278,24 @@ export function applyTurn(
           to: outcome.nextTrackPosition,
           currencyDelta: outcome.currencyDelta,
           boardCell: cell?.label,
+          losePartRequired: outcome.losePartRequired,
           summary: cell
-            ? `${cell.label}: клетка ${cell.position}. Трек: ${row.trackPosition} → ${outcome.nextTrackPosition}. ${cell.type === "mutation" ? "Ведущий разыгрывает карточки мутации за столом." : outcome.summary}`
+            ? `${cell.label}: клетка ${cell.position}. Спираль: ${row.trackPosition} → ${outcome.nextTrackPosition}. ${
+                cell.type === "mutation"
+                  ? (cell.description ?? "Ведущий разыгрывает карточки обмена за столом.")
+                  : outcome.summary
+              }`
             : outcome.summary,
         },
       });
       ctx.alert({
         target: "team",
         teamId: row.id,
-        text: `🏁 Итог дня ${day}: ${outcome.summary}`,
+        text: `🏁 Итог дня ${day}: ${
+          cell?.type === "mutation"
+            ? `${cell.label} (кл. ${cell.position}) · Спираль: ${outcome.nextTrackPosition}. ${cell.description ?? ""}`
+            : outcome.summary
+        }`,
       });
     }
     await ctx.tx

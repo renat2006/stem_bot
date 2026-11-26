@@ -1,4 +1,4 @@
-import { resolveDayEngine, resolveLexicon, usesPhysicalBoard } from "@stem/shared";
+import { resolveBoardTurn, resolveDayEngine, resolveLexicon, usesPhysicalBoard } from "@stem/shared";
 import { ChevronRight, Monitor, Plus, Settings, Undo2 } from "lucide-react";
 import { useState } from "react";
 import type { GameSnapshot } from "../../../entities/game/index.js";
@@ -340,47 +340,90 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
                     Каждая команда бросает кубик и двигает фишку по Квадрату событий. Запишите, куда она
                     попала. После расчёта команды передвинут свои фишки на Спирали.
                   </p>
-                  {teams.map((t) => (
-                    <div key={t.id} className="space-y-1.5">
-                      <label className="grid gap-1 text-sm font-bold">
-                        {t.name}
-                        <select
-                          className="min-h-11 w-full rounded-lg border border-ln bg-sf px-2"
-                          value={boardPositions[t.id] ?? ""}
-                          onChange={(e) =>
-                            saveBoardDraft(
-                              { ...boardPositions, [t.id]: Number(e.target.value) },
-                              buyoffTeamIds,
-                            )
-                          }
-                        >
-                          <option value="">Выберите клетку</option>
-                          {template.boardCells.map((c) => (
-                            <option key={c.position} value={c.position}>
-                              {c.position}. {c.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      {template.features.allowBuyoff && (
-                        <label className="flex min-h-9 items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={buyoffTeamIds.includes(t.id)}
+                  {teams.map((t) => {
+                    const selectedCell = template.boardCells.find((c) => c.position === boardPositions[t.id]);
+                    const leaderPos = teams.reduce((max, item) => Math.max(max, item.trackPosition), 1);
+                    const preview = selectedCell
+                      ? resolveBoardTurn({
+                          team: t,
+                          template,
+                          leaderTrackPosition: leaderPos,
+                          cellOverride:
+                            selectedCell.type === "mutation"
+                              ? { ...selectedCell, type: "start" }
+                              : selectedCell,
+                          useBuyoff: buyoffTeamIds.includes(t.id),
+                        })
+                      : null;
+                    return (
+                      <div key={t.id} className="space-y-1.5 rounded-xl border border-ln bg-sf2/55 p-3">
+                        <label className="grid gap-1 text-sm font-bold">
+                          <span className="flex items-center justify-between gap-2">
+                            <span>{t.name}</span>
+                            <span className="text-xs font-semibold text-mu tabular-nums">
+                              {t.currency} {lexicon.currencyUnit} · Спираль {t.trackPosition}/
+                              {template.trackMax}
+                            </span>
+                          </span>
+                          <select
+                            className="min-h-11 w-full rounded-lg border border-ln bg-sf px-2.5 font-semibold"
+                            value={boardPositions[t.id] ?? ""}
                             onChange={(e) =>
                               saveBoardDraft(
-                                boardPositions,
-                                e.target.checked
-                                  ? [...buyoffTeamIds, t.id]
-                                  : buyoffTeamIds.filter((id) => id !== t.id),
+                                { ...boardPositions, [t.id]: Number(e.target.value) },
+                                buyoffTeamIds,
                               )
                             }
-                          />
-                          Применить откуп, если команда согласна и хватает {template.currencyName}
+                          >
+                            <option value="">Выберите клетку (1–{template.boardCells.length})</option>
+                            {template.boardCells.map((c) => (
+                              <option key={c.position} value={c.position}>
+                                {c.position}. {c.label}
+                              </option>
+                            ))}
+                          </select>
                         </label>
-                      )}
-                    </div>
-                  ))}
+                        {selectedCell && preview && (
+                          <div className="rounded-lg bg-sf px-2.5 py-2 text-xs text-fg">
+                            <p className="font-bold">
+                              Спираль: {t.trackPosition} до {preview.nextTrackPosition} (шаг +
+                              {preview.stepMove}
+                              {preview.eventTrackDelta !== 0
+                                ? `, клетка ${preview.eventTrackDelta > 0 ? `+${preview.eventTrackDelta}` : preview.eventTrackDelta}`
+                                : ""}
+                              )
+                              {preview.currencyDelta !== 0
+                                ? ` · ${preview.currencyDelta > 0 ? `+${preview.currencyDelta}` : preview.currencyDelta} ${template.currencyName}`
+                                : ""}
+                            </p>
+                            <p className="mt-0.5 text-mu">
+                              {selectedCell.type === "mutation"
+                                ? (selectedCell.description ?? "Розыгрыш карт рынка за столом.")
+                                : preview.summary}
+                            </p>
+                          </div>
+                        )}
+                        {template.features.allowBuyoff && (
+                          <label className="flex min-h-9 items-center gap-2 text-xs font-medium text-fg">
+                            <input
+                              type="checkbox"
+                              checked={buyoffTeamIds.includes(t.id)}
+                              onChange={(e) =>
+                                saveBoardDraft(
+                                  boardPositions,
+                                  e.target.checked
+                                    ? [...buyoffTeamIds, t.id]
+                                    : buyoffTeamIds.filter((id) => id !== t.id),
+                                )
+                              }
+                            />
+                            Применить откуп (5 {template.currencyName}), если команда согласна и хватает
+                            баланса
+                          </label>
+                        )}
+                      </div>
+                    );
+                  })}
                 </section>
               )}
               {(roundMode === "blind_draft" || roundMode === "negotiation" || roundMode === "diagnosis") && (

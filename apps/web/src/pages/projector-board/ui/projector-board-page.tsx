@@ -10,7 +10,7 @@ import { AssemblyStage, PartSticker } from "../../../entities/assembly/index.js"
 import { StatDeltaList } from "../../../entities/card/index.js";
 import type { GameSnapshot } from "../../../entities/game/index.js";
 import { useCountdown } from "../../../shared/lib/index.js";
-import { RarityBadge, SpiralBoard } from "../../../shared/ui/index.js";
+import { RarityBadge, SpiralBoard, TabletopBoard } from "../../../shared/ui/index.js";
 
 const PHASE_LABEL: Record<string, string> = {
   scoring: "Задача дня",
@@ -156,46 +156,60 @@ export function ProjectorBoardPage({
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
           <section className="space-y-4 lg:col-span-8">
-            {physical && (
+            {physical && template.boardCells.length === 16 ? (
               <div className="hall-spiral-plate">
-                <h2 className="mb-2 text-2xl font-extrabold">Квадрат событий</h2>
-                <p className="mb-3 text-sm">
-                  Первая фишка показывает событие хода. Вторая показывает место на Спирали.
-                </p>
-                <SpiralBoard
-                  labels={template.boardCells.map((c) => c.label)}
-                  tokens={ranked.map((t) => ({ id: t.id, name: t.name, position: t.boardPosition }))}
-                  spiral={false}
+                <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                  <div>
+                    <h2 className="text-2xl font-extrabold tracking-tight">Квадрат событий</h2>
+                    <p className="mt-0.5 text-sm opacity-80">
+                      Внешнее кольцо 1–16 определяет событие хода · внутри {template.trackName} (1–
+                      {template.trackMax})
+                    </p>
+                  </div>
+                  <span className="font-mono text-xs font-bold tabular-nums">Финиш: {template.trackMax}</span>
+                </div>
+                <TabletopBoard
+                  template={template}
+                  boardTokens={ranked.map((t) => ({ id: t.id, name: t.name, position: t.boardPosition }))}
+                  spiralTokens={ranked.map((t) => ({ id: t.id, name: t.name, position: t.trackPosition }))}
                 />
+                <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
+                  {ranked.map((t) => (
+                    <span key={t.id} className="rounded-lg border border-ln bg-sf px-2.5 py-1 tabular-nums">
+                      {t.name}: кл. {t.boardPosition} · Спираль {t.trackPosition}/{template.trackMax}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="hall-spiral-plate">
+                <div className="mb-3 flex items-baseline justify-between">
+                  <h2 className="text-2xl font-extrabold tracking-tight">
+                    {template.trackName}
+                    {!physical &&
+                      dayEngine !== "legacy_track" &&
+                      ` (${dayEngine === "diagnosis" ? lexicon.diagnosisLabel : lexicon.programLabel})`}
+                  </h2>
+                  <span className="font-mono text-xs font-bold tabular-nums">Финиш: {template.trackMax}</span>
+                </div>
+                <SpiralBoard
+                  labels={Array.from({ length: template.trackMax }, (_, i) => String(i + 1))}
+                  tokens={ranked.map((t) => ({
+                    id: t.id,
+                    name: t.name,
+                    position: t.trackPosition,
+                  }))}
+                  spiral
+                />
+                <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
+                  {ranked.map((t) => (
+                    <span key={t.id} className="rounded-lg border border-ln bg-sf px-2.5 py-1 tabular-nums">
+                      {t.name}: {t.trackPosition}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
-            <div className="hall-spiral-plate">
-              <div className="mb-3 flex items-baseline justify-between">
-                <h2 className="text-2xl font-extrabold tracking-tight">
-                  {template.trackName}
-                  {!physical &&
-                    dayEngine !== "legacy_track" &&
-                    ` (${dayEngine === "diagnosis" ? lexicon.diagnosisLabel : lexicon.programLabel})`}
-                </h2>
-                <span className="font-mono text-xs font-bold tabular-nums">Финиш: {template.trackMax}</span>
-              </div>
-              <SpiralBoard
-                labels={Array.from({ length: template.trackMax }, (_, i) => String(i + 1))}
-                tokens={ranked.map((t) => ({
-                  id: t.id,
-                  name: t.name,
-                  position: t.trackPosition,
-                }))}
-                spiral
-              />
-              <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">
-                {ranked.map((t) => (
-                  <span key={t.id} className="rounded-lg border border-ln bg-sf px-2.5 py-1 tabular-nums">
-                    {t.name}: {t.trackPosition}
-                  </span>
-                ))}
-              </div>
-            </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {ranked.slice(0, 4).map((team) => (

@@ -1,6 +1,6 @@
 import { resolveBoardTurn, resolveDayEngine, resolveLexicon, usesPhysicalBoard } from "@stem/shared";
-import { ChevronRight, Monitor, Plus, Settings, Undo2 } from "lucide-react";
-import { useState } from "react";
+import { ChevronRight, Ellipsis, Monitor, Plus, Settings, Undo2 } from "lucide-react";
+import { useRef, useState } from "react";
 import type { GameSnapshot } from "../../../entities/game/index.js";
 import {
   applyTurn,
@@ -57,6 +57,8 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
   const [studioMode, setStudioMode] = useState<StudioMode>(initialStudioMode);
   const [tab, setTab] = useState<AdminTab>("round");
   const [wizardOpen, setWizardOpen] = useState(initialWizardState);
+  const toolsMenu = useRef<HTMLDetailsElement>(null);
+  const closeTools = () => toolsMenu.current?.removeAttribute("open");
   const [fastChecks, setFastChecks] = useState<Record<string, [boolean, boolean]>>({});
 
   const countdown = useCountdown(gameState.phaseEndsAt, clockOffsetMs);
@@ -179,13 +181,13 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
     <article className="atlas-studio">
       <header className="atlas-studio-header">
         <div className="min-w-0">
-          <div className="text-sm font-extrabold tracking-tight text-fg">Полевой атлас · Студия ведущего</div>
+          <div className="text-sm font-extrabold tracking-tight text-fg">Студия ведущего</div>
           <div className="mt-0.5 text-xs font-medium text-mu">
             День {gameState.currentDay} из {template.totalDays} · {template.title}
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="atlas-studio-modes">
           <div className="atlas-segmented">
             <button
               type="button"
@@ -209,33 +211,51 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
             </button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              hapticTap();
-              setWizardOpen(true);
-            }}
-            className="atlas-quiet text-xs"
-          >
-            <Plus className="h-3.5 w-3.5 text-ac" />
-            <span>Новая смена</span>
-          </button>
+          <details className="atlas-studio-tools" ref={toolsMenu}>
+            <summary className="atlas-icon-btn" aria-label="Действия смены" title="Действия смены">
+              <Ellipsis className="h-5 w-5" />
+            </summary>
+            <div className="atlas-studio-tool-list">
+              <button
+                type="button"
+                onClick={() => {
+                  hapticTap();
+                  closeTools();
+                  setWizardOpen(true);
+                }}
+                className="atlas-quiet text-xs"
+              >
+                <Plus className="h-3.5 w-3.5 text-ac" />
+                <span>Новая смена</span>
+              </button>
 
-          <button type="button" onClick={openProjector} className="atlas-quiet text-xs">
-            <Monitor className="h-3.5 w-3.5 text-ac" />
-            <span>Табло 16:9</span>
-          </button>
+              <button
+                type="button"
+                onClick={() => {
+                  closeTools();
+                  openProjector();
+                }}
+                className="atlas-quiet text-xs"
+              >
+                <Monitor className="h-3.5 w-3.5 text-ac" />
+                <span>Табло 16:9</span>
+              </button>
 
-          {onOpenSettings && (
-            <button
-              type="button"
-              aria-label="Настройки отображения"
-              onClick={onOpenSettings}
-              className="atlas-icon-btn"
-            >
-              <Settings className="h-4 w-4" />
-            </button>
-          )}
+              {onOpenSettings && (
+                <button
+                  type="button"
+                  aria-label="Настройки отображения"
+                  onClick={() => {
+                    closeTools();
+                    onOpenSettings();
+                  }}
+                  className="atlas-quiet text-xs"
+                >
+                  <Settings className="h-4 w-4" /> Настройки
+                </button>
+              )}
+            </div>
+          </details>
         </div>
       </header>
 
@@ -253,7 +273,7 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
           }}
         />
       ) : (
-        <div className="space-y-6">
+        <div className="atlas-studio-content">
           <nav aria-label="Разделы студии ведущего" className="atlas-pills">
             {ADMIN_TABS.map((item) => {
               const hasAlert = item.id === "balance" && criticalAlerts > 0;
@@ -277,26 +297,32 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
           </nav>
 
           {tab === "round" && (
-            <div className="space-y-6">
-              <h1 className="atlas-h1">Пульт урока</h1>
+            <div className="atlas-round-content">
+              <h1 className="sr-only">Пульт урока</h1>
 
               <section className="live-action-plate">
                 <div>
                   <h2 className="atlas-h2">
                     {gameState.currentPhase === "market"
-                      ? "Мастерская открыта"
+                      ? "Магазин открыт"
                       : gameState.currentPhase === "turn"
                         ? physical
                           ? "Ход на поле"
                           : "Решения команд"
                         : gameState.currentPhase === "summary"
                           ? "Разбор итогов"
-                          : "Задача дня"}
+                          : "Начисление за занятие"}
                   </h2>
                   <p className="mt-1 text-sm text-mu tabular-nums">
-                    {physical
-                      ? "Занятие · Магазин · Ход на поле · Итоги"
-                      : `${readyPhones} из ${maxPhones} пультов готовы`}
+                    {gameState.currentPhase === "turn"
+                      ? physical
+                        ? `Клетки записаны: ${teams.filter((t) => boardPositions[t.id]).length} из ${teams.length}`
+                        : `${readyPhones} из ${maxPhones} пультов готовы`
+                      : gameState.currentPhase === "scoring"
+                        ? "Отметьте работу команд перед открытием магазина"
+                        : gameState.currentPhase === "market"
+                          ? "Команды выбирают детали"
+                          : "Результаты доступны на табло"}
                     {gameState.phaseEndsAt
                       ? ` · ${Math.floor(countdown / 60)}:${String(countdown % 60).padStart(2, "0")}`
                       : ""}
@@ -371,7 +397,7 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
                             onChange={(e) =>
                               saveBoardDraft(
                                 { ...boardPositions, [t.id]: Number(e.target.value) },
-                                buyoffTeamIds,
+                                buyoffTeamIds.filter((id) => id !== t.id),
                               )
                             }
                           >
@@ -403,7 +429,7 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
                             </p>
                           </div>
                         )}
-                        {template.features.allowBuyoff && (
+                        {template.features.allowBuyoff && preview?.canBuyoff && (
                           <label className="flex min-h-9 items-center gap-2 text-xs font-medium text-fg">
                             <input
                               type="checkbox"
@@ -417,8 +443,8 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
                                 )
                               }
                             />
-                            Применить откуп (5 {template.currencyName}), если команда согласна и хватает
-                            баланса
+                            Откуп за {selectedCell?.buyoffCost ?? template.extraModule?.buyoffCost ?? 2}{" "}
+                            {template.currencyName}
                           </label>
                         )}
                       </div>
@@ -448,109 +474,110 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
               )}
 
               {teams.length > 0 && (
-                <section className="space-y-3">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <div>
-                      <h2 className="atlas-h2">Работа на занятии ({lexicon.currencyLabel})</h2>
-                      <p className="text-xs text-mu">Начислите ресурс за выполненную работу на занятии.</p>
-                    </div>
-                  </div>
-
-                  <section aria-label="Таблица оценки команд" tabIndex={0} className="atlas-table-region">
-                    <table>
-                      <thead>
-                        <tr className="border-b border-ln text-left text-sm font-bold text-fg">
-                          <th className="py-2.5 pr-3 pl-4">Команда</th>
-                          {(["Результат +2", "Замер +2"] as const).map((colLabel, colIdx) => (
-                            <th key={colLabel} className="px-2 py-2.5">
-                              <label className="inline-flex cursor-pointer items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  checked={teams.every((t) => Boolean(fastChecks[t.id]?.[colIdx]))}
-                                  onChange={(e) => {
-                                    const checked = e.target.checked;
-                                    setFastChecks((prev) =>
-                                      Object.fromEntries(
-                                        teams.map((t) => {
-                                          const row: [boolean, boolean] = [...(prev[t.id] ?? [false, false])];
-                                          row[colIdx] = checked;
-                                          return [t.id, row];
-                                        }),
-                                      ),
-                                    );
-                                  }}
-                                />
-                                <span>{colLabel}</span>
-                              </label>
-                            </th>
-                          ))}
-                          <th className="py-2.5 pr-4 pl-2 text-right">Бюджет</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-ln text-sm">
-                        {teams.map((t) => {
-                          const rowChecks = fastChecks[t.id] ?? [false, false];
-                          const readySlots = t.roundState?.readySlots ?? [];
-                          return (
-                            <tr key={t.id}>
-                              <td className="py-2.5 pr-3 pl-4">
-                                <strong className="font-bold text-fg">{t.name}</strong>
-                                <div className="crew-readiness" aria-hidden="true">
-                                  {[0, 1, 2, 3, 4].map((slotIdx) => (
-                                    <i key={slotIdx} data-ready={readySlots.includes(slotIdx)} />
-                                  ))}
-                                </div>
-                              </td>
-                              {[0, 1].map((colIdx) => (
-                                <td key={colIdx} className="px-2 py-2.5">
+                <details
+                  className="atlas-grading"
+                  key={gameState.currentPhase}
+                  open={gameState.currentPhase === "scoring"}
+                >
+                  <summary className="font-bold">Работа команд · {lexicon.currencyLabel}</summary>
+                  <div className="space-y-3">
+                    <section
+                      aria-label="Таблица оценки команд"
+                      className="atlas-table-region atlas-grading-table"
+                    >
+                      <table>
+                        <thead>
+                          <tr className="border-b border-ln text-left text-sm font-bold text-fg">
+                            <th className="py-2.5 pr-3 pl-4">Команда</th>
+                            {(["Результат +2", "Замер +2"] as const).map((colLabel, colIdx) => (
+                              <th key={colLabel} className="px-2 py-2.5">
+                                <label className="inline-flex cursor-pointer items-center gap-2">
                                   <input
                                     type="checkbox"
-                                    aria-label={`${t.name} ${colIdx === 0 ? "результат" : "замер"}`}
-                                    checked={Boolean(rowChecks[colIdx])}
-                                    onChange={() =>
-                                      setFastChecks((prev) => {
-                                        const nextRow: [boolean, boolean] = [
-                                          ...(prev[t.id] ?? [false, false]),
-                                        ];
-                                        nextRow[colIdx] = !nextRow[colIdx];
-                                        return { ...prev, [t.id]: nextRow };
-                                      })
-                                    }
+                                    checked={teams.every((t) => Boolean(fastChecks[t.id]?.[colIdx]))}
+                                    onChange={(e) => {
+                                      const checked = e.target.checked;
+                                      setFastChecks((prev) =>
+                                        Object.fromEntries(
+                                          teams.map((t) => {
+                                            const row: [boolean, boolean] = [
+                                              ...(prev[t.id] ?? [false, false]),
+                                            ];
+                                            row[colIdx] = checked;
+                                            return [t.id, row];
+                                          }),
+                                        ),
+                                      );
+                                    }}
                                   />
+                                  <span>{colLabel}</span>
+                                </label>
+                              </th>
+                            ))}
+                            <th className="py-2.5 pr-4 pl-2 text-right">Бюджет</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-ln text-sm">
+                          {teams.map((t) => {
+                            const rowChecks = fastChecks[t.id] ?? [false, false];
+                            return (
+                              <tr key={t.id}>
+                                <td className="py-2.5 pr-3 pl-4">
+                                  <strong className="font-bold text-fg">{t.name}</strong>
                                 </td>
-                              ))}
-                              <td className="py-2.5 pr-4 pl-2 text-right font-mono font-bold text-fg tabular-nums">
-                                {t.currency}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </section>
+                                {[0, 1].map((colIdx) => (
+                                  <td key={colIdx} className="px-2 py-2.5">
+                                    <label className="atlas-team-checkbox">
+                                      <input
+                                        type="checkbox"
+                                        aria-label={`${t.name} ${colIdx === 0 ? "результат" : "замер"}`}
+                                        checked={Boolean(rowChecks[colIdx])}
+                                        onChange={() =>
+                                          setFastChecks((prev) => {
+                                            const nextRow: [boolean, boolean] = [
+                                              ...(prev[t.id] ?? [false, false]),
+                                            ];
+                                            nextRow[colIdx] = !nextRow[colIdx];
+                                            return { ...prev, [t.id]: nextRow };
+                                          })
+                                        }
+                                      />
+                                    </label>
+                                  </td>
+                                ))}
+                                <td className="py-2.5 pr-4 pl-2 text-right font-mono font-bold text-fg tabular-nums">
+                                  {t.currency}{" "}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </section>
 
-                  <div className="flex flex-wrap items-center gap-2.5 pt-1">
-                    <button
-                      type="button"
-                      disabled={!hasAnyFastCheck}
-                      onClick={() => void handleFastBatchAward()}
-                      className="atlas-primary !w-auto"
-                    >
-                      Начислить отмеченным
-                    </button>
-
-                    {gameState.canUndoLastReward && (
+                    <div className="flex flex-wrap items-center gap-2.5 pt-1">
                       <button
                         type="button"
-                        onClick={() => void run(() => undoRewardBatch())}
-                        className="atlas-quiet text-xs"
+                        disabled={!hasAnyFastCheck}
+                        onClick={() => void handleFastBatchAward()}
+                        className="atlas-primary !w-auto"
                       >
-                        <Undo2 className="h-4 w-4" />
-                        <span>Отменить начисление</span>
+                        Начислить отмеченным
                       </button>
-                    )}
+
+                      {gameState.canUndoLastReward && (
+                        <button
+                          type="button"
+                          onClick={() => void run(() => undoRewardBatch())}
+                          className="atlas-quiet text-xs"
+                        >
+                          <Undo2 className="h-4 w-4" />
+                          <span>Отменить начисление</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </section>
+                </details>
               )}
 
               <details className="border-t border-ln pt-3">

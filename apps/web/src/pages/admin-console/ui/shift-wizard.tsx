@@ -109,13 +109,13 @@ export function ShiftWizardSheet({
             </div>
 
             <div className="grid grid-cols-3 gap-2">
-              <label className="col-span-2 flex flex-col gap-1">
+              <label className="col-span-2 flex min-w-0 flex-col gap-1">
                 <span className="text-xs text-mu">Название смены</span>
                 <input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder={selectedPreset?.title ?? "Спринт роверов"}
-                  className="h-10 rounded-xl border border-ln bg-sf px-3 text-sm text-fg"
+                  className="h-11 min-w-0 w-full rounded-xl border border-ln bg-sf px-3 text-sm text-fg"
                 />
               </label>
               <label className="flex flex-col gap-1">
@@ -126,7 +126,7 @@ export function ShiftWizardSheet({
                   max={10}
                   value={totalDays}
                   onChange={(e) => setTotalDays(Math.max(2, Math.min(10, Number(e.target.value))))}
-                  className="h-10 rounded-xl border border-ln bg-sf px-3 font-mono text-sm font-semibold text-fg"
+                  className="h-11 min-w-0 w-full rounded-xl border border-ln bg-sf px-3 font-mono text-sm font-semibold text-fg"
                 />
               </label>
             </div>
@@ -184,7 +184,7 @@ export function ShiftWizardSheet({
                     value={theme}
                     onChange={(e) => setTheme(e.target.value)}
                     placeholder="Например: автономные роверы в ледяном кратере"
-                    className="h-10 rounded-xl border border-ln bg-sf px-3 text-sm text-fg"
+                    className="h-11 min-w-0 w-full rounded-xl border border-ln bg-sf px-3 text-sm text-fg"
                   />
                 </label>
                 <label className="flex flex-col gap-1">

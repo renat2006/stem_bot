@@ -132,6 +132,7 @@ export function TeamDashboardPage({
     setScreen(next);
   };
 
+  const mobileLabels: Record<Screen, string> = { home: "Команда", market: "Магазин", race: "Поле и правила" };
   const rankedTeams = [...snapshot.teams].sort((a, b) => b.trackPosition - a.trackPosition);
 
   return (
@@ -333,7 +334,7 @@ export function TeamDashboardPage({
               onClick={() => switchScreen(t.id)}
             >
               <TabIcon className="h-5 w-5" />
-              <span>{t.label}</span>
+              <span>{mobileLabels[t.id]}</span>
               {showBadge && (
                 <span className="absolute top-2 right-5 h-2 w-2 rounded-full bg-warn" aria-hidden="true" />
               )}

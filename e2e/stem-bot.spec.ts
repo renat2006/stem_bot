@@ -18,6 +18,7 @@ test.describe("STEM Bot Field Atlas + Engine 3.0 full lifecycle", () => {
     await adminPage.goto("/?as=1:%D0%92%D0%B5%D0%B4%D1%83%D1%89%D0%B8%D0%B9&surface=admin");
     await expect(adminPage.getByText("Студия ведущего")).toBeVisible();
 
+    await adminPage.getByLabel("Действия смены").click();
     await adminPage.getByRole("button", { name: "Новая смена" }).click();
     await expect(adminPage.getByText("Мастер запуска · шаг 1 из 4")).toBeVisible();
     await adminPage.getByRole("button", { name: "Дальше" }).click();
@@ -113,7 +114,10 @@ test.describe("STEM Bot Field Atlas + Engine 3.0 full lifecycle", () => {
     const bobLoreBtn = bobPage.getByRole("button", { name: "Принято" });
     if (await bobLoreBtn.isVisible()) await bobLoreBtn.click();
 
-    await bobPage.getByRole("button", { name: "Рынок", exact: true }).click();
+    await bobPage
+      .getByRole("navigation", { name: "Нижняя панель игрока" })
+      .getByRole("button", { name: "Магазин" })
+      .click();
     await bobPage.getByText("Титановый дальномер").first().click();
     await bobPage.getByRole("button", { name: /Предложить/ }).click();
 
@@ -137,7 +141,10 @@ test.describe("STEM Bot Field Atlas + Engine 3.0 full lifecycle", () => {
     const kiraLoreBtn = kiraPage.getByRole("button", { name: "Принято" });
     if (await kiraLoreBtn.isVisible()) await kiraLoreBtn.click();
 
-    await kiraPage.getByRole("button", { name: "Рынок", exact: true }).click();
+    await kiraPage
+      .getByRole("navigation", { name: "Нижняя панель игрока" })
+      .getByRole("button", { name: "Магазин" })
+      .click();
     await kiraPage.getByRole("button", { name: /^Биржа/ }).click();
     await kiraPage.getByRole("button", { name: "Осмотреть" }).first().click();
     await kiraPage.getByRole("button", { name: /Купить за/ }).click();
@@ -168,7 +175,7 @@ test.describe("STEM Bot Field Atlas + Engine 3.0 full lifecycle", () => {
     }
     await adminPage.getByRole("button", { name: "Применить ход по треку" }).click();
 
-    await kiraPage.getByRole("button", { name: "Маршрут и FAQ" }).click();
+    await kiraPage.getByRole("button", { name: "Поле и правила" }).click();
     await expect(kiraPage.getByText("Справочник механик (FAQ)")).toBeVisible();
 
     const projectorCtx = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
@@ -469,6 +476,13 @@ test.describe("STEM Bot Field Atlas + Engine 3.0 full lifecycle", () => {
 
     await page.goto("/?as=1:%D0%92%D0%B5%D0%B4%D1%83%D1%89%D0%B8%D0%B9&surface=admin");
     await expect(page.getByText("Студия ведущего")).toBeVisible();
+    await page.setViewportSize({ width: 320, height: 720 });
+    await assertCleanGeometry(page, "admin-live-320");
+    const scoring = page.getByRole("region", { name: "Таблица оценки команд" });
+    if (!(await scoring.isVisible())) await page.locator(".atlas-grading > summary").click();
+    await expect(scoring).toBeVisible();
+    expect(await scoring.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+    await page.setViewportSize({ width: 360, height: 780 });
     await assertCleanGeometry(page, "admin-live-360");
     await page.screenshot({ path: `${ARTIFACT_DIR}/atlas_v2_admin_mobile_360.png` });
 
@@ -488,15 +502,21 @@ test.describe("STEM Bot Field Atlas + Engine 3.0 full lifecycle", () => {
     await page.getByRole("button", { name: "Пропустить" }).click();
 
     await expect(page.getByText("Ангар сборки")).toBeVisible();
+    await page.setViewportSize({ width: 320, height: 720 });
+    await assertCleanGeometry(page, "player-team-320");
+    await page.setViewportSize({ width: 360, height: 780 });
     await assertCleanGeometry(page, "player-hangar-360");
     await page.screenshot({ path: `${ARTIFACT_DIR}/atlas_v2_player_mobile_360.png` });
 
-    await page.getByRole("button", { name: "Рынок", exact: true }).click();
+    await page
+      .getByRole("navigation", { name: "Нижняя панель игрока" })
+      .getByRole("button", { name: "Магазин" })
+      .click();
     await assertCleanGeometry(page, "player-market-360");
     await page.screenshot({ path: `${ARTIFACT_DIR}/atlas_v2_market_mobile_360.png` });
 
     await page.setViewportSize({ width: 768, height: 1024 });
-    await page.getByRole("button", { name: "Ангар", exact: true }).click();
+    await page.getByRole("button", { name: "Команда", exact: true }).click();
     await assertCleanGeometry(page, "player-hangar-768");
 
     await page.setViewportSize({ width: 1280, height: 860 });

@@ -5,6 +5,8 @@
 
 ## [Unreleased]
 
+- На телефоне ведущий выбирает раздел одним списком. В каталоге отдельно открываются генератор и аукцион. Сборка и управление участниками раскрываются у выбранной команды.
+
 ### Fixed (2026-11-26) — публичное табло/поле 16:9 без initData и устойчивый запуск Mini App
 - **Публичный read-only режим проектора (`packages/shared/src/protocol.ts`, `apps/server/src/{index.ts,realtime/ws-server.ts,modules/event/snapshot.ts}`)**:
   - Добавлен read-only эндпоинт `GET /api/game/public` и режим WebSocket `{ type: "auth", mode: "projector" }` для открытия табло и настольного поля `/?view=projector` на любом внешнем браузере/проекторе без Telegram `initData` (при этом скрываются `joinCode`, `captainUsername`, `members`, `proposals`, приватные записи ленты и секреты диагностики; все `/api/game/state`, `/api/team/*`, `/api/admin/*` остаются под строгой проверкой `initData`).

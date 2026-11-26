@@ -29,6 +29,7 @@ const SCOPES: EffectScope[] = ["step", "event_shield", "economy", "slot_synergy"
 
 export function CardsStudioTab({ snapshot, run }: { snapshot: GameSnapshot; run: RunAction }) {
   const { template, gameState, auctions } = snapshot;
+  const [section, setSection] = useState("catalog");
   const [rarityFilter, setRarityFilter] = useState<"all" | CardRarity>("all");
   const [slotFilter, setSlotFilter] = useState<string>("all");
 
@@ -136,220 +137,225 @@ export function CardsStudioTab({ snapshot, run }: { snapshot: GameSnapshot; run:
 
   return (
     <div className="space-y-4">
-      <ModuleCard
-        title="Каталог и настройка деталей"
-        subtitle={`${template.cards.length} в колоде · нажмите на карточку, чтобы подкрутить характеристики`}
-        badge={
-          <button
-            type="button"
-            onClick={() => openEditor()}
-            className="inline-flex h-8 items-center gap-1 rounded-lg bg-ac px-3 text-xs font-semibold text-acfg"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Новая
-          </button>
-        }
+      <select
+        aria-label="Работа с картами"
+        className="studio-field"
+        value={section}
+        onChange={(event) => setSection(event.target.value)}
       >
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-1.5">
-            {(["all", ...RARITIES] as const).map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRarityFilter(r)}
-                className={`min-h-[34px] rounded-full border px-3 text-xs font-medium ${
-                  rarityFilter === r ? "border-fg bg-fg text-bg" : "border-ln bg-sf2 text-fg"
-                }`}
-              >
-                {r === "all" ? "Все редкости" : RARITY_LABEL[r]}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex gap-1.5 overflow-x-auto pb-1">
+        <option value="catalog">Каталог деталей</option>
+        <option value="generator">Генератор деталей</option>
+        {template.features.auctions && <option value="auction">Аукцион</option>}
+      </select>
+      {section === "catalog" && (
+        <ModuleCard
+          title="Каталог и настройка деталей"
+          subtitle={`${template.cards.length} в колоде · нажмите на карточку, чтобы подкрутить характеристики`}
+          badge={
             <button
               type="button"
-              onClick={() => setSlotFilter("all")}
-              className={`min-h-[32px] shrink-0 rounded-lg px-2.5 text-xs font-medium ${
-                slotFilter === "all" ? "bg-ac text-acfg" : "bg-sf2 text-mu"
-              }`}
+              onClick={() => openEditor()}
+              className="inline-flex h-8 items-center gap-1 rounded-lg bg-ac px-3 text-xs font-semibold text-acfg"
             >
-              Все слоты
+              <Plus className="h-3.5 w-3.5" />
+              Новая
             </button>
-            {template.slots.map((slot) => (
-              <button
-                key={slot.id}
-                type="button"
-                onClick={() => setSlotFilter(slot.id)}
-                className={`min-h-[32px] shrink-0 rounded-lg px-2.5 text-xs font-medium ${
-                  slotFilter === slot.id ? "bg-ac text-acfg" : "bg-sf2 text-mu"
-                }`}
+          }
+        >
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                aria-label="Редкость детали"
+                className="studio-field"
+                value={rarityFilter}
+                onChange={(event) => setRarityFilter(event.target.value as typeof rarityFilter)}
               >
-                {slot.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {filtered.map((card) => {
-              const left = gameState.cardStockLeft[card.id] ?? card.stock;
-              return (
-                <button
-                  key={card.id}
-                  type="button"
-                  onClick={() => openEditor(card)}
-                  className="flex items-center gap-3 rounded-xl border border-ln bg-sf2/70 p-3 text-left transition hover:border-ac"
-                >
-                  <PartSticker card={card} template={template} thumbnail />
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="font-mono text-[10px] uppercase text-mu">
-                        {slotLabel.get(card.slotId) ?? card.slotId} · д.{card.dayAvailable}
-                      </span>
-                      <RarityBadge rarity={card.rarity} compact />
+                <option value="all">Все редкости</option>
+                {RARITIES.map((r) => (
+                  <option key={r} value={r}>
+                    {RARITY_LABEL[r]}
+                  </option>
+                ))}
+              </select>
+              <select
+                aria-label="Слот детали"
+                className="studio-field"
+                value={slotFilter}
+                onChange={(event) => setSlotFilter(event.target.value)}
+              >
+                <option value="all">Все слоты</option>
+                {template.slots.map((slot) => (
+                  <option key={slot.id} value={slot.id}>
+                    {slot.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {filtered.length === 0 && <p className="text-sm text-mu">По этим фильтрам деталей нет.</p>}
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {filtered.map((card) => {
+                const left = gameState.cardStockLeft[card.id] ?? card.stock;
+                return (
+                  <button
+                    key={card.id}
+                    type="button"
+                    onClick={() => openEditor(card)}
+                    className="flex items-center gap-3 rounded-xl border border-ln bg-sf2/70 p-3 text-left transition hover:border-ac"
+                  >
+                    <PartSticker card={card} template={template} thumbnail />
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-mono text-[10px] uppercase text-mu">
+                          {slotLabel.get(card.slotId) ?? card.slotId} · д.{card.dayAvailable}
+                        </span>
+                        <RarityBadge rarity={card.rarity} compact />
+                      </div>
+                      <p className="truncate text-sm font-semibold text-fg">{card.name}</p>
+                      <StatDeltaList stats={template.stats} deltas={card.stats} />
                     </div>
-                    <p className="truncate text-sm font-semibold text-fg">{card.name}</p>
-                    <StatDeltaList stats={template.stats} deltas={card.stats} />
-                  </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1">
-                    <span className="flex items-center gap-1 font-mono text-base font-semibold text-fg">
-                      {card.price}
-                      <Coin size={13} />
-                    </span>
-                    <span className="font-mono text-[11px] text-mu">
-                      {left}/{card.stock} шт.
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <span className="flex items-center gap-1 font-mono text-base font-semibold text-fg">
+                        {card.price}
+                        <Coin size={13} />
+                      </span>
+                      <span className="font-mono text-[11px] text-mu">
+                        {left}/{card.stock} шт.
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </ModuleCard>
+        </ModuleCard>
+      )}
 
-      <ModuleCard
-        title="Генератор новых деталей"
-        subtitle="Создаёт сбалансированный пакет обычных, редких и легендарных карт по теме"
-      >
-        <div className="space-y-3">
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-mu">Тема или акцент пакета</span>
-            <input
-              value={genPrompt}
-              onChange={(e) => setGenPrompt(e.target.value)}
-              placeholder="Например: марсианские песчаные бури и тяжёлые буры"
-              className="h-11 rounded-xl border border-ln bg-sf2 px-3.5 text-sm text-fg focus:border-ac focus:outline-none"
-            />
-          </label>
-
-          <div className="grid grid-cols-2 gap-3">
+      {section === "generator" && (
+        <ModuleCard
+          title="Генератор новых деталей"
+          subtitle="Создаёт сбалансированный пакет обычных, редких и легендарных карт по теме"
+        >
+          <div className="space-y-3">
             <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-mu">Количество карт: {genCount}</span>
+              <span className="text-xs font-medium text-mu">Тема или акцент пакета</span>
               <input
-                type="range"
-                min={6}
-                max={18}
-                step={3}
-                value={genCount}
-                onChange={(e) => setGenCount(Number(e.target.value))}
-                className="accent-[var(--ac)]"
+                value={genPrompt}
+                onChange={(e) => setGenPrompt(e.target.value)}
+                placeholder="Например: марсианские песчаные бури и тяжёлые буры"
+                className="h-11 rounded-xl border border-ln bg-sf2 px-3.5 text-sm text-fg focus:border-ac focus:outline-none"
               />
             </label>
-            <label className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-mu">Сила штрафов у редких</span>
-              <select
-                value={debuffStrength}
-                onChange={(e) => setDebuffStrength(e.target.value as "mild" | "balanced" | "strict")}
-                className="h-9 rounded-xl border border-ln bg-sf2 px-2.5 text-xs font-medium text-fg"
-              >
-                <option value="mild">Мягкая</option>
-                <option value="balanced">Сбалансированная</option>
-                <option value="strict">Жёсткий компромисс</option>
-              </select>
-            </label>
-          </div>
 
-          <button
-            type="button"
-            disabled={generating}
-            onClick={handleGenerate}
-            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-ac text-sm font-semibold text-acfg disabled:opacity-50"
-          >
-            <Wand2 className="h-4 w-4" />
-            {generating ? "Собираем черновик колоды…" : "Сгенерировать черновик деталей"}
-          </button>
-
-          {draft && (
-            <div className="space-y-3 rounded-2xl border border-ac/40 bg-ac/8 p-3.5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-fg">
-                  <CheckCircle2 className="h-4 w-4 text-ac" />
-                  Черновик готов ({draft.cards.length} карт)
-                </span>
-                <span className="font-mono text-[11px] text-mu">проверка пройдена</span>
-              </div>
-
-              <div className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
-                {draft.cards.map((c) => (
-                  <div
-                    key={c.id}
-                    className="flex items-center justify-between gap-2 rounded-xl bg-sf px-3 py-2 text-xs"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <RarityBadge rarity={c.rarity} compact />
-                        <span className="truncate font-semibold text-fg">{c.name}</span>
-                      </div>
-                      <div className="mt-1">
-                        <StatDeltaList stats={template.stats} deltas={c.stats} />
-                      </div>
-                    </div>
-                    <span className="font-mono font-semibold text-fg">{c.price}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() =>
-                    void run(() => decideMarketDraft(draft.id, "reject")).then((ok) => {
-                      if (ok) setDraft(null);
-                    })
-                  }
-                  className="h-10 rounded-xl border border-ln bg-sf text-xs font-medium text-mu"
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-mu">Количество карт: {genCount}</span>
+                <input
+                  type="range"
+                  min={6}
+                  max={18}
+                  step={3}
+                  value={genCount}
+                  onChange={(e) => setGenCount(Number(e.target.value))}
+                  className="accent-[var(--ac)]"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-mu">Сила штрафов у редких</span>
+                <select
+                  value={debuffStrength}
+                  onChange={(e) => setDebuffStrength(e.target.value as "mild" | "balanced" | "strict")}
+                  className="h-9 rounded-xl border border-ln bg-sf2 px-2.5 text-xs font-medium text-fg"
                 >
-                  Сбросить
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    void run(() => decideMarketDraft(draft.id, "approve", "append")).then((ok) => {
-                      if (ok) setDraft(null);
-                    })
-                  }
-                  className="h-10 rounded-xl border border-ac bg-sf text-xs font-semibold text-ac"
-                >
-                  Добавить к рынку
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    void run(() => decideMarketDraft(draft.id, "approve", "replace")).then((ok) => {
-                      if (ok) setDraft(null);
-                    })
-                  }
-                  className="h-10 rounded-xl bg-ac text-xs font-semibold text-acfg"
-                >
-                  Заменить пул
-                </button>
-              </div>
+                  <option value="mild">Мягкая</option>
+                  <option value="balanced">Сбалансированная</option>
+                  <option value="strict">Жёсткий компромисс</option>
+                </select>
+              </label>
             </div>
-          )}
-        </div>
-      </ModuleCard>
 
-      {template.features.auctions && (
+            <button
+              type="button"
+              disabled={generating}
+              onClick={handleGenerate}
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-ac text-sm font-semibold text-acfg disabled:opacity-50"
+            >
+              <Wand2 className="h-4 w-4" />
+              {generating ? "Собираем черновик колоды…" : "Сгенерировать черновик деталей"}
+            </button>
+
+            {draft && (
+              <div className="space-y-3 rounded-2xl border border-ac/40 bg-ac/8 p-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-fg">
+                    <CheckCircle2 className="h-4 w-4 text-ac" />
+                    Черновик готов ({draft.cards.length} карт)
+                  </span>
+                  <span className="font-mono text-[11px] text-mu">проверка пройдена</span>
+                </div>
+
+                <details className="space-y-1.5">
+                  <summary>Посмотреть детали ({draft.cards.length})</summary>
+                  {draft.cards.map((c) => (
+                    <div
+                      key={c.id}
+                      className="flex items-center justify-between gap-2 rounded-xl bg-sf px-3 py-2 text-xs"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <RarityBadge rarity={c.rarity} compact />
+                          <span className="truncate font-semibold text-fg">{c.name}</span>
+                        </div>
+                        <div className="mt-1">
+                          <StatDeltaList stats={template.stats} deltas={c.stats} />
+                        </div>
+                      </div>
+                      <span className="font-mono font-semibold text-fg">{c.price}</span>
+                    </div>
+                  ))}
+                </details>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void run(() => decideMarketDraft(draft.id, "reject")).then((ok) => {
+                        if (ok) setDraft(null);
+                      })
+                    }
+                    className="h-10 rounded-xl border border-ln bg-sf text-xs font-medium text-mu"
+                  >
+                    Сбросить
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void run(() => decideMarketDraft(draft.id, "approve", "append")).then((ok) => {
+                        if (ok) setDraft(null);
+                      })
+                    }
+                    className="h-10 rounded-xl border border-ac bg-sf text-xs font-semibold text-ac"
+                  >
+                    Добавить к рынку
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void run(() => decideMarketDraft(draft.id, "approve", "replace")).then((ok) => {
+                        if (ok) setDraft(null);
+                      })
+                    }
+                    className="h-10 rounded-xl bg-ac text-xs font-semibold text-acfg"
+                  >
+                    Заменить пул
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </ModuleCard>
+      )}
+
+      {section === "auction" && template.features.auctions && (
         <ModuleCard
           title="Управление живым аукционом"
           subtitle="Выставьте редкий лот на открытые торги между капитанами"

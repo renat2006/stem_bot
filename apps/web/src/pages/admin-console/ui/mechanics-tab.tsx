@@ -87,22 +87,25 @@ export function MechanicsTab({ snapshot, run }: { snapshot: GameSnapshot; run: R
     <div className="space-y-4">
       <BalanceReport report={balanceReport} advisor={liveBalance} run={run} />
 
-      <ModuleCard
-        title="Рубильники механик"
-        subtitle="Включайте и отключайте игровые режимы прямо по ходу смены"
-      >
-        <div className="space-y-2.5">
-          {FLAG_META.map((item) => (
-            <ToggleSwitch
-              key={item.key}
-              checked={features[item.key]}
-              onChange={(checked) => void run(() => updateFeatures({ [item.key]: checked }))}
-              label={item.label}
-              description={item.description}
-            />
-          ))}
-        </div>
-      </ModuleCard>
+      <details>
+        <summary className="cursor-pointer py-3 font-semibold">Настроить механики</summary>
+        <ModuleCard
+          title="Рубильники механик"
+          subtitle="Включайте и отключайте игровые режимы прямо по ходу смены"
+        >
+          <div className="space-y-2.5">
+            {FLAG_META.map((item) => (
+              <ToggleSwitch
+                key={item.key}
+                checked={features[item.key]}
+                onChange={(checked) => void run(() => updateFeatures({ [item.key]: checked }))}
+                label={item.label}
+                description={item.description}
+              />
+            ))}
+          </div>
+        </ModuleCard>
+      </details>
     </div>
   );
 }

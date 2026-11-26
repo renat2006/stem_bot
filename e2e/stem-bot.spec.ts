@@ -40,18 +40,20 @@ test.describe("STEM Bot Field Atlas + Engine 3.0 full lifecycle", () => {
     await expect(adminPage.getByRole("heading", { name: /Вход в команду/ })).toBeVisible();
     await adminPage.getByRole("button", { name: "Закрыть окно" }).click();
 
-    await adminPage.getByRole("button", { name: "Карты", exact: true }).click();
+    await adminPage.getByLabel("Раздел студии").selectOption("cards");
     await adminPage.getByRole("button", { name: "Новая", exact: true }).click();
     await adminPage.getByPlaceholder("Например: Плазменный гироскоп").fill("Титановый дальномер");
     await adminPage.getByRole("button", { name: "Сохранить деталь" }).click();
     await expect(adminPage.getByText("Титановый дальномер").first()).toBeVisible();
 
+    await adminPage.getByLabel("Работа с картами").selectOption("generator");
     await adminPage.getByRole("button", { name: "Сгенерировать черновик деталей" }).click();
     await expect(adminPage.getByText(/Черновик готов/)).toBeVisible();
     await adminPage.getByRole("button", { name: "Добавить к рынку" }).click();
 
-    await adminPage.getByRole("button", { name: "Баланс", exact: true }).click();
+    await adminPage.getByLabel("Раздел студии").selectOption("balance");
     await expect(adminPage.getByText("Советник баланса и динамики")).toBeVisible();
+    await adminPage.getByText("Настроить механики", { exact: true }).click();
     const p2pSwitch = adminPage.getByRole("switch", { name: "Биржа между командами" });
     await expect(p2pSwitch).toHaveAttribute("aria-checked", "true");
     await p2pSwitch.click();
@@ -59,7 +61,7 @@ test.describe("STEM Bot Field Atlas + Engine 3.0 full lifecycle", () => {
     await p2pSwitch.click();
     await expect(p2pSwitch).toHaveAttribute("aria-checked", "true");
 
-    await adminPage.getByRole("button", { name: "Раунд", exact: true }).click();
+    await adminPage.getByLabel("Раздел студии").selectOption("round");
     await adminPage.getByText("Расширенные критерии, таймеры и ручной ход по треку").click();
     await adminPage.getByRole("button", { name: "Все команды" }).click();
     const criterionButtons = adminPage.locator("button").filter({ hasText: "+2" });
@@ -149,7 +151,8 @@ test.describe("STEM Bot Field Atlas + Engine 3.0 full lifecycle", () => {
     await kiraPage.getByRole("button", { name: "Осмотреть" }).first().click();
     await kiraPage.getByRole("button", { name: /Купить за/ }).click();
 
-    await adminPage.getByRole("button", { name: "Карты", exact: true }).click();
+    await adminPage.getByLabel("Раздел студии").selectOption("cards");
+    await adminPage.getByLabel("Работа с картами").selectOption("auction");
     await adminPage.getByLabel(/Старт \(/).fill("2");
     await adminPage.getByRole("button", { name: "Запустить торг" }).click();
     await expect(adminPage.getByText(/Идёт торг:/)).toBeVisible();
@@ -161,7 +164,7 @@ test.describe("STEM Bot Field Atlas + Engine 3.0 full lifecycle", () => {
 
     await adminPage.getByRole("button", { name: "Завершить лот" }).click();
 
-    await adminPage.getByRole("button", { name: "Раунд", exact: true }).click();
+    await adminPage.getByLabel("Раздел студии").selectOption("round");
     await adminPage.getByRole("button", { name: "Перейти к ходу на поле" }).click();
     await expect(adminPage.getByRole("heading", { name: "Клетки с физического поля" })).toBeVisible();
     const cellSelects = adminPage
@@ -486,7 +489,25 @@ test.describe("STEM Bot Field Atlas + Engine 3.0 full lifecycle", () => {
     await assertCleanGeometry(page, "admin-live-360");
     await page.screenshot({ path: `${ARTIFACT_DIR}/atlas_v2_admin_mobile_360.png` });
 
-    await page.getByRole("button", { name: "Конструктор смены" }).click();
+    await page.setViewportSize({ width: 320, height: 650 });
+    for (const section of ["teams", "balance", "cards", "constructor"]) {
+      await page.getByLabel("Раздел студии").selectOption(section);
+      const spills = await page
+        .locator(".atlas-studio")
+        .evaluate((root) =>
+          [...root.querySelectorAll<HTMLElement>("*")]
+            .filter(
+              (el) =>
+                el.clientWidth &&
+                el.scrollWidth > el.clientWidth + 1 &&
+                ["auto", "scroll"].includes(getComputedStyle(el).overflowX),
+            )
+            .map((el) => el.tagName),
+        );
+      expect(spills, section).toEqual([]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+    }
+    await page.setViewportSize({ width: 360, height: 780 });
     await assertCleanGeometry(page, "admin-constructor-360");
 
     await page.setViewportSize({ width: 1280, height: 860 });

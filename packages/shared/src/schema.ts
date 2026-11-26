@@ -222,11 +222,14 @@ export const ExtraModuleSchema = z.object({
 });
 
 export const BoardCellSchema = z.object({
+  rewardBands: z.array(z.tuple([z.number().int(), z.number().int(), z.number().int()])).optional(),
   position: z.number().int().min(1),
   type: z.enum(["start", "mutation", "resource", "challenge", "catastrophe", "apex"]),
   label: z.string().min(1),
+  description: z.string().optional(),
   statId: z.string().optional(),
   minStat: z.number().int().optional(),
+  losePartMaxStat: z.number().int().optional(),
   rewardCurrency: z.number().int().default(0),
   rewardTrack: z.number().int().default(0),
   penaltyCurrency: z.number().int().default(0),
@@ -269,6 +272,14 @@ export const GameTemplateSchema = z.object({
   stats: z.array(StatDefinitionSchema).min(1),
   slots: z.array(SlotDefinitionSchema).min(1),
   stepThresholds: z.array(StepThresholdSchema).default([]),
+  allStatsStepBonus: z
+    .object({
+      min: z.number().int(),
+      bonus: z.number().int().min(1),
+    })
+    .optional(),
+  elitePartStepBonus: z.number().int().min(0).default(0),
+  physicalBoard: z.boolean().optional(),
   cards: z.array(CardItemSchema),
   perks: z.array(PerkPropertySchema),
   boardCells: z.array(BoardCellSchema),

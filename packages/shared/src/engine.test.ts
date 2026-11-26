@@ -150,8 +150,9 @@ describe("previewCardEffect & evaluateBuyState", () => {
 });
 
 describe("resolveBoardTurn declarative polygon mechanics", () => {
-  const sandSlope = ROVER_SPRINT_TEMPLATE.boardCells.find((c) => c.position === 19);
-  if (!sandSlope) throw new Error("Missing sandSlope cell");
+  const rubbleCell = ROVER_SPRINT_TEMPLATE.boardCells.find((c) => c.position === 5);
+  const swampCell = ROVER_SPRINT_TEMPLATE.boardCells.find((c) => c.position === 6);
+  if (!rubbleCell || !swampCell) throw new Error("Missing rubble or swamp cell");
 
   it("rewards team when stat meets challenge threshold", () => {
     const team = makeTeam({
@@ -161,7 +162,7 @@ describe("resolveBoardTurn declarative polygon mechanics", () => {
     const res = resolveBoardTurn({
       team,
       template: ROVER_SPRINT_TEMPLATE,
-      cellOverride: sandSlope,
+      cellOverride: rubbleCell,
     });
     expect(res.passed).toBe(true);
     expect(res.eventTrackDelta).toBe(2);
@@ -172,22 +173,22 @@ describe("resolveBoardTurn declarative polygon mechanics", () => {
     const failed = resolveBoardTurn({
       team: weakTeam,
       template: ROVER_SPRINT_TEMPLATE,
-      cellOverride: sandSlope,
+      cellOverride: rubbleCell,
       useBuyoff: false,
     });
     expect(failed.passed).toBe(false);
     expect(failed.canBuyoff).toBe(true);
-    expect(failed.eventTrackDelta).toBe(-2);
+    expect(failed.eventTrackDelta).toBe(-1);
 
     const boughtOff = resolveBoardTurn({
       team: weakTeam,
       template: ROVER_SPRINT_TEMPLATE,
-      cellOverride: sandSlope,
+      cellOverride: rubbleCell,
       useBuyoff: true,
     });
     expect(boughtOff.buyoffUsed).toBe(true);
     expect(boughtOff.eventTrackDelta).toBe(0);
-    expect(boughtOff.nextCurrency).toBe(5 - (sandSlope.buyoffCost ?? 3));
+    expect(boughtOff.nextCurrency).toBe(5 - (rubbleCell.buyoffCost ?? 5));
 
     const shieldedTeam = makeTeam({
       trackPosition: 15,
@@ -196,7 +197,7 @@ describe("resolveBoardTurn declarative polygon mechanics", () => {
     const shielded = resolveBoardTurn({
       team: shieldedTeam,
       template: ROVER_SPRINT_TEMPLATE,
-      cellOverride: sandSlope,
+      cellOverride: swampCell,
     });
     expect(shielded.shielded).toBe(true);
     expect(shielded.eventTrackDelta).toBe(0);
@@ -453,5 +454,150 @@ describe("Engine 3.0 mission, powerCircuit, diagnosis & Pareto validator", () =>
     const day1Seats = [0, 1, 2, 3, 4].flatMap((idx) => assignMemberLevers(idx, 5, 1));
     expect(new Set(day1Seats).size).toBe(5);
     expect(resolveLexicon(NEUROFAUNA_TEMPLATE).currencyUnit).toBe("ДНК");
+  });
+});
+
+it("uses the physical cell and the highest matching hunt band", () => {
+  const template = NEUROFAUNA_TEMPLATE;
+  const cell = template.boardCells.find((c) => c.position === 4);
+  expect(cell?.label).toBe("Охота");
+  for (const [strength, track, currency] of [
+    [3, 0, 3],
+    [5, 2, 3],
+    [8, 3, 5],
+  ] as const) {
+    const result = resolveBoardTurn({
+      template,
+      team: makeTeam({ statModifiers: { strength } }),
+      cellOverride: cell,
+    });
+    expect(result.eventTrackDelta).toBe(track);
+    expect(result.currencyDelta).toBe(currency);
+  }
+});
+
+describe("client tabletop board adaptation (16 event cells + 30-cell spiral)", () => {
+  it("matches exact terminology, 16-cell ring, 30-cell spiral and step bonuses", () => {
+    expect(ROVER_SPRINT_TEMPLATE.currencyName).toBe("Детали");
+    expect(ROVER_SPRINT_TEMPLATE.trackMax).toBe(30);
+    expect(ROVER_SPRINT_TEMPLATE.physicalBoard).toBe(true);
+    expect(ROVER_SPRINT_TEMPLATE.stats.map((s) => s.label)).toEqual(["Скорость", "Проходимость", "Мощность"]);
+    expect(ROVER_SPRINT_TEMPLATE.boardCells.map((c) => c.label)).toEqual([
+      "Старт",
+      "Пит-стоп",
+      "Мастерская",
+      "Ускорение",
+      "Завал",
+      "Болото",
+      "Пит-стоп",
+      "Мастерская",
+      "Ускорение",
+      "Болото",
+      "Завал",
+      "Мастерская",
+      "Ускорение",
+      "Болото",
+      "Завал",
+      "Апгрейд",
+    ]);
+
+    const balancedTeam = makeTeam({
+      statModifiers: { speed: 3, traction: 3, payload: 4 },
+      equippedCards: { chassis: "titan-exoframe" },
+    });
+    const stats = calculateTeamStats(balancedTeam, ROVER_SPRINT_TEMPLATE);
+    expect(stats.step.parts.some((p) => p.key === "th:speed:3" && !p.met)).toBe(true);
+    expect(stats.step.parts.some((p) => p.key === "elite-part" && p.met && p.value === 1)).toBe(true);
+
+    const allTwo = calculateTeamStats(
+      makeTeam({ statModifiers: { speed: 2, traction: 2, payload: 2 } }),
+      ROVER_SPRINT_TEMPLATE,
+    );
+    expect(allTwo.step.parts.some((p) => p.key === "all-stats:2" && p.met && p.value === 1)).toBe(true);
+    expect(allTwo.step.total).toBe(2);
+
+    const allHigh = calculateTeamStats(
+      makeTeam({ statModifiers: { speed: 3, traction: 3, payload: 4 } }),
+      ROVER_SPRINT_TEMPLATE,
+    );
+    expect(allHigh.step.total).toBe(5);
+  });
+
+  it("evaluates Мастерская, Ускорение, Завал and Болото (including part loss and 5-part buyoff)", () => {
+    const workshop = ROVER_SPRINT_TEMPLATE.boardCells.find((c) => c.position === 3);
+    const boost = ROVER_SPRINT_TEMPLATE.boardCells.find((c) => c.position === 4);
+    const rubble = ROVER_SPRINT_TEMPLATE.boardCells.find((c) => c.position === 5);
+    const swamp = ROVER_SPRINT_TEMPLATE.boardCells.find((c) => c.position === 6);
+
+    const wsRes = resolveBoardTurn({
+      template: ROVER_SPRINT_TEMPLATE,
+      team: makeTeam(),
+      cellOverride: workshop,
+    });
+    expect(wsRes.currencyDelta).toBe(5);
+
+    for (const [payload, track, cur] of [
+      [2, -1, 0],
+      [3, 0, 3],
+      [6, 2, 3],
+      [8, 3, 5],
+    ] as const) {
+      const r = resolveBoardTurn({
+        template: ROVER_SPRINT_TEMPLATE,
+        team: makeTeam({ statModifiers: { payload } }),
+        cellOverride: boost,
+      });
+      expect(r.eventTrackDelta).toBe(track);
+      expect(r.currencyDelta).toBe(cur);
+    }
+
+    for (const [traction, track, cur] of [
+      [2, -1, 0],
+      [4, 1, 0],
+      [6, 2, 3],
+      [8, 3, 5],
+    ] as const) {
+      const r = resolveBoardTurn({
+        template: ROVER_SPRINT_TEMPLATE,
+        team: makeTeam({ statModifiers: { traction } }),
+        cellOverride: rubble,
+      });
+      expect(r.eventTrackDelta).toBe(track);
+      expect(r.currencyDelta).toBe(cur);
+    }
+
+    const swampLow = resolveBoardTurn({
+      template: ROVER_SPRINT_TEMPLATE,
+      team: makeTeam({ statModifiers: { speed: 2 }, currency: 6 }),
+      cellOverride: swamp,
+    });
+    expect(swampLow.losePartRequired).toBe(true);
+    expect(swampLow.eventTrackDelta).toBe(-1);
+
+    const swampSaved = resolveBoardTurn({
+      template: ROVER_SPRINT_TEMPLATE,
+      team: makeTeam({ statModifiers: { speed: 2 }, currency: 6 }),
+      cellOverride: swamp,
+      useBuyoff: true,
+    });
+    expect(swampSaved.losePartRequired).toBe(false);
+    expect(swampSaved.buyoffUsed).toBe(true);
+    expect(swampSaved.currencyDelta).toBe(-5);
+
+    const swampMid = resolveBoardTurn({
+      template: ROVER_SPRINT_TEMPLATE,
+      team: makeTeam({ statModifiers: { speed: 4 } }),
+      cellOverride: swamp,
+    });
+    expect(swampMid.losePartRequired).toBe(false);
+    expect(swampMid.eventTrackDelta).toBe(-1);
+
+    const swampFast = resolveBoardTurn({
+      template: ROVER_SPRINT_TEMPLATE,
+      team: makeTeam({ statModifiers: { speed: 8 } }),
+      cellOverride: swamp,
+    });
+    expect(swampFast.eventTrackDelta).toBe(2);
+    expect(swampFast.currencyDelta).toBe(5);
   });
 });

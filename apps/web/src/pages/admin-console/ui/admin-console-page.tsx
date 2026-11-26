@@ -1,4 +1,4 @@
-import { resolveDayEngine, resolveLexicon } from "@stem/shared";
+import { resolveBoardTurn, resolveDayEngine, resolveLexicon, usesPhysicalBoard } from "@stem/shared";
 import { ChevronRight, Monitor, Plus, Settings, Undo2 } from "lucide-react";
 import { useState } from "react";
 import type { GameSnapshot } from "../../../entities/game/index.js";
@@ -63,6 +63,23 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
   const criticalAlerts = snapshot.liveBalance.alerts.filter((a) => a.severity !== "info").length;
 
   const dayEngine = gameState.roundEngine ?? resolveDayEngine(template, gameState.currentDay);
+  const physical = usesPhysicalBoard(template, dayEngine);
+  const [boardDraft, setBoardDraft] = useState<{
+    day: number;
+    event: string;
+    positions: Record<string, number>;
+    buyoffs: string[];
+  } | null>(null);
+  const savedDraft =
+    boardDraft?.day === gameState.currentDay && boardDraft.event === snapshot.eventId ? boardDraft : null;
+  const boardPositions = savedDraft?.positions ?? {};
+  const buyoffTeamIds = savedDraft?.buyoffs ?? [];
+  const saveBoardDraft = (positions: Record<string, number>, buyoffs: string[]) =>
+    setBoardDraft({ day: gameState.currentDay, event: snapshot.eventId, positions, buyoffs });
+  const physicalFinished =
+    physical &&
+    gameState.currentPhase === "summary" &&
+    (gameState.currentDay === template.totalDays || teams.some((t) => t.trackPosition >= template.trackMax));
   const roundMode = gameState.roundMode ?? "idle";
   const readyPhones = teams.reduce((sum, t) => sum + (t.roundState?.readySlots.length ?? 0), 0);
   const maxPhones = Math.max(5, teams.length * 5);
@@ -93,7 +110,9 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
     }
     if (gameState.currentPhase === "turn" && roundMode !== "revealed") {
       if (dayEngine === "legacy_track") {
-        void run(() => applyTurn());
+        void run(() =>
+          applyTurn(physical ? buyoffTeamIds : undefined, physical ? boardPositions : undefined),
+        );
       } else if (dayEngine === "diagnosis") {
         void run(() => setPhase("summary", null));
       } else {
@@ -108,8 +127,9 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
     }
   };
 
-  const primaryActionLabel =
-    gameState.currentPhase === "scoring"
+  const primaryActionLabel = physicalFinished
+    ? "Партия завершена"
+    : gameState.currentPhase === "scoring"
       ? "Открыть мастерскую (15 мин)"
       : gameState.currentPhase === "market"
         ? dayEngine === "diagnosis"
@@ -266,13 +286,17 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
                     {gameState.currentPhase === "market"
                       ? "Мастерская открыта"
                       : gameState.currentPhase === "turn"
-                        ? "Решения команд"
+                        ? physical
+                          ? "Ход на поле"
+                          : "Решения команд"
                         : gameState.currentPhase === "summary"
                           ? "Разбор итогов"
                           : "Задача дня"}
                   </h2>
                   <p className="mt-1 text-sm text-mu tabular-nums">
-                    {readyPhones} из {maxPhones} пультов готовы
+                    {physical
+                      ? "Занятие · Магазин · Ход на поле · Итоги"
+                      : `${readyPhones} из ${maxPhones} пультов готовы`}
                     {gameState.phaseEndsAt
                       ? ` · ${Math.floor(countdown / 60)}:${String(countdown % 60).padStart(2, "0")}`
                       : ""}
@@ -295,6 +319,12 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
                       hapticSuccess();
                       handlePrimaryLiveAction();
                     }}
+                    disabled={
+                      physicalFinished ||
+                      (physical &&
+                        gameState.currentPhase === "turn" &&
+                        (teams.length === 0 || teams.some((t) => !boardPositions[t.id])))
+                    }
                     className="atlas-primary !w-auto"
                   >
                     <span>{primaryActionLabel}</span>
@@ -303,6 +333,99 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
                 </div>
               </section>
 
+              {physical && gameState.currentPhase === "turn" && (
+                <section className="space-y-3 rounded-xl border border-ln bg-sf p-4">
+                  <h2 className="atlas-h2">Клетки с физического поля</h2>
+                  <p className="text-sm text-mu">
+                    Каждая команда бросает кубик и двигает фишку по Квадрату событий. Запишите, куда она
+                    попала. После расчёта команды передвинут свои фишки на Спирали.
+                  </p>
+                  {teams.map((t) => {
+                    const selectedCell = template.boardCells.find((c) => c.position === boardPositions[t.id]);
+                    const leaderPos = teams.reduce((max, item) => Math.max(max, item.trackPosition), 1);
+                    const preview = selectedCell
+                      ? resolveBoardTurn({
+                          team: t,
+                          template,
+                          leaderTrackPosition: leaderPos,
+                          cellOverride:
+                            selectedCell.type === "mutation"
+                              ? { ...selectedCell, type: "start" }
+                              : selectedCell,
+                          useBuyoff: buyoffTeamIds.includes(t.id),
+                        })
+                      : null;
+                    return (
+                      <div key={t.id} className="space-y-1.5 rounded-xl border border-ln bg-sf2/55 p-3">
+                        <label className="grid gap-1 text-sm font-bold">
+                          <span className="flex items-center justify-between gap-2">
+                            <span>{t.name}</span>
+                            <span className="text-xs font-semibold text-mu tabular-nums">
+                              {t.currency} {lexicon.currencyUnit} · Спираль {t.trackPosition}/
+                              {template.trackMax}
+                            </span>
+                          </span>
+                          <select
+                            className="min-h-11 w-full rounded-lg border border-ln bg-sf px-2.5 font-semibold"
+                            value={boardPositions[t.id] ?? ""}
+                            onChange={(e) =>
+                              saveBoardDraft(
+                                { ...boardPositions, [t.id]: Number(e.target.value) },
+                                buyoffTeamIds,
+                              )
+                            }
+                          >
+                            <option value="">Выберите клетку (1–{template.boardCells.length})</option>
+                            {template.boardCells.map((c) => (
+                              <option key={c.position} value={c.position}>
+                                {c.position}. {c.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        {selectedCell && preview && (
+                          <div className="rounded-lg bg-sf px-2.5 py-2 text-xs text-fg">
+                            <p className="font-bold">
+                              Спираль: {t.trackPosition} до {preview.nextTrackPosition} (шаг +
+                              {preview.stepMove}
+                              {preview.eventTrackDelta !== 0
+                                ? `, клетка ${preview.eventTrackDelta > 0 ? `+${preview.eventTrackDelta}` : preview.eventTrackDelta}`
+                                : ""}
+                              )
+                              {preview.currencyDelta !== 0
+                                ? ` · ${preview.currencyDelta > 0 ? `+${preview.currencyDelta}` : preview.currencyDelta} ${template.currencyName}`
+                                : ""}
+                            </p>
+                            <p className="mt-0.5 text-mu">
+                              {selectedCell.type === "mutation"
+                                ? (selectedCell.description ?? "Розыгрыш карт рынка за столом.")
+                                : preview.summary}
+                            </p>
+                          </div>
+                        )}
+                        {template.features.allowBuyoff && (
+                          <label className="flex min-h-9 items-center gap-2 text-xs font-medium text-fg">
+                            <input
+                              type="checkbox"
+                              checked={buyoffTeamIds.includes(t.id)}
+                              onChange={(e) =>
+                                saveBoardDraft(
+                                  boardPositions,
+                                  e.target.checked
+                                    ? [...buyoffTeamIds, t.id]
+                                    : buyoffTeamIds.filter((id) => id !== t.id),
+                                )
+                              }
+                            />
+                            Применить откуп (5 {template.currencyName}), если команда согласна и хватает
+                            баланса
+                          </label>
+                        )}
+                      </div>
+                    );
+                  })}
+                </section>
+              )}
               {(roundMode === "blind_draft" || roundMode === "negotiation" || roundMode === "diagnosis") && (
                 <section className="room-strip space-y-2.5">
                   <h2 className="atlas-h2">Кто уже выбрал</h2>
@@ -329,9 +452,7 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <div>
                       <h2 className="atlas-h2">Работа на занятии ({lexicon.currencyLabel})</h2>
-                      <p className="text-xs text-mu">
-                        Единственный источник валюты (испытания и полигон дают 0)
-                      </p>
+                      <p className="text-xs text-mu">Начислите ресурс за выполненную работу на занятии.</p>
                     </div>
                   </div>
 
@@ -438,12 +559,14 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
                 </summary>
                 <div className="mt-4 space-y-4">
                   {teams.length > 0 && <RewardPanel teams={teams} template={template} run={run} />}
-                  <ShiftControls
-                    gameState={gameState}
-                    totalDays={template.totalDays}
-                    clockOffsetMs={clockOffsetMs}
-                    run={run}
-                  />
+                  {!physical && (
+                    <ShiftControls
+                      gameState={gameState}
+                      totalDays={template.totalDays}
+                      clockOffsetMs={clockOffsetMs}
+                      run={run}
+                    />
+                  )}
                   {template.features.storyBriefings && (
                     <BriefingEditor template={template} currentDay={gameState.currentDay} run={run} />
                   )}

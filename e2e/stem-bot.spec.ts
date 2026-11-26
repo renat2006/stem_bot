@@ -67,7 +67,7 @@ test.describe("STEM Bot Field Atlas + Engine 3.0 full lifecycle", () => {
     await criterionButtons.nth(2).click();
     await criterionButtons.nth(3).click();
     await adminPage.getByRole("button", { name: /Начислить 8/ }).click();
-    await adminPage.getByRole("button", { name: "15 мин", exact: true }).click();
+    await adminPage.getByRole("button", { name: "Открыть мастерскую (15 мин)" }).click();
 
     const aliceCtx = await browser.newContext({
       viewport: { width: 390, height: 844 },
@@ -155,10 +155,18 @@ test.describe("STEM Bot Field Atlas + Engine 3.0 full lifecycle", () => {
     await adminPage.getByRole("button", { name: "Завершить лот" }).click();
 
     await adminPage.getByRole("button", { name: "Раунд", exact: true }).click();
-    await adminPage.getByText("Расширенные критерии, таймеры и ручной ход по треку").click();
-    await adminPage.getByRole("button", { name: "Закрыть рынок и начать ход" }).click();
-    await adminPage.getByRole("button", { name: "Применить шаг по треку ко всем командам" }).click();
-    await adminPage.getByRole("button", { name: "Подтвердить: сдвинуть все команды" }).click();
+    await adminPage.getByRole("button", { name: "Перейти к ходу на поле" }).click();
+    await expect(adminPage.getByRole("heading", { name: "Клетки с физического поля" })).toBeVisible();
+    const cellSelects = adminPage
+      .locator("section")
+      .filter({ has: adminPage.getByRole("heading", { name: "Клетки с физического поля" }) })
+      .last()
+      .getByRole("combobox");
+    const teamSelectCount = await cellSelects.count();
+    for (let i = 0; i < teamSelectCount; i++) {
+      await cellSelects.nth(i).selectOption(String(i + 3));
+    }
+    await adminPage.getByRole("button", { name: "Применить ход по треку" }).click();
 
     await kiraPage.getByRole("button", { name: "Маршрут и FAQ" }).click();
     await expect(kiraPage.getByText("Справочник механик (FAQ)")).toBeVisible();
@@ -205,6 +213,8 @@ test.describe("STEM Bot Field Atlas + Engine 3.0 full lifecycle", () => {
 
     await adminPage.getByRole("button", { name: "2. Дни" }).click();
     await expect(adminPage.getByText("Контур нагрузки и перегрева")).toBeVisible();
+    await adminPage.getByLabel("День 1").selectOption("mission");
+    await adminPage.getByLabel("День 2").selectOption("diagnosis");
 
     await adminPage.getByRole("button", { name: "3. Каталог" }).click();
     await expect(adminPage.getByText(/Проверка двух стратегий/)).toBeVisible();
@@ -335,8 +345,8 @@ test.describe("STEM Bot Field Atlas + Engine 3.0 full lifecycle", () => {
     await crew2Page.setViewportSize({ width: 1280, height: 860 });
     await crew2Page.screenshot({ path: `${ARTIFACT_DIR}/atlas_prod_spread_desktop.png` });
     await crew2Page.setViewportSize({ width: 390, height: 844 });
-    await crew2Page.getByRole("button", { name: "Полигон 3 минуты" }).click();
-    await expect(crew2Page.getByRole("heading", { name: "Полигон вне занятий · 3 минуты" })).toBeVisible();
+    await crew2Page.getByRole("button", { name: "Тренировка без зачёта" }).click();
+    await expect(crew2Page.getByRole("heading", { name: "Тренировка без зачёта · 3 минуты" })).toBeVisible();
     await crew2Page.getByRole("button", { name: /Усилить .*B/ }).click();
     await expect(crew2Page.getByText(/Отлично! Правка увеличила результат/)).toBeVisible();
     await crew2Page.screenshot({ path: `${ARTIFACT_DIR}/atlas_prod_player_playground.png` });

@@ -5,9 +5,11 @@ import {
   computeEquippedCircuitLoad,
   defaultPowerCircuit,
   evaluateDualForecast,
+  resolveDayEngine,
   resolveLexicon,
   resolveMissionDay,
   TeamRoundStateSchema,
+  usesPhysicalBoard,
   validateP2PPrice,
 } from "@stem/shared";
 import { Download, Flag, Package, ShoppingBag, Store, Zap } from "lucide-react";
@@ -50,6 +52,7 @@ export function HomeScreen({
   run,
   onOpenMarket,
   onOpenLore,
+  onOpenTrack,
   onCardBought,
   onToast,
 }: HomeScreenProps) {
@@ -142,11 +145,62 @@ export function HomeScreen({
     equippedCount === 0 &&
     inventoryCards.length === 0;
 
+  const dayEngine = gameState.roundEngine ?? resolveDayEngine(template, gameState.currentDay);
+  const physical = usesPhysicalBoard(template, dayEngine);
+  const phase = gameState.currentPhase;
+  const final =
+    physical &&
+    phase === "summary" &&
+    (gameState.currentDay === template.totalDays ||
+      snapshot.teams.some((t) => t.trackPosition >= template.trackMax));
+  const nextStep = final
+    ? "Партия завершена"
+    : marketOpen
+      ? "Выберите деталь"
+      : phase === "market"
+        ? "Магазин закрылся"
+        : phase === "turn"
+          ? physical
+            ? "Подойдите к полю"
+            : "Выполните задание раунда"
+          : phase === "summary"
+            ? "Посмотрите результаты дня"
+            : "Выполните задание занятия";
+  const hint = marketOpen
+    ? isCaptain
+      ? "Сравните детали и купите ту, которая поможет команде."
+      : "Предложите деталь капитану. Он подтвердит покупку."
+    : phase === "market"
+      ? "Ведущий объявит начало хода."
+      : phase === "turn"
+        ? physical
+          ? "Бросьте кубик за столом. Передвиньте фишку по Квадрату событий и назовите номер клетки ведущему."
+          : "Выберите действие своей роли в задании ниже. Ведущий покажет общий результат."
+        : phase === "summary"
+          ? physical
+            ? `Сверьте фишки на двух полях. Позиция вашей команды на Спирали — ${team.trackPosition}.`
+            : "Посмотрите, как сработало решение команды."
+          : `Покажите результат наставнику. Он начислит ${template.currencyName} и откроет магазин.`;
   const f0 = dualForecast[0];
   const trackPct = Math.min(100, Math.round((team.trackPosition / template.trackMax) * 100));
 
   return (
     <div className="space-y-5">
+      <section className="space-y-2 rounded-2xl border border-ln bg-sf p-4" aria-label="Что делать сейчас">
+        <p className="text-xs font-bold text-ac">Сейчас · день {gameState.currentDay}</p>
+        <h2 className="atlas-h2">{nextStep}</h2>
+        <p className="text-sm text-mu">{hint}</p>
+        {marketOpen && (
+          <button type="button" className="atlas-quiet" onClick={() => onOpenMarket("all")}>
+            Открыть магазин
+          </button>
+        )}
+        {((physical && phase === "turn") || phase === "summary") && (
+          <button type="button" className="atlas-quiet" onClick={onOpenTrack}>
+            Результаты и поле
+          </button>
+        )}
+      </section>
       <RoundScreen snapshot={snapshot} team={team} secondsLeft={secondsLeft} run={run} onToast={onToast} />
 
       <ProposalsInbox
@@ -173,10 +227,7 @@ export function HomeScreen({
             <span className="text-xs font-bold text-ac">Ангар сборки</span>
             <h1 className="atlas-h1">Команда «{team.name}»</h1>
           </div>
-          <p className="atlas-lead">
-            Выполните учебное задание и покажите результат наставнику. После начисления{" "}
-            {lexicon.currencyLabel.toLowerCase()} откроется сборка {lexicon.objectName.toLowerCase()}.
-          </p>
+          <p className="atlas-lead">Здесь будет сборка вашей команды.</p>
           <button
             type="button"
             onClick={() => {
@@ -225,7 +276,7 @@ export function HomeScreen({
             </div>
           </div>
 
-          {f0 && (
+          {!physical && f0 && (
             <details className="rounded-xl border border-ln bg-sf px-3.5 py-2.5 text-sm">
               <summary className="font-bold text-fg">Готовность запаса к маршруту</summary>
               <div className="mt-3 space-y-2.5 text-xs text-mu">

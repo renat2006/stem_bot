@@ -22,6 +22,13 @@
       "when": 1795529981993,
       "tag": "0002_oval_harrier",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795607225997,
+      "tag": "0003_perpetual_mephisto",
+      "breakpoints": true
     }
   ]
 }

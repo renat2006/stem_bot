@@ -307,7 +307,8 @@ describe("admin studio: card editor, AI draft, quick-fix, turn & shift wizard", 
       reason: "Бонус лаборатории",
     });
 
-    await applyTurn(opts(admin));
+    await setPhase(opts(admin), { phase: "turn" });
+    await applyTurn(opts(admin), { boardPositions: { [teamA]: 3, [teamB]: 4, [teamC]: 6 } });
     await expect(applyTurn(opts(admin))).rejects.toThrow("уже проведён");
     const dayRes = await nextDay(opts(admin));
     expect(dayRes.day).toBe(2);
@@ -390,7 +391,7 @@ describe("dual telegram bots (playerBot & adminBot)", () => {
     expect(sent[sent.length - 1]?.text).toContain("Индекс баланса");
 
     await playerBot.handleUpdate(makeCmd(6, 101, "/playground"));
-    expect(sent[sent.length - 1]?.text).toContain("0 валюты");
+    expect(sent[sent.length - 1]?.text).toContain("Баланс и место команды в смене не изменятся");
 
     await adminBot.handleUpdate(makeCmd(7, 1, "/pulse"));
     expect(sent[sent.length - 1]?.text).toContain("Пульс зала");

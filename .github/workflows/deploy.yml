@@ -243,7 +243,7 @@ jobs:
               -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"Полевой атлас\",\"web_app\":{\"url\":\"${base}\"}}}" >/dev/null
             curl -fsS -X POST "https://api.telegram.org/bot${BOT_TOKEN}/setMyCommands" \
               -H "Content-Type: application/json" \
-              -d '{"commands":[{"command":"start","description":"Войти в кабинет команды"},{"command":"story","description":"Задача и легенда дня"},{"command":"playground","description":"Полигон 3 мин (вне зачёта)"},{"command":"faq","description":"Памятка по механикам"}]}' >/dev/null
+              -d '{"commands":[{"command":"start","description":"Войти в кабинет команды"},{"command":"story","description":"Задача и легенда дня"},{"command":"playground","description":"Тренировка без зачёта"},{"command":"faq","description":"Памятка по механикам"}]}' >/dev/null
           fi
           if [ -n "$ADMIN_BOT_TOKEN" ] && [ -n "$WEBHOOK_SECRET" ]; then
             curl -fsS -X POST "https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/setWebhook" \

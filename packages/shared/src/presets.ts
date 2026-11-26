@@ -1,5 +1,5 @@
-import { ROVER_SPRINT_TEMPLATE } from "./rover-preset.js";
-import { type CardRarity, type GameTemplate, GameTemplateSchema } from "./schema.js";
+import { ROVER_EVENT_CELLS, ROVER_SPRINT_TEMPLATE } from "./rover-preset.js";
+import { BoardCellSchema, type CardRarity, type GameTemplate, GameTemplateSchema } from "./schema.js";
 
 function rarityForTier(tier: number): CardRarity {
   if (tier >= 5) return "legendary";
@@ -15,7 +15,85 @@ function buildPreset(raw: Record<string, unknown>): GameTemplate {
   return GameTemplateSchema.parse({ ...raw, cards });
 }
 
-export { ROVER_SPRINT_TEMPLATE };
+export { ROVER_EVENT_CELLS, ROVER_SPRINT_TEMPLATE };
+
+const classicCells = {
+  start: { type: "start", label: "Старт", description: "Стартовая клетка внешнего квадрата." },
+  mutation: {
+    type: "mutation",
+    label: "Мутация",
+    description: "Откройте 2 карты с рынка: одну возьмите бесплатно, вторую сбросьте.",
+  },
+  resource: { type: "resource", label: "Ресурс", rewardCurrency: 5, description: "Получите +5 ДНК." },
+  hunt: {
+    type: "challenge",
+    label: "Охота",
+    statId: "strength",
+    minStat: 3,
+    rewardBands: [
+      [3, 0, 3],
+      [5, 2, 3],
+      [8, 3, 5],
+    ],
+    penaltyTrack: -1,
+    buyoffCost: 5,
+    description: "Сила 1–2: −1 по Спирали (откуп 5 ДНК) · 3–4: +3 ДНК · 5–7: +2, +3 ДНК · 8+: +3, +5 ДНК",
+  },
+  disaster: {
+    type: "catastrophe",
+    label: "Катастрофа",
+    statId: "survival",
+    minStat: 3,
+    rewardBands: [
+      [3, 1, 0],
+      [6, 2, 3],
+      [8, 3, 5],
+    ],
+    penaltyTrack: -1,
+    buyoffCost: 5,
+    description: "Выживание 1–2: −1 (откуп 5 ДНК) · 3–5: +1 · 6–7: +2, +3 ДНК · 8+: +3, +5 ДНК",
+  },
+  predator: {
+    type: "challenge",
+    label: "Хищник",
+    statId: "speed",
+    minStat: 5,
+    losePartMaxStat: 2,
+    rewardBands: [
+      [5, 1, 3],
+      [8, 2, 5],
+    ],
+    penaltyTrack: -1,
+    buyoffCost: 5,
+    description:
+      "Скорость 1–2: потеря 1 части тела и −1 (откуп 5 ДНК) · 3–4: −1 (откуп 5 ДНК) · 5–7: +1, +3 ДНК · 8+: +2, +5 ДНК",
+  },
+  bigMutation: {
+    type: "mutation",
+    label: "Большая мутация",
+    description: "Замените любые 2 части тела бесплатно на открытые карты рынка.",
+  },
+};
+export const CLASSIC_EVENT_CELLS = (
+  [
+    "start",
+    "mutation",
+    "resource",
+    "hunt",
+    "disaster",
+    "predator",
+    "mutation",
+    "resource",
+    "hunt",
+    "predator",
+    "disaster",
+    "resource",
+    "hunt",
+    "predator",
+    "disaster",
+    "bigMutation",
+  ] as const
+).map((type, i) => BoardCellSchema.parse({ ...classicCells[type], position: i + 1 }));
 
 export const NEUROFAUNA_TEMPLATE: GameTemplate = buildPreset({
   id: "neurofauna-classic",
@@ -35,6 +113,7 @@ export const NEUROFAUNA_TEMPLATE: GameTemplate = buildPreset({
   phaseDurationSeconds: 1800,
   trackName: "Эволюционная спираль",
   trackMax: 30,
+  physicalBoard: true,
   dailyPurchaseLimit: 2,
   gridAreas: '"front head back" "body core tail" ". special ."',
   accentColors: ["oklch(0.5 0.13 150)", "oklch(0.76 0.14 150)"],
@@ -337,14 +416,7 @@ export const NEUROFAUNA_TEMPLATE: GameTemplate = buildPreset({
       stepBonus: 2,
     },
   ],
-  boardCells: [
-    { position: 1, type: "start", label: "Старт" },
-    { position: 2, type: "mutation", label: "Мутация" },
-    { position: 3, type: "resource", label: "Ресурс" },
-    { position: 4, type: "challenge", label: "Охота", buyoffCost: 5 },
-    { position: 5, type: "catastrophe", label: "Катастрофа", buyoffCost: 5 },
-    { position: 6, type: "apex", label: "Хищник", buyoffCost: 5 },
-  ],
+  boardCells: CLASSIC_EVENT_CELLS,
   extraModule: {
     tag: "Поле событий",
     moduleLabel: "ПОЛЕ СОБЫТИЙ + DLC «ПРИРОДА»",

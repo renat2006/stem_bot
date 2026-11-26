@@ -42,8 +42,8 @@ export const setPhase = (phase: ShiftPhase, minutes: number | null = null) =>
 
 export const nextDay = () => postJson<LiveState>("/api/admin/next-day");
 
-export const applyTurn = (buyoffTeamIds?: string[]) =>
-  postJson<LiveState>("/api/admin/apply-turn", buyoffTeamIds ? { buyoffTeamIds } : {});
+export const applyTurn = (buyoffTeamIds?: string[], boardPositions?: Record<string, number>) =>
+  postJson<LiveState>("/api/admin/apply-turn", { buyoffTeamIds, boardPositions });
 
 export const updatePurchaseLimit = (purchaseLimit: number | null) =>
   postJson<LiveState>("/api/admin/settings", { purchaseLimit });

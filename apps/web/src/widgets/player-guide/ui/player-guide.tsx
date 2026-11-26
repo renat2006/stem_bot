@@ -1,4 +1,4 @@
-import type { GameTemplate } from "@stem/shared";
+import { type GameTemplate, resolveDayEngine, usesPhysicalBoard } from "@stem/shared";
 import { ChevronLeft, ChevronRight, Flag } from "lucide-react";
 import { useState } from "react";
 import { PackIllustration, PartSticker } from "../../../entities/assembly/index.js";
@@ -21,6 +21,7 @@ export function PlayerGuide({
   const samples = template.cards.filter((c) => c.dayAvailable === 1).slice(0, 2);
   const card = samples[choice] ?? template.cards[0];
   const animal = template.objectRig === "creature";
+  const physical = usesPhysicalBoard(template, resolveDayEngine(template, 1));
   const title = [template.title, "Примерьте деталь", "Ваш ход в раунде"][page];
 
   return (
@@ -113,10 +114,9 @@ export function PlayerGuide({
           </>
         ) : (
           <p>
-            {animal
-              ? "Бросьте кубик и передвиньте фишку по Квадрату событий: характеристики определят исход испытания."
-              : "В раунде каждый участник команды управляет своим рычагом маршрута и резерва на телефоне."}{" "}
-            После вскрытия условия среды команды продвигаются к финишу.
+            {physical
+              ? "За столом бросьте кубик и передвиньте первую фишку по Квадрату событий. Ведущий запишет клетку и посчитает результат по вашей сборке. Затем передвиньте вторую фишку по Спирали."
+              : "Когда ведущий откроет раунд, на главном экране появится задание вашей команды. После раунда там же будут итоги."}
           </p>
         )}
         <footer>

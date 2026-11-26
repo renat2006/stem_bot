@@ -12,6 +12,7 @@ import {
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "../../shared/app-env.js";
+import { DomainError } from "../../shared/errors.js";
 import { mutationOptions, snapshotResponse, stateResponse } from "../../shared/route-context.js";
 import { requireAdmin } from "../../shared/telegram-auth.js";
 import { validateJson } from "../../shared/validate-json.js";
@@ -72,6 +73,7 @@ const ResetInput = z.object({
 const TurnInput = z
   .object({
     buyoffTeamIds: z.array(z.string()).optional(),
+    boardPositions: z.record(z.string(), z.number().int().positive()).optional(),
   })
   .optional();
 
@@ -192,7 +194,8 @@ export const adminRouter = new Hono<AppEnv>()
     const options = await mutationOptions(c);
     const body = await c.req.json().catch(() => undefined);
     const parsed = TurnInput.safeParse(body);
-    await applyTurn(options, parsed.success ? parsed.data : undefined);
+    if (!parsed.success) throw new DomainError("Проверьте номера клеток", 400);
+    await applyTurn(options, parsed.data);
     return stateResponse(c, options.eventId);
   })
   .patch("/features", validateJson(FeatureFlagsSchema.partial()), async (c) => {

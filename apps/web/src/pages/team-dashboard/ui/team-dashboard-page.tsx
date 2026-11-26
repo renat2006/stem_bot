@@ -1,4 +1,4 @@
-import { type CardItem, resolveLexicon } from "@stem/shared";
+import { type CardItem, resolveDayEngine, resolveLexicon, usesPhysicalBoard } from "@stem/shared";
 import { Compass, Settings, ShoppingBag, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { GameSnapshot, TeamWithStats } from "../../../entities/game/index.js";
@@ -9,7 +9,7 @@ import {
   useTelegram,
   useTelegramBackButton,
 } from "../../../shared/lib/index.js";
-import { BottomSheet, Mark, SpiralBoard, ToastWithUndo } from "../../../shared/ui/index.js";
+import { BottomSheet, Mark, SpiralBoard, TabletopBoard, ToastWithUndo } from "../../../shared/ui/index.js";
 import { PlayerGuide } from "../../../widgets/player-guide/index.js";
 import { SettingsSheet } from "../../../widgets/settings-sheet/index.js";
 import { Shop } from "../../../widgets/shop/index.js";
@@ -122,10 +122,10 @@ export function TeamDashboardPage({
     });
   };
 
-  const boardLabels =
-    template.boardCells.length > 0
-      ? template.boardCells.map((c) => c.label)
-      : ["Старт", "Ресурс", "Охота", "Мутация", "Хищник", "Катастрофа", "Ресурс", "Охота"];
+  const physical = usesPhysicalBoard(
+    template,
+    gameState.roundEngine ?? resolveDayEngine(template, gameState.currentDay),
+  );
 
   const switchScreen = (next: Screen) => {
     hapticTap();
@@ -155,10 +155,10 @@ export function TeamDashboardPage({
           </span>
         </div>
         <div className="header-actions">
-          {template.features.offClassPlayground !== false && (
+          {!physical && template.features.offClassPlayground !== false && (
             <button
               type="button"
-              aria-label="Полигон 3 минуты"
+              aria-label="Тренировка без зачёта"
               onClick={() => {
                 hapticTap();
                 onOpenPlayground();
@@ -244,33 +244,48 @@ export function TeamDashboardPage({
       {screen === "race" && (
         <div className="space-y-5">
           <div className="tablepage">
-            {template.boardCells.length > 0 && (
+            {physical && template.boardCells.length === 16 ? (
               <>
-                <h2 className="atlas-h2">Поле событий</h2>
-                <SpiralBoard
-                  labels={boardLabels}
-                  tokens={snapshot.teams.map((t) => ({
+                <div>
+                  <h2 className="atlas-h2">Квадрат событий</h2>
+                  <p className="mt-1 text-sm text-mu">
+                    Нажмите на любую клетку 1–16, чтобы увидеть её правило и расчёт для вашей сборки. Внутри —{" "}
+                    {template.trackName} до {template.trackMax}.
+                  </p>
+                </div>
+                <TabletopBoard
+                  template={template}
+                  boardTokens={snapshot.teams.map((t) => ({
                     id: t.id,
                     name: t.name,
                     position: t.boardPosition,
                     highlight: t.id === team.id,
                   }))}
-                  spiral={false}
+                  spiralTokens={snapshot.teams.map((t) => ({
+                    id: t.id,
+                    name: t.name,
+                    position: t.trackPosition,
+                    highlight: t.id === team.id,
+                  }))}
+                  viewerTeam={team}
+                  compact
+                />
+              </>
+            ) : (
+              <>
+                <h2 className="atlas-h2">{template.trackName}</h2>
+                <SpiralBoard
+                  labels={Array.from({ length: template.trackMax }, (_, i) => String(i + 1))}
+                  tokens={snapshot.teams.map((t) => ({
+                    id: t.id,
+                    name: t.name,
+                    position: t.trackPosition,
+                    highlight: t.id === team.id,
+                  }))}
+                  spiral
                 />
               </>
             )}
-
-            <h2 className="atlas-h2">{template.trackName}</h2>
-            <SpiralBoard
-              labels={Array.from({ length: template.trackMax }, (_, i) => String(i + 1))}
-              tokens={snapshot.teams.map((t) => ({
-                id: t.id,
-                name: t.name,
-                position: t.trackPosition,
-                highlight: t.id === team.id,
-              }))}
-              spiral
-            />
 
             <div className="space-y-1.5 pt-1">
               {rankedTeams.map((t, idx) => (
@@ -289,6 +304,19 @@ export function TeamDashboardPage({
             </div>
           </div>
 
+          {snapshot.feed.some((entry) => entry.kind === "step") && (
+            <section className="space-y-2 rounded-xl border border-ln bg-sf p-4">
+              <h2 className="atlas-h2">Последние ходы</h2>
+              {snapshot.feed
+                .filter((entry) => entry.kind === "step")
+                .slice(0, 8)
+                .map((entry) => (
+                  <p className="text-sm text-mu" key={entry.id}>
+                    {snapshot.teams.find((t) => t.id === entry.teamId)?.name} · {entry.text}
+                  </p>
+                ))}
+            </section>
+          )}
           <RulesScreen sections={sections} rulesNote={gameState.rulesUpdatedNote} />
         </div>
       )}

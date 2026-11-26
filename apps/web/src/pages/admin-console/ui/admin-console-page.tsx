@@ -1,5 +1,6 @@
 import { resolveBoardTurn, resolveDayEngine, resolveLexicon, usesPhysicalBoard } from "@stem/shared";
 import {
+  BookOpen,
   ChevronLeft,
   ChevronRight,
   Ellipsis,
@@ -260,6 +261,17 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
                   <Monitor className="h-3.5 w-3.5 text-ac" />
                   <span>Табло 16:9</span>
                 </button>
+
+                <a
+                  href="/guide"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={closeTools}
+                  className="atlas-quiet text-xs"
+                >
+                  <BookOpen className="h-3.5 w-3.5 text-ac" />
+                  <span>Гайд и PDF</span>
+                </a>
 
                 {onOpenSettings && (
                   <button

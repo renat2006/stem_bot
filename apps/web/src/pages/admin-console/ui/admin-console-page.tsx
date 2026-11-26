@@ -190,6 +190,26 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
         </div>
 
         <div className="atlas-studio-modes">
+          <select
+            className="studio-mobile-nav"
+            aria-label="Раздел студии"
+            value={studioMode === "constructor" ? "constructor" : tab}
+            onChange={(event) => {
+              const section = event.currentTarget.value;
+              hapticTap();
+              setStudioMode(section === "constructor" ? "constructor" : "live");
+              const selected = ADMIN_TABS.find((item) => item.id === section);
+              if (selected) setTab(selected.id);
+            }}
+          >
+            {ADMIN_TABS.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.id === "round" ? "Пульт урока" : item.label}
+                {item.id === "balance" && criticalAlerts > 0 ? " · есть замечания" : ""}
+              </option>
+            ))}
+            <option value="constructor">Конструктор смены</option>
+          </select>
           <div className="atlas-segmented">
             <button
               type="button"

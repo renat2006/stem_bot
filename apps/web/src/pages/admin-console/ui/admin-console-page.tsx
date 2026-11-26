@@ -1,6 +1,7 @@
 import { resolveBoardTurn, resolveDayEngine, resolveLexicon, usesPhysicalBoard } from "@stem/shared";
 import {
   BookOpen,
+  ChevronLeft,
   ChevronRight,
   Ellipsis,
   MessageSquare,
@@ -19,7 +20,6 @@ import {
   ShiftControls,
   setPhase,
   startRoundEngine,
-  TemplateSwitcher,
 } from "../../../features/control-shift/index.js";
 import { RewardPanel, rewardTeams, undoRewardBatch } from "../../../features/manage-team/index.js";
 import { type RunAction, useCountdown, useTelegram } from "../../../shared/lib/index.js";
@@ -66,6 +66,15 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
   const lexicon = snapshot.lexicon ?? resolveLexicon(template);
   const [studioMode, setStudioMode] = useState<StudioMode>(initialStudioMode);
   const [tab, setTab] = useState<AdminTab>("round");
+  const [draftKey, setDraftKey] = useState(0);
+  const storageKey = `shift-draft-v1:${snapshot.eventId}:${snapshot.viewer.userId}`;
+  const [draftStarted, setDraftStarted] = useState(() => {
+    try {
+      return initialWizardState() || Boolean(sessionStorage.getItem(storageKey));
+    } catch {
+      return initialWizardState();
+    }
+  });
   const [wizardOpen, setWizardOpen] = useState(initialWizardState);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const toolsMenu = useRef<HTMLDetailsElement>(null);
@@ -200,129 +209,115 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
     <article className="atlas-studio">
       <header className="atlas-studio-header">
         <div className="min-w-0">
-          <div className="text-sm font-extrabold tracking-tight text-fg">Студия ведущего</div>
+          <div className="text-sm font-extrabold tracking-tight text-fg">
+            {wizardOpen ? "Новая смена" : "Студия ведущего"}
+          </div>
           <div className="mt-0.5 text-xs font-medium text-mu">
-            День {gameState.currentDay} из {template.totalDays} · {template.title}
+            {wizardOpen
+              ? "Черновик в этой вкладке"
+              : `День ${gameState.currentDay} из ${template.totalDays} · ${template.title}`}
           </div>
         </div>
 
         <div className="atlas-studio-modes">
-          <select
-            className="studio-mobile-nav"
-            aria-label="Раздел студии"
-            value={studioMode === "constructor" ? "constructor" : tab}
-            onChange={(event) => {
-              const section = event.currentTarget.value;
-              hapticTap();
-              setStudioMode(section === "constructor" ? "constructor" : "live");
-              const selected = ADMIN_TABS.find((item) => item.id === section);
-              if (selected) setTab(selected.id);
+          <button
+            type="button"
+            className="atlas-quiet"
+            onClick={() => {
+              setDraftStarted(true);
+              setWizardOpen(!wizardOpen);
             }}
           >
-            {ADMIN_TABS.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.id === "round" ? "Пульт урока" : item.label}
-                {item.id === "balance" && criticalAlerts > 0 ? " · есть замечания" : ""}
-              </option>
-            ))}
-            <option value="constructor">Конструктор смены</option>
-          </select>
-          <div className="atlas-segmented">
-            <button
-              type="button"
-              aria-pressed={studioMode === "live"}
-              onClick={() => {
-                hapticTap();
-                setStudioMode("live");
-              }}
-            >
-              Пульт урока
-            </button>
-            <button
-              type="button"
-              aria-pressed={studioMode === "constructor"}
-              onClick={() => {
-                hapticTap();
-                setStudioMode("constructor");
-              }}
-            >
-              Конструктор смены
-            </button>
-          </div>
-
-          <details className="atlas-studio-tools" ref={toolsMenu}>
-            <summary className="atlas-icon-btn" aria-label="Действия смены" title="Действия смены">
-              <Ellipsis className="h-5 w-5" />
-            </summary>
-            <div className="atlas-studio-tool-list">
-              <button
-                type="button"
-                onClick={() => {
-                  hapticTap();
-                  closeTools();
-                  setWizardOpen(true);
-                }}
-                className="atlas-quiet text-xs"
-              >
-                <Plus className="h-3.5 w-3.5 text-ac" />
-                <span>Новая смена</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  hapticTap();
-                  closeTools();
-                  setBroadcastOpen(true);
-                }}
-                className="atlas-quiet text-xs"
-              >
-                <MessageSquare className="h-3.5 w-3.5 text-ac" />
-                <span>Написать командам</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  closeTools();
-                  openProjector();
-                }}
-                className="atlas-quiet text-xs"
-              >
-                <Monitor className="h-3.5 w-3.5 text-ac" />
-                <span>Табло 16:9</span>
-              </button>
-
-              <a
-                href="/guide"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={closeTools}
-                className="atlas-quiet text-xs"
-              >
-                <BookOpen className="h-3.5 w-3.5 text-ac" />
-                <span>Гайд и PDF</span>
-              </a>
-
-              {onOpenSettings && (
+            {wizardOpen ? <ChevronLeft size={16} /> : <Plus size={16} />}
+            {wizardOpen ? "К текущей смене" : draftStarted ? "Черновик смены" : "Новая смена"}
+          </button>
+          {!wizardOpen && (
+            <details className="atlas-studio-tools" ref={toolsMenu}>
+              <summary className="atlas-icon-btn" aria-label="Действия смены" title="Действия смены">
+                <Ellipsis className="h-5 w-5" />
+              </summary>
+              <div className="atlas-studio-tool-list">
                 <button
                   type="button"
-                  aria-label="Настройки отображения"
                   onClick={() => {
+                    hapticTap();
                     closeTools();
-                    onOpenSettings();
+                    setBroadcastOpen(true);
                   }}
                   className="atlas-quiet text-xs"
                 >
-                  <Settings className="h-4 w-4" /> Настройки
+                  <MessageSquare className="h-3.5 w-3.5 text-ac" />
+                  <span>Написать командам</span>
                 </button>
-              )}
-            </div>
-          </details>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeTools();
+                    openProjector();
+                  }}
+                  className="atlas-quiet text-xs"
+                >
+                  <Monitor className="h-3.5 w-3.5 text-ac" />
+                  <span>Табло 16:9</span>
+                </button>
+
+                <a
+                  href="/guide"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={closeTools}
+                  className="atlas-quiet text-xs"
+                >
+                  <BookOpen className="h-3.5 w-3.5 text-ac" />
+                  <span>Гайд и PDF</span>
+                </a>
+
+                {onOpenSettings && (
+                  <button
+                    type="button"
+                    aria-label="Настройки отображения"
+                    onClick={() => {
+                      closeTools();
+                      onOpenSettings();
+                    }}
+                    className="atlas-quiet text-xs"
+                  >
+                    <Settings className="h-4 w-4" /> Настройки
+                  </button>
+                )}
+              </div>
+            </details>
+          )}
         </div>
       </header>
 
-      {studioMode === "constructor" ? (
+      {!wizardOpen && (
+        <nav className="studio-sections" aria-label="Разделы студии ведущего">
+          {[...ADMIN_TABS, { id: "constructor", label: "Настройка смены" }].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              aria-current={
+                !wizardOpen && (studioMode === "constructor" ? item.id === "constructor" : tab === item.id)
+                  ? "page"
+                  : undefined
+              }
+              onClick={() => {
+                hapticTap();
+                setWizardOpen(false);
+                setStudioMode(item.id === "constructor" ? "constructor" : "live");
+                const target = ADMIN_TABS.find((t) => t.id === item.id);
+                if (target) setTab(target.id);
+              }}
+            >
+              {item.id === "round" ? "Пульт урока" : item.label}
+              {item.id === "balance" && criticalAlerts > 0 && <span aria-hidden="true"> •</span>}
+            </button>
+          ))}
+        </nav>
+      )}
+      {wizardOpen ? null : studioMode === "constructor" ? (
         <AtlasConstructor
           snapshot={snapshot}
           run={run}
@@ -337,28 +332,6 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
         />
       ) : (
         <div className="atlas-studio-content">
-          <nav aria-label="Разделы студии ведущего" className="atlas-pills">
-            {ADMIN_TABS.map((item) => {
-              const hasAlert = item.id === "balance" && criticalAlerts > 0;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  aria-pressed={tab === item.id}
-                  onClick={() => {
-                    hapticTap();
-                    setTab(item.id);
-                  }}
-                >
-                  {item.label}
-                  {hasAlert && (
-                    <span className="ml-1.5 inline-block h-2 w-2 rounded-full bg-warn" aria-hidden="true" />
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-
           {tab === "round" && (
             <div className="atlas-round-content">
               <h1 className="sr-only">Пульт урока</h1>
@@ -687,18 +660,21 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
                 purchaseLimit={gameState.dailyPurchaseLimit}
                 run={run}
               />
-              <TemplateSwitcher templates={snapshot.availableTemplates} activeId={template.id} run={run} />
             </div>
           )}
         </div>
       )}
 
       <ShiftWizardSheet
+        storageKey={storageKey}
+        key={draftKey}
         open={wizardOpen}
         onClose={() => setWizardOpen(false)}
         templates={snapshot.availableTemplates}
         run={run}
         onCreated={() => {
+          setDraftKey((k) => k + 1);
+          setDraftStarted(false);
           setStudioMode("live");
           setTab("teams");
         }}

@@ -2,9 +2,13 @@ import { z } from "zod";
 import { type BalanceReport, validateGameBalance } from "./engine.js";
 import {
   type CardItem,
+  CardItemSchema,
   CardRaritySchema,
+  DayScheduleItemSchema,
   EffectScopeSchema,
+  FeatureFlagsSchema,
   type GameTemplate,
+  ImageIdSchema,
   LoreBriefingSchema,
 } from "./schema.js";
 
@@ -28,6 +32,20 @@ export const ShiftWizardInputSchema = z.object({
   theme: z.string().trim().min(3).max(300),
   totalDays: z.number().int().min(2).max(10).default(6),
   teamCount: z.number().int().min(2).max(20).default(4),
+  coverId: ImageIdSchema.optional(),
+  daySchedule: z.array(DayScheduleItemSchema).max(10).optional(),
+  cards: z.array(CardItemSchema).min(1).max(150).optional(),
+  teamNames: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
+  features: FeatureFlagsSchema.pick({
+    p2pMarket: true,
+    auctions: true,
+    slotInventory: true,
+    storyBriefings: true,
+    dayEvents: true,
+    catchUpBonus: true,
+  })
+    .partial()
+    .optional(),
   baseTemplateId: z.string().default("rover-sprint-cu"),
   useAiLoreAndCards: z.boolean().default(false),
   cardCount: z.number().int().min(12).max(36).default(18),

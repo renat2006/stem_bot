@@ -79,7 +79,9 @@ async function renderAdminHome(adminWebAppUrl: string) {
     .text("Обновить пульс", "adm:pulse")
     .row()
     .webApp("Табло 16:9", projectorUrl)
-    .webApp("Конструктор", wizardUrl)
+    .webApp("Новая смена", wizardUrl)
+    .row()
+    .webApp("Настроить текущую смену", withUrlQuery(adminWebAppUrl, "/?mode=constructor"))
     .row()
     .text("Советник баланса", "adm:balance");
 
@@ -285,7 +287,7 @@ export function registerAdminHandlers(bot: Bot, adminWebAppUrl: string, adminIds
       .row()
       .text("К главному меню", "adm:home");
     await ctx.reply(
-      "<b>Конструктор смены</b>\nОткройте пошаговый мастер: тема, словарь, дни, каталог деталей и команды.",
+      "<b>Конструктор смены</b>\nОткройте пошаговый мастер: мир, правила, карты и названия команд.",
       { parse_mode: "HTML", reply_markup: keyboard },
     );
   });

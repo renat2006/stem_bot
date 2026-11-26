@@ -16,14 +16,16 @@ import { PackIllustration, PartSticker } from "../../../entities/assembly/index.
 import type { GameSnapshot } from "../../../entities/game/index.js";
 import {
   applyParetoFix,
-  resetEvent,
   startRoundEngine,
+  updateCover,
   updateDaySchedule,
   updateFeatures,
   updateTemplateLexicon,
 } from "../../../features/control-shift/index.js";
 import type { RunAction } from "../../../shared/lib/index.js";
 import { StatImpactPills } from "../../../shared/ui/index.js";
+
+import { ImageField } from "./image-field.js";
 
 const LEXICON_FIELDS: Array<{ key: keyof TemplateLexicon; label: string }> = [
   { key: "objectName", label: "Объект" },
@@ -47,7 +49,7 @@ export function AtlasConstructor({
   onOpenCardsTab: () => void;
   onSwitchToLive: () => void;
 }) {
-  const { template, teams, availableTemplates } = snapshot;
+  const { template, teams } = snapshot;
   const serverLexicon = snapshot.lexicon ?? resolveLexicon(template);
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
@@ -80,7 +82,7 @@ export function AtlasConstructor({
   return (
     <section className="space-y-5" aria-label="Конструктор смены">
       <div className="space-y-1">
-        <p className="text-sm text-mu">Подготовка смены · {template.title}</p>
+        <p className="text-sm text-mu">Текущая смена · {template.title}</p>
         <h1 className="atlas-h1">Конструктор смены</h1>
       </div>
 
@@ -89,7 +91,7 @@ export function AtlasConstructor({
           { id: 1 as const, label: "1. Словарь" },
           { id: 2 as const, label: "2. Дни" },
           { id: 3 as const, label: "3. Каталог" },
-          { id: 4 as const, label: "4. Запуск" },
+          { id: 4 as const, label: "4. Вход команд" },
         ].map((s) => (
           <button key={s.id} type="button" aria-pressed={step === s.id} onClick={() => setStep(s.id)}>
             {s.label}
@@ -101,26 +103,12 @@ export function AtlasConstructor({
         <div className="space-y-5">
           <div className="editor-grid">
             <div className="space-y-4">
+              <ImageField
+                label="Обложка текущей смены"
+                id={template.coverId}
+                onChange={(id) => void run(() => updateCover(id))}
+              />
               <h2 className="atlas-h2">Словарь смены</h2>
-
-              <div className="space-y-1.5">
-                <span className="text-xs font-bold text-mu">Базовый шаблон мира</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {availableTemplates.map((tpl) => (
-                    <button
-                      key={tpl.id}
-                      type="button"
-                      aria-pressed={tpl.id === template.id}
-                      onClick={() => void run(() => resetEvent(tpl.id, true))}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-bold ${
-                        tpl.id === template.id ? "bg-ac text-acfg" : "border border-ln bg-sf text-fg"
-                      }`}
-                    >
-                      {tpl.title}
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               <div className="space-y-3">
                 {LEXICON_FIELDS.map((field) => (
@@ -350,9 +338,7 @@ export function AtlasConstructor({
         <div className="qr-print-zone space-y-5">
           <div className="space-y-1">
             <h2 className="atlas-h2">Вход команд ({teams.length})</h2>
-            <p className="text-sm text-mu">
-              Распечатайте QR-карточки для столов или запустите репетиционный раунд.
-            </p>
+            <p className="text-sm text-mu">Распечатайте QR-карточки для входа участников.</p>
           </div>
 
           <div className="qr-grid">
@@ -383,12 +369,13 @@ export function AtlasConstructor({
             <button
               type="button"
               onClick={() => {
-                void run(() => startRoundEngine({ engine: "mission", durationSeconds: 120 }));
-                onSwitchToLive();
+                void run(() => startRoundEngine({ engine: "mission", durationSeconds: 120 })).then((ok) => {
+                  if (ok) onSwitchToLive();
+                });
               }}
               className="atlas-primary centered"
             >
-              Пройти тестовый раунд
+              Начать миссию в текущей смене
             </button>
           </div>
         </div>

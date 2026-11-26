@@ -73,7 +73,7 @@ export function ModalDialog({
           <X className="h-4 w-4" />
         </button>
       </div>
-      <div className="max-h-[78dvh] overflow-y-auto p-4">{children}</div>
+      <div className="max-h-[78dvh] overflow-y-auto p-4">{open && children}</div>
     </dialog>
   );
 }

@@ -9,7 +9,7 @@ import { RealtimeHub } from "../realtime/hub.js";
 import { config } from "../shared/config.js";
 import type { Identity } from "../shared/identity.js";
 import { runtime, setRuntime } from "../shared/runtime.js";
-import { createAdminBot, createAlertService, createPlayerBot } from "./index.js";
+import { createAdminBot, createAlertService, createBotWebhookHandler, createPlayerBot } from "./index.js";
 
 const admin: Identity = {
   userId: 1,
@@ -197,5 +197,31 @@ describe("bot UX, feedback callbacks, and admin-to-player messaging", () => {
     expect(deliveredToPlayers[0]?.payload.chat_id).toBe(201);
     expect(String(deliveredToPlayers[0]?.payload.text)).toContain("Кратер-04");
     expect(String(deliveredToPlayers[0]?.payload.text)).toContain("Проверьте слот шасси перед выездом");
+  });
+
+  it("does not hijack playerBot sendMessage into adminBot webhookReplyStore during adm:msg:send", async () => {
+    const { Hono } = await import("hono");
+    const secret = "test-webhook-secret-token-1234567890";
+    const app = new Hono();
+    app.post("/admin", createBotWebhookHandler(adminBot, secret));
+
+    await adminBot.handleUpdate(makeCommand(40, 1, "/msg Проверка через вебхук"));
+    calls.length = 0;
+
+    const res = await app.request("/admin", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-telegram-bot-api-secret-token": secret,
+      },
+      body: JSON.stringify(makeCallback(41, 1, "adm:msg:send")),
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { method?: string };
+    expect(body.method).toBe("answerCallbackQuery");
+
+    const deliveredToPlayers = calls.filter((c) => c.bot === "player" && c.method === "sendMessage");
+    expect(deliveredToPlayers).toHaveLength(2);
   });
 });

@@ -59,6 +59,7 @@ services:
     restart: unless-stopped
     extra_hosts:
       - "hype.renat.site:136.148.220.198"
+      - "tg-relay:host-gateway"
     env_file:
       - ${SHARED_DIR}/runtime.env
     environment:

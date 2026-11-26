@@ -51,19 +51,47 @@ export function calculateTeamStep(
     });
   }
 
+  if (template.allStatsStepBonus) {
+    const { min, bonus } = template.allStatsStepBonus;
+    const met = template.stats.every((stat) => (totals[stat.id] ?? 0) >= min);
+    parts.push({
+      key: `all-stats:${min}`,
+      min,
+      value: bonus,
+      met,
+      label: `Все три от ${min}`,
+    });
+  }
+
   const cardMap = new Map<string, CardItem>(template.cards.map((c) => [c.id, c]));
   let cardTrackBonus = 0;
+  let elitePartCount = 0;
   let filledSlots = 0;
   let hasSynergyCard = false;
+  const eliteBonusEach = template.elitePartStepBonus ?? 0;
 
   for (const cardId of Object.values(equippedCards)) {
     if (!cardId) continue;
     filledSlots += 1;
     const card = cardMap.get(cardId);
     if (!card) continue;
-    if (card.trackBonus) cardTrackBonus += card.trackBonus;
-    if (card.effectScope === "step") cardTrackBonus += 1;
+    const isElite = card.rarity === "legendary";
+    if (isElite && eliteBonusEach > 0) {
+      elitePartCount += 1;
+    } else {
+      if (card.trackBonus) cardTrackBonus += card.trackBonus;
+      if (card.effectScope === "step") cardTrackBonus += 1;
+    }
     if (card.effectScope === "slot_synergy") hasSynergyCard = true;
+  }
+
+  if (elitePartCount > 0 && eliteBonusEach > 0) {
+    parts.push({
+      key: "elite-part",
+      value: elitePartCount * eliteBonusEach,
+      met: true,
+      label: elitePartCount > 1 ? `Элитные части (${elitePartCount})` : "Элитная часть",
+    });
   }
 
   if (cardTrackBonus > 0) {
@@ -462,6 +490,7 @@ export interface BoardTurnOutcome {
   shielded: boolean;
   buyoffUsed: boolean;
   canBuyoff: boolean;
+  losePartRequired: boolean;
   currencyDelta: number;
   eventTrackDelta: number;
   nextTrackPosition: number;
@@ -501,6 +530,7 @@ export function resolveBoardTurn(params: {
       shielded: false,
       buyoffUsed: false,
       canBuyoff: false,
+      losePartRequired: false,
       currencyDelta,
       eventTrackDelta: 0,
       nextTrackPosition: finalTrack,
@@ -520,11 +550,12 @@ export function resolveBoardTurn(params: {
       shielded: false,
       buyoffUsed: false,
       canBuyoff: false,
+      losePartRequired: false,
       currencyDelta,
       eventTrackDelta: targetCell.rewardTrack,
       nextTrackPosition: Math.min(template.trackMax, Math.max(1, landedPos + targetCell.rewardTrack)),
       nextCurrency: Math.max(0, team.currency + currencyDelta),
-      summary: `${targetCell.label}: находка принесла +${gain} ${template.currencyName}`,
+      summary: `${targetCell.label}: получено +${gain} ${template.currencyName}`,
     };
   }
 
@@ -541,6 +572,9 @@ export function resolveBoardTurn(params: {
     eventTrackDelta += bonusTrack;
     currencyDelta += bonusCurrency;
     const finalTrack = Math.min(template.trackMax, Math.max(1, landedPos + eventTrackDelta));
+    const rewards: string[] = [];
+    if (bonusTrack > 0) rewards.push(`+${bonusTrack} по Спирали`);
+    if (bonusCurrency > 0) rewards.push(`+${bonusCurrency} ${template.currencyName}`);
     return {
       stepMove,
       cellEventTriggered: true,
@@ -549,11 +583,12 @@ export function resolveBoardTurn(params: {
       shielded: false,
       buyoffUsed: false,
       canBuyoff: false,
+      losePartRequired: false,
       currencyDelta,
       eventTrackDelta,
       nextTrackPosition: finalTrack,
       nextCurrency: Math.max(0, team.currency + currencyDelta),
-      summary: `${targetCell.label}: проверка «${statLabel}» пройдена (${currentStat} ≥ ${minRequired})${bonusTrack > 0 ? `, +${bonusTrack} к треку` : ""}`,
+      summary: `${targetCell.label}: проверка «${statLabel}» пройдена (${currentStat} ≥ ${minRequired})${rewards.length > 0 ? `, ${rewards.join(", ")}` : ""}`,
     };
   }
 
@@ -566,14 +601,16 @@ export function resolveBoardTurn(params: {
       shielded: true,
       buyoffUsed: false,
       canBuyoff: false,
+      losePartRequired: false,
       currencyDelta,
       eventTrackDelta: 0,
       nextTrackPosition: landedPos,
       nextCurrency: Math.max(0, team.currency + currencyDelta),
-      summary: `${targetCell.label}: защитный модуль спас сборку от потери темпа`,
+      summary: `${targetCell.label}: защитный модуль спас сборку от штрафа`,
     };
   }
 
+  const hitsLosePart = targetCell.losePartMaxStat !== undefined && currentStat <= targetCell.losePartMaxStat;
   canBuyoff = allowBuyoff && buyoffCost > 0 && team.currency + currencyDelta >= buyoffCost;
   if (useBuyoff && canBuyoff) {
     currencyDelta -= buyoffCost;
@@ -585,11 +622,12 @@ export function resolveBoardTurn(params: {
       shielded: false,
       buyoffUsed: true,
       canBuyoff: true,
+      losePartRequired: false,
       currencyDelta,
       eventTrackDelta: 0,
       nextTrackPosition: landedPos,
       nextCurrency: Math.max(0, team.currency + currencyDelta),
-      summary: `${targetCell.label}: откуп ${buyoffCost} ${template.currencyName} удержал позицию`,
+      summary: `${targetCell.label}: откуп ${buyoffCost} ${template.currencyName} ${hitsLosePart ? "сохранил запчасть и позицию" : "удержал позицию"}`,
     };
   }
 
@@ -607,11 +645,14 @@ export function resolveBoardTurn(params: {
     shielded: false,
     buyoffUsed: false,
     canBuyoff,
+    losePartRequired: hitsLosePart,
     currencyDelta,
     eventTrackDelta,
     nextTrackPosition: finalTrack,
     nextCurrency: Math.max(0, team.currency + currencyDelta),
-    summary: `${targetCell.label}: не хватило «${statLabel}» (${currentStat} < ${minRequired}), откат ${penaltyTrack}`,
+    summary: hitsLosePart
+      ? `${targetCell.label}: «${statLabel}» ${currentStat} ≤ ${targetCell.losePartMaxStat} — потеря 1 запчасти и ${penaltyTrack} по Спирали`
+      : `${targetCell.label}: не хватило «${statLabel}» (${currentStat} < ${minRequired}), откат ${penaltyTrack}`,
   };
 }
 

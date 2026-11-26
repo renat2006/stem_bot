@@ -10,6 +10,7 @@ export {
   type SpiralToken,
   StatImpactPills,
   sectorName,
+  TabletopBoard,
   TrainingSketch,
 } from "./atlas-graphics.js";
 export { Badge } from "./badge.js";

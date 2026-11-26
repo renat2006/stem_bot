@@ -35,6 +35,17 @@ export function buildRulesSections(
           const stat = template.stats.find((s) => s.id === th.statId);
           return { label: `${stat?.label ?? th.statId} от ${th.min}`, value: `+${th.bonus}`, stat };
         }),
+        ...(template.allStatsStepBonus
+          ? [
+              {
+                label: `Все три характеристики от ${template.allStatsStepBonus.min}`,
+                value: `+${template.allStatsStepBonus.bonus}`,
+              },
+            ]
+          : []),
+        ...(template.elitePartStepBonus > 0
+          ? [{ label: "Элитная часть в сборке", value: `+${template.elitePartStepBonus}` }]
+          : []),
         ...(features.catchUpBonus
           ? [{ label: "Рывок догоняющего (при отставании от лидера ≥ 6 кл.)", value: "+1" }]
           : []),

@@ -63,3 +63,63 @@ test("НейроФауна: занятие, покупка, физическое
   await admin.getByRole("button", { name: "Открыть День 2" }).click();
   await expect(admin.getByRole("button", { name: "Открыть мастерскую (15 мин)" })).toBeVisible();
 });
+
+test("Экспедиция Роверов: новое поле заказчика (16 клеток + 30 Спираль, Детали, Завал, Болото)", async ({
+  browser,
+  request,
+}) => {
+  const ARTIFACT_DIR = "/Users/renat/.gemini/antigravity/brain/dc90e454-4407-4d8e-84e6-2cd2bd5d1a2a";
+  const adminHeaders = { "X-Dev-User": "1", "X-Dev-Surface": "admin" };
+  const reset = await request.post("/api/admin/reset", {
+    headers: adminHeaders,
+    data: { templateId: "rover-sprint-cu", demoTeams: true },
+  });
+  expect(reset.ok()).toBe(true);
+  const snapshot = await (await request.get("/api/game/state", { headers: adminHeaders })).json();
+  expect(snapshot.template.currencyName).toBe("Детали");
+  expect(snapshot.template.trackMax).toBe(30);
+  expect(snapshot.template.boardCells).toHaveLength(16);
+
+  const [first] = snapshot.teams;
+  const admin = await browser.newPage({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 });
+  const player = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  await admin.goto("/?as=1:Host&surface=admin");
+  await player.goto(`/?as=101:Participant&join=${encodeURIComponent(first.joinCode)}`);
+  await player.getByRole("button", { name: "Присоединиться к команде" }).click();
+  await player.getByRole("button", { name: "Пропустить" }).click();
+
+  await admin.getByRole("button", { name: "Открыть мастерскую (15 мин)" }).click();
+  await admin.getByRole("button", { name: "Перейти к ходу на поле" }).click();
+  await expect(admin.getByRole("heading", { name: "Клетки с физического поля" })).toBeVisible();
+
+  const controls = admin
+    .locator("section")
+    .filter({ has: admin.getByRole("heading", { name: "Клетки с физического поля" }) })
+    .last()
+    .getByRole("combobox");
+  const n = await controls.count();
+  for (let i = 0; i < n; i++) {
+    await controls.nth(i).selectOption(i === 0 ? "3" : i === 1 ? "6" : "4");
+  }
+  await expect(admin.getByText(/Мастерская: получено \+5 Детали/).first()).toBeVisible();
+  await admin.getByRole("button", { name: "Применить ход по треку" }).click();
+
+  await player.getByRole("button", { name: "Результаты и поле" }).click();
+  await expect(player.getByRole("heading", { name: "Квадрат событий" })).toBeVisible();
+  await player
+    .getByRole("button", { name: /Болото/ })
+    .first()
+    .click();
+  await expect(player.getByText(/потеряйте 1 Запчасть/)).toBeVisible();
+  await player.screenshot({ path: `${ARTIFACT_DIR}/rover_board_mobile_390.png` });
+
+  const projector = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 2 });
+  await projector.goto("/?as=1:Host&view=projector");
+  await expect(projector.getByRole("heading", { name: "Квадрат событий" })).toBeVisible();
+  await expect(projector.getByText("Победитель заезда")).toBeVisible();
+  await projector.screenshot({ path: `${ARTIFACT_DIR}/rover_board_projector_1920.png` });
+
+  await admin.close();
+  await player.close();
+  await projector.close();
+});

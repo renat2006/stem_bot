@@ -2,16 +2,16 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { timingSafeEqual } from "node:crypto";
 import { autoRetry } from "@grammyjs/auto-retry";
 import { apiThrottler } from "@grammyjs/transformer-throttler";
-import { resolveDayEngine, resolveLexicon, usesPhysicalBoard } from "@stem/shared";
 import { and, eq } from "drizzle-orm";
 import { Bot, InlineKeyboard } from "grammy";
 import type { Update } from "grammy/types";
 import type { Context as HonoContext } from "hono";
 import { members } from "../db/schema.js";
-import { activeEventId, loadEvent } from "../modules/event/repository.js";
-import { buildLiveState, normalizeTemplate } from "../modules/event/snapshot.js";
 import { config } from "../shared/config.js";
-import { type AlertService, type QueuedAlert, runtime } from "../shared/runtime.js";
+import { type AlertService, type DispatchReport, type QueuedAlert, runtime } from "../shared/runtime.js";
+import { registerAdminHandlers } from "./admin.js";
+import { withUrlQuery } from "./format.js";
+import { registerPlayerHandlers } from "./player.js";
 
 const webhookReplyStore = new AsyncLocalStorage<{ payload: Record<string, unknown> | null }>();
 
@@ -86,111 +86,9 @@ export function createPlayerBot(token: string, webAppUrl: string): Bot {
     client: { apiRoot: config.TELEGRAM_API_ROOT, timeoutSeconds: 20 },
   });
   attachBotRuntime(bot, token, "stem_player_bot");
-
-  bot.command("start", async (ctx) => {
-    const startPayload = ctx.match?.trim();
-    const baseUrl = webAppUrl.replace(/\/$/, "");
-    const isPuzzle = startPayload?.startsWith("puzzle_");
-    const targetUrl = isPuzzle
-      ? `${baseUrl}/?playground=${encodeURIComponent(startPayload ?? "1")}`
-      : startPayload
-        ? `${baseUrl}/?code=${encodeURIComponent(startPayload)}`
-        : webAppUrl;
-
-    const keyboard = new InlineKeyboard().webApp(
-      isPuzzle ? "Открыть вызов (3 мин)" : "Открыть кабинет команды",
-      targetUrl,
-    );
-
-    const eventId = await activeEventId(runtime().db);
-    if (!eventId) {
-      await ctx.reply("Полевой атлас готовится к запуску. Скоро ведущий откроет вход для команд.", {
-        reply_markup: keyboard,
-      });
-      return;
-    }
-    const event = await loadEvent(runtime().db, eventId);
-    const template = normalizeTemplate(event.template);
-    const lexicon = resolveLexicon(template);
-    const intro = template.dayBriefings.find((b) => b.day === event.currentDay) ?? template.dayBriefings[0];
-
-    if (
-      template.features.offClassPlayground !== false &&
-      !isPuzzle &&
-      !usesPhysicalBoard(template, resolveDayEngine(template, event.currentDay))
-    ) {
-      keyboard.row().webApp("Тренировка без зачёта · 3 мин", `${baseUrl}/?playground=1`);
-    }
-
-    await ctx.reply(
-      `Полевой атлас · ${template.title}\n${template.theme}\nДень ${event.currentDay} из ${template.totalDays} · Ресурс: ${lexicon.currencyLabel}` +
-        (intro ? `\n\n${intro.title}\n${intro.story}` : "") +
-        "\n\nОткройте приложение ниже, чтобы перейти к своей команде.",
-      { reply_markup: keyboard },
-    );
-  });
-
-  bot.command("story", async (ctx) => {
-    const eventId = await activeEventId(runtime().db);
-    if (!eventId) {
-      await ctx.reply("Активная смена пока не запущена.");
-      return;
-    }
-    const event = await loadEvent(runtime().db, eventId);
-    const template = normalizeTemplate(event.template);
-    const briefing =
-      template.dayBriefings.find((b) => b.day === event.currentDay) ?? template.dayBriefings[0];
-    if (!briefing) {
-      await ctx.reply(`День ${event.currentDay}: следите за заданием ведущего смены.`);
-      return;
-    }
-    const keyboard = new InlineKeyboard().webApp("Открыть кабинет команды", webAppUrl);
-    await ctx.reply(
-      `${briefing.title}\n\n${briefing.story}` +
-        (briefing.challengeTitle ? `\n\nЗадача дня: ${briefing.challengeTitle}` : ""),
-      { reply_markup: keyboard },
-    );
-  });
-
-  bot.command("playground", async (ctx) => {
-    const baseUrl = webAppUrl.replace(/\/$/, "");
-    const keyboard = new InlineKeyboard().webApp("Открыть тренировку · 3 мин", `${baseUrl}/?playground=1`);
-    await ctx.reply(
-      "Тренировка без зачёта. Баланс и место команды в смене не изменятся.\n• Спаси заезд одной правкой\n• Приборная диагностика за 2 замера",
-      { reply_markup: keyboard },
-    );
-  });
-
-  bot.command("faq", async (ctx) => {
-    const eventId = await activeEventId(runtime().db);
-    if (!eventId) {
-      await ctx.reply("Справка станет доступна после старта смены.");
-      return;
-    }
-    const event = await loadEvent(runtime().db, eventId);
-    const template = normalizeTemplate(event.template);
-    const lexicon = resolveLexicon(template);
-    const f = template.features;
-    const lines = [
-      `Полевой атлас · Памятка по смене «${template.title}»`,
-      "",
-      `• Учебный бюджет (${lexicon.currencyLabel}): начисляется только наставником за реальную работу на занятии.`,
-      `• Сборка («${lexicon.objectName}»): каждая деталь показывает, что даёт и чем за неё платит сборка.`,
-      `• Командный раунд («${lexicon.programLabel}»): каждый участник управляет своим рычагом, а ${lexicon.reserveLabel.toLowerCase()} (+2) направляется в один участок.`,
-      `• Приборная проверка («${lexicon.diagnosisLabel}»): до 2 замеров для отсева гипотез (очки = 3 − замеры, валюта: 0).`,
-      f.slotInventory
-        ? "• Склад команды: заменённые детали сохраняются на складе и переставляются бесплатно."
-        : "",
-      f.p2pMarket ? "• Биржа команд: лишние детали со склада можно выставить другим командам." : "",
-      f.auctions ? "• Аукцион дня: редкие узлы разыгрываются на открытых торгах." : "",
-    ].filter(Boolean);
-
-    const keyboard = new InlineKeyboard().webApp("Перейти к команде", webAppUrl);
-    await ctx.reply(lines.join("\n"), { reply_markup: keyboard });
-  });
+  registerPlayerHandlers(bot, webAppUrl);
 
   bot.on("callback_query:data", (ctx) => ctx.answerCallbackQuery());
-
   bot.catch(({ ctx, error }) => {
     console.error(`Player bot update ${ctx.update.update_id} failed`, error);
   });
@@ -203,100 +101,9 @@ export function createAdminBot(token: string, adminWebAppUrl: string, adminIds: 
     client: { apiRoot: config.TELEGRAM_API_ROOT, timeoutSeconds: 20 },
   });
   attachBotRuntime(bot, token, "stem_admin_bot");
-
-  bot.use(async (ctx, next) => {
-    const uid = ctx.from?.id;
-    if (!uid || !adminIds.has(uid)) {
-      if (ctx.message) {
-        await ctx.reply("Доступ закрыт: этот бот предназначен только для организаторов и ведущих смены.");
-      }
-      return;
-    }
-    await next();
-  });
-
-  bot.command("start", async (ctx) => {
-    const sep = adminWebAppUrl.includes("?") ? "&" : "?";
-    const wizardUrl = `${adminWebAppUrl}${sep}tab=wizard`;
-    const projectorUrl = `${adminWebAppUrl}${sep}view=projector`;
-    const keyboard = new InlineKeyboard()
-      .webApp("Пульт живого урока", adminWebAppUrl)
-      .row()
-      .webApp("Конструктор смены (4 шага)", wizardUrl)
-      .row()
-      .webApp("Табло зала 16:9", projectorUrl);
-
-    const eventId = await activeEventId(runtime().db);
-    if (!eventId) {
-      await ctx.reply("Студия организатора готова. Запустите смену через Конструктор.", {
-        reply_markup: keyboard,
-      });
-      return;
-    }
-    const state = await buildLiveState(runtime().db, eventId);
-    const event = await loadEvent(runtime().db, eventId);
-    const template = normalizeTemplate(event.template);
-    const engine = resolveDayEngine(template, state.gameState.currentDay);
-    const engineTitle =
-      engine === "diagnosis" ? "Диагностика" : engine === "legacy_track" ? "Трек" : "Миссия 2:00";
-    await ctx.reply(
-      `Полевой атлас · Студия «${event.title}»\n` +
-        `День ${state.gameState.currentDay} (${engineTitle}) · Команд: ${state.teams.length}\n` +
-        `Баланс смены: ${state.liveBalance.healthScore}/100 (${state.liveBalance.momentumLabel})\n` +
-        `${state.liveBalance.summary}`,
-      { reply_markup: keyboard },
-    );
-  });
-
-  bot.command("pulse", async (ctx) => {
-    const eventId = await activeEventId(runtime().db);
-    if (!eventId) {
-      await ctx.reply("Активная смена не найдена.");
-      return;
-    }
-    const state = await buildLiveState(runtime().db, eventId);
-    const readySlots = state.teams.reduce((acc, t) => acc + (t.roundState?.readySlots.length ?? 0), 0);
-    const keyboard = new InlineKeyboard().webApp("Открыть пульт урока", adminWebAppUrl);
-    await ctx.reply(
-      `Пульс зала · День ${state.gameState.currentDay}\n` +
-        `• Фаза: ${state.gameState.currentPhase} (${state.gameState.roundMode ?? "idle"})\n` +
-        `• Ответов в раунде: ${readySlots} из ${state.teams.length * 5}\n` +
-        `• Активных лотов биржи: ${state.listings.length}, аукционов: ${state.auctions.length}`,
-      { reply_markup: keyboard },
-    );
-  });
-
-  bot.command("wizard", async (ctx) => {
-    const wizardUrl = `${adminWebAppUrl}${adminWebAppUrl.includes("?") ? "&" : "?"}tab=wizard`;
-    const keyboard = new InlineKeyboard().webApp("✦ Запустить Мастер смены", wizardUrl);
-    await ctx.reply("Откройте пошаговый конструктор смены (тема, легенды дней, редкости и команды):", {
-      reply_markup: keyboard,
-    });
-  });
-
-  bot.command("balance", async (ctx) => {
-    const eventId = await activeEventId(runtime().db);
-    if (!eventId) {
-      await ctx.reply("Смена не найдена.");
-      return;
-    }
-    const state = await buildLiveState(runtime().db, eventId);
-    const b = state.liveBalance;
-    const alertLines =
-      b.alerts.length > 0
-        ? b.alerts
-            .slice(0, 4)
-            .map((a) => `• ${a.title}\n  ↳ ${a.suggestion}`)
-            .join("\n\n")
-        : "Критических перекосов не обнаружено.";
-    const keyboard = new InlineKeyboard().webApp("Открыть Советник Баланса", adminWebAppUrl);
-    await ctx.reply(`📊 Индекс баланса: ${b.healthScore}/100 · ${b.momentumLabel}\n\n${alertLines}`, {
-      reply_markup: keyboard,
-    });
-  });
+  registerAdminHandlers(bot, adminWebAppUrl, adminIds);
 
   bot.on("callback_query:data", (ctx) => ctx.answerCallbackQuery());
-
   bot.catch(({ ctx, error }) => {
     console.error(`Admin bot update ${ctx.update.update_id} failed`, error);
   });
@@ -313,11 +120,21 @@ export function createAlertService(params: {
 }): AlertService {
   const { playerBot, adminBot, adminIds, webAppUrl, adminWebAppUrl } = params;
 
-  async function safeSendPlayer(eventId: string, userId: number, text: string) {
-    if (!playerBot) return;
+  async function safeSendPlayer(
+    eventId: string,
+    userId: number,
+    item: QueuedAlert,
+  ): Promise<"delivered" | "blocked" | "failed"> {
+    if (!playerBot) return "failed";
     try {
-      const kb = new InlineKeyboard().webApp("Открыть игру", webAppUrl);
-      await playerBot.api.sendMessage(userId, text, { reply_markup: kb });
+      const targetUrl = item.ctaPath ? withUrlQuery(webAppUrl, item.ctaPath) : webAppUrl;
+      const kb = new InlineKeyboard().webApp(item.ctaLabel ?? "Открыть кабинет", targetUrl);
+      await playerBot.api.sendMessage(userId, item.text, {
+        reply_markup: kb,
+        parse_mode: item.parseMode,
+        disable_notification: item.silent,
+      });
+      return "delivered";
     } catch (err: unknown) {
       const code = (err as { error_code?: number })?.error_code;
       if (code === 403 || code === 400) {
@@ -326,13 +143,16 @@ export function createAlertService(params: {
           .set({ botBlocked: true })
           .where(and(eq(members.eventId, eventId), eq(members.userId, userId)))
           .catch(() => undefined);
+        return "blocked";
       }
+      return "failed";
     }
   }
 
   return {
-    async dispatch(eventId: string, alerts: QueuedAlert[]) {
-      if (!playerBot && !adminBot) return;
+    async dispatch(eventId: string, alerts: QueuedAlert[]): Promise<DispatchReport> {
+      const report: DispatchReport = { attempted: 0, delivered: 0, blocked: 0, teams: 0 };
+      if (!playerBot && !adminBot) return report;
       const db = runtime().db;
       const activeMembers = playerBot
         ? await db
@@ -340,22 +160,54 @@ export function createAlertService(params: {
             .from(members)
             .where(and(eq(members.eventId, eventId), eq(members.botBlocked, false)))
         : [];
+      const reachedTeams = new Set<string>();
 
       for (const item of alerts) {
         if (item.target === "team" && item.teamId && playerBot) {
           const recipients = activeMembers.filter((m) => m.teamId === item.teamId);
-          await Promise.all(recipients.map((m) => safeSendPlayer(eventId, m.userId, item.text)));
+          report.attempted += recipients.length;
+          const results = await Promise.all(recipients.map((m) => safeSendPlayer(eventId, m.userId, item)));
+          for (const res of results) {
+            if (res === "delivered") {
+              report.delivered += 1;
+              reachedTeams.add(item.teamId);
+            } else if (res === "blocked") {
+              report.blocked += 1;
+            }
+          }
         } else if (item.target === "all-teams" && playerBot) {
-          await Promise.all(activeMembers.map((m) => safeSendPlayer(eventId, m.userId, item.text)));
+          report.attempted += activeMembers.length;
+          const results = await Promise.all(
+            activeMembers.map(async (m) => ({
+              teamId: m.teamId,
+              outcome: await safeSendPlayer(eventId, m.userId, item),
+            })),
+          );
+          for (const res of results) {
+            if (res.outcome === "delivered") {
+              report.delivered += 1;
+              reachedTeams.add(res.teamId);
+            } else if (res.outcome === "blocked") {
+              report.blocked += 1;
+            }
+          }
         } else if (item.target === "admins" && adminBot) {
-          const kb = new InlineKeyboard().webApp("Открыть Пульт", adminWebAppUrl);
+          const kb = new InlineKeyboard().webApp(item.ctaLabel ?? "Открыть Пульт", adminWebAppUrl);
           await Promise.all(
             [...adminIds].map((adminId) =>
-              adminBot.api.sendMessage(adminId, item.text, { reply_markup: kb }).catch(() => undefined),
+              adminBot.api
+                .sendMessage(adminId, item.text, {
+                  reply_markup: kb,
+                  parse_mode: item.parseMode,
+                  disable_notification: item.silent,
+                })
+                .catch(() => undefined),
             ),
           );
         }
       }
+      report.teams = reachedTeams.size;
+      return report;
     },
   };
 }

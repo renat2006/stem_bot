@@ -13,12 +13,20 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
+export interface AdminComposeDraft {
+  target: string;
+  silent: boolean;
+  text?: string;
+  updatedAt: string;
+}
+
 export interface EventRoundRuntime {
   mode?: RoundLiveMode;
   secretConditionId?: string | null;
   revealedConditionId?: string | null;
   blindEndsAt?: string | null;
   lastRewardBatch?: Array<{ teamId: string; prevCurrency: number }> | null;
+  adminCompose?: Record<string, AdminComposeDraft> | null;
 }
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();

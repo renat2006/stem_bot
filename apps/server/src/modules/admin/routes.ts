@@ -21,6 +21,7 @@ import {
   applyParetoFix,
   applyQuickFix,
   applyTurn,
+  broadcastMessage,
   closeAuctionNow,
   createShiftFromWizard,
   createTeam,
@@ -157,6 +158,11 @@ const ParetoFixInput = z
     day: z.number().int().min(1).max(14).optional(),
   })
   .optional();
+const BroadcastInput = z.object({
+  target: z.string().trim().min(1).max(64).default("all"),
+  text: z.string().trim().min(1).max(1000),
+  silent: z.boolean().default(false),
+});
 
 export const adminRouter = new Hono<AppEnv>()
   .use("*", requireAdmin)
@@ -309,4 +315,9 @@ export const adminRouter = new Hono<AppEnv>()
     const parsed = ParetoFixInput.safeParse(body);
     await applyParetoFix(options, parsed.success ? parsed.data : undefined);
     return snapshotResponse(c);
+  })
+  .post("/broadcast", validateJson(BroadcastInput), async (c) => {
+    const options = await mutationOptions(c);
+    const result = await broadcastMessage(options, c.req.valid("json"));
+    return c.json(result);
   });

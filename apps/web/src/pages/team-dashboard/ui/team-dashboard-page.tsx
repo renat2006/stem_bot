@@ -29,6 +29,13 @@ const TABS: Array<{ id: Screen; label: string; icon: typeof Wrench }> = [
 
 const ONBOARDED_KEY = "stem_onboarded";
 
+function initialScreen(): Screen {
+  if (typeof window === "undefined") return "home";
+  const tab = new URLSearchParams(window.location.search).get("tab");
+  if (tab === "market" || tab === "race" || tab === "home") return tab;
+  return "home";
+}
+
 function readOnboarded(templateId: string) {
   try {
     return localStorage.getItem(`${ONBOARDED_KEY}:${templateId}`) === "1";
@@ -67,7 +74,7 @@ export function TeamDashboardPage({
   const { hapticTap } = useTelegram();
   const { template, gameState, viewer } = snapshot;
   const lexicon = snapshot.lexicon ?? resolveLexicon(template);
-  const [screen, setScreen] = useState<Screen>("home");
+  const [screen, setScreen] = useState<Screen>(initialScreen);
   const [onboarded, setOnboarded] = useState(() => readOnboarded(template.id));
   const [slotFilter, setSlotFilter] = useState("all");
   const [helpKey, setHelpKey] = useState<HelpKey | null>(null);

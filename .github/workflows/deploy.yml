@@ -243,7 +243,7 @@ jobs:
               -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"Полевой атлас\",\"web_app\":{\"url\":\"${base}\"}}}" >/dev/null
             curl -fsS -X POST "https://api.telegram.org/bot${BOT_TOKEN}/setMyCommands" \
               -H "Content-Type: application/json" \
-              -d '{"commands":[{"command":"start","description":"Войти в кабинет команды"},{"command":"story","description":"Задача и легенда дня"},{"command":"playground","description":"Тренировка без зачёта"},{"command":"faq","description":"Памятка по механикам"}]}' >/dev/null
+              -d '{"commands":[{"command":"start","description":"Кабинет команды и статус"},{"command":"status","description":"Баланс, поле и текущая фаза"},{"command":"story","description":"Задача и легенда дня"},{"command":"faq","description":"Короткая памятка по правилам"},{"command":"playground","description":"Тренировка 3 мин (вне зачёта)"}]}' >/dev/null
           fi
           if [ -n "$ADMIN_BOT_TOKEN" ] && [ -n "$WEBHOOK_SECRET" ]; then
             curl -fsS -X POST "https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/setWebhook" \
@@ -254,7 +254,7 @@ jobs:
               -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"Студия смены\",\"web_app\":{\"url\":\"${base}/?surface=admin\"}}}" >/dev/null
             curl -fsS -X POST "https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/setMyCommands" \
               -H "Content-Type: application/json" \
-              -d '{"commands":[{"command":"start","description":"Пульт живого урока"},{"command":"pulse","description":"Пульс зала и готовность команд"},{"command":"wizard","description":"Конструктор смены за 4 шага"},{"command":"balance","description":"Советник баланса и Парето"}]}' >/dev/null
+              -d '{"commands":[{"command":"start","description":"Пульт живого урока и меню"},{"command":"msg","description":"Написать командам в клиентский бот"},{"command":"pulse","description":"Пульс зала и участники в боте"},{"command":"wizard","description":"Конструктор смены за 4 шага"},{"command":"balance","description":"Советник баланса и Парето"}]}' >/dev/null
           fi
 
       - name: Summary

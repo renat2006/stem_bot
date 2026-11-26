@@ -98,6 +98,10 @@ export function describeLedger(entry: LedgerLike, template: GameTemplate): strin
       return "Обновлено расписание механик по дням";
     case "pareto-fix":
       return `Выровнен порог маршрута (${String(d.note ?? "Парето 3.0")})`;
+    case "announcement": {
+      const scope = d.teamName ? `команде «${String(d.teamName)}»` : "всем командам";
+      return `Сообщение ведущего (${scope}): ${String(d.preview ?? "")}`;
+    }
     default:
       return entry.kind;
   }

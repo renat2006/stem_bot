@@ -5,10 +5,21 @@ export interface QueuedAlert {
   target: "team" | "all-teams" | "admins";
   teamId?: string;
   text: string;
+  parseMode?: "HTML";
+  silent?: boolean;
+  ctaLabel?: string;
+  ctaPath?: string;
+}
+
+export interface DispatchReport {
+  attempted: number;
+  delivered: number;
+  blocked: number;
+  teams: number;
 }
 
 export interface AlertService {
-  dispatch: (eventId: string, alerts: QueuedAlert[]) => Promise<void>;
+  dispatch: (eventId: string, alerts: QueuedAlert[]) => Promise<DispatchReport>;
 }
 
 interface Runtime {

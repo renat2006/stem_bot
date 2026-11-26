@@ -27,6 +27,7 @@ export class LiveConnection {
   constructor(
     private readonly handlers: Handlers,
     private readonly poll: () => Promise<void>,
+    private readonly projectorMode = false,
   ) {}
 
   start() {
@@ -72,10 +73,12 @@ export class LiveConnection {
 
     socket.onopen = () => {
       const initData = getRawInitData();
+      const devUser = getDevUser() ?? undefined;
       socket.send(
         JSON.stringify({
           type: "auth",
-          ...(initData ? { initData } : { devUser: getDevUser() ?? undefined }),
+          ...(initData ? { initData } : devUser ? { devUser } : {}),
+          ...(this.projectorMode && !initData && !devUser ? { mode: "projector" as const } : {}),
         }),
       );
     };
@@ -109,6 +112,7 @@ export class LiveConnection {
       if (this.stopped) return;
       if (event.code === 4401) {
         this.handlers.onError("Не удалось подтвердить вход через Telegram. Откройте приложение заново.");
+        return;
       }
       this.scheduleRetry();
     };

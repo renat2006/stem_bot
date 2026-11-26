@@ -140,6 +140,17 @@ describe("membership", () => {
     expect(state.teams.find((t) => t.id === teamA)?.joinCode).toBe(codeA);
     expect(state.teams.find((t) => t.id === teamB)?.joinCode).toBe("");
   });
+
+  it("sanitizes public projector state without exposing PII or join codes", async () => {
+    const state = await buildLiveState(handle.db, eventId, undefined);
+    expect(state.viewer).toMatchObject({ userId: null, isAdmin: false, teamId: null, needsJoin: true });
+    expect(state.members).toEqual({});
+    expect(state.proposals).toEqual([]);
+    for (const team of state.teams) {
+      expect(team.joinCode).toBe("");
+      expect(team.captainUsername).toBe("");
+    }
+  });
 });
 
 describe("shop, inventory & undo", () => {

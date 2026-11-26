@@ -19,10 +19,20 @@ const ProjectorBoardPage = lazy(() =>
 const DesignLabPage = lazy(() =>
   import("../pages/design-lab/index.js").then((m) => ({ default: m.DesignLabPage })),
 );
+const TeamGuidePage = lazy(() =>
+  import("../pages/team-guide/index.js").then((m) => ({ default: m.TeamGuidePage })),
+);
 
 function hasDesignLabQuery(): boolean {
   if (typeof window === "undefined") return false;
   return new URLSearchParams(window.location.search).has("design");
+}
+
+function hasGuideRoute(): boolean {
+  if (typeof window === "undefined") return false;
+  const path = window.location.pathname.replace(/\/+$/, "");
+  if (path === "/guide") return true;
+  return new URLSearchParams(window.location.search).get("view") === "guide";
 }
 
 function hasPlaygroundQuery(): boolean {
@@ -71,6 +81,15 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { message: str
 }
 
 export function App() {
+  if (hasGuideRoute()) {
+    return (
+      <AppErrorBoundary>
+        <Suspense fallback={<div className="p-8 text-center text-sm text-mu">Загрузка гайда…</div>}>
+          <TeamGuidePage />
+        </Suspense>
+      </AppErrorBoundary>
+    );
+  }
   const isDesignLab = hasDesignLabQuery();
   if (isDesignLab) {
     return (
@@ -134,6 +153,9 @@ function LiveApp() {
                   Открыть табло и поле 16:9
                 </button>
               )}
+              <a href="/guide" className="atlas-quiet w-full">
+                Гайд и правила для команды
+              </a>
               <button type="button" onClick={() => window.location.reload()} className="atlas-quiet w-full">
                 Повторить
               </button>

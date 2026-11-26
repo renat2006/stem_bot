@@ -1010,9 +1010,20 @@
 
 .hall-canvas {
   color-scheme: only dark;
-  background: #142b23;
-  color: #f4f7e8;
-  accent-color: #c7f67c;
+  --bg: #142b23;
+  --sf: #1a362b;
+  --sf2: #29483b;
+  --fg: #f4f7e8;
+  --mu: #cfdfce;
+  --ln: #688575;
+  --ac: #c7f67c;
+  --acfg: #142b23;
+  --pos: #a0e9b9;
+  --neg: #ffb7ad;
+  --warn: #ffd094;
+  background: var(--bg);
+  color: var(--fg);
+  accent-color: var(--ac);
   min-height: 100dvh;
   width: 100%;
   display: grid;
@@ -1064,8 +1075,14 @@
 }
 
 .hall-spiral-plate {
-  color-scheme: light;
+  color-scheme: only light;
   --sf: #fffff0;
+  --sf2: #e5edde;
+  --ac: #24533d;
+  --acfg: #ffffff;
+  --pos: #216844;
+  --neg: #9b3024;
+  --warn: #7a470f;
   --fg: #203e34;
   --mu: #526358;
   --ln: #b0bfaa;
@@ -1073,6 +1090,11 @@
   color: #203e34;
   border-radius: 18px;
   padding: 20px;
+}
+
+.hall-spiral-plate .tabletop-cell b,
+.hall-spiral-plate .tabletop-cell small {
+  opacity: 1;
 }
 
 @container (max-width: 375px) {

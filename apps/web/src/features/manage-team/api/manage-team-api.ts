@@ -10,3 +10,6 @@ export const createTeam = (name: string) => postJson<LiveState>("/api/admin/team
 export const setCaptain = (teamId: string, userId: number) =>
   postJson<LiveState>("/api/admin/captain", { teamId, userId });
 export const removeMember = (userId: number) => postJson<LiveState>("/api/admin/remove-member", { userId });
+
+export const renameTeam = (teamId: string, name: string) =>
+  postJson<LiveState>("/api/admin/teams/rename", { teamId, name });

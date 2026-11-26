@@ -22,13 +22,17 @@ export function PartSticker({
   const activePack = pack ?? loadedPack;
   const whole = activePack?.parts.find((part) => part.cardId === card.id);
   const asset = whole?.fragments.find((fragment) => fragment.id === fragmentId) ?? whole;
-  const src = asset ? `/art/${activePack?.id}/${thumbnail ? asset.thumb : asset.src}` : undefined;
+  const src = card.imageId
+    ? `/api/images/${card.imageId}`
+    : asset
+      ? `/art/${activePack?.id}/${thumbnail ? asset.thumb : asset.src}`
+      : undefined;
   const [failedSrc, setFailedSrc] = useState<string>();
   const useAsset = Boolean(src && failedSrc !== src);
   const fallback = `data:image/svg+xml,${encodeURIComponent(proceduralPart(card, template, activePack))}`;
   const rarity = card.rarity ?? "common";
 
-  if (useAsset && asset?.contentBox && !thumbnail) {
+  if (!card.imageId && useAsset && asset?.contentBox && !thumbnail) {
     return (
       <svg
         className="part-sticker part-sticker--printed"

@@ -12,6 +12,7 @@ export {
   generateMarketDraft,
   type MarketDraftRecord,
   nextDay,
+  removeCard,
   resetEvent,
   revealMissionRound,
   saveDayBriefing,
@@ -19,11 +20,13 @@ export {
   startAuction,
   startRoundEngine,
   type UpsertCardPayload,
+  updateCover,
   updateDaySchedule,
   updateFeatures,
   updateMarketDraft,
   updatePurchaseLimit,
   updateTemplateLexicon,
+  uploadImage,
   upsertCard,
 } from "./api/control-shift-api.js";
 export { ShiftControls } from "./ui/shift-controls.js";

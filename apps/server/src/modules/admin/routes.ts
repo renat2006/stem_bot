@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   CardRaritySchema,
   DayScheduleItemSchema,
@@ -11,9 +12,11 @@ import {
 } from "@stem/shared";
 import { Hono } from "hono";
 import { z } from "zod";
+import { studioImages } from "../../db/schema.js";
 import type { AppEnv } from "../../shared/app-env.js";
 import { DomainError } from "../../shared/errors.js";
 import { mutationOptions, snapshotResponse, stateResponse } from "../../shared/route-context.js";
+import { runtime } from "../../shared/runtime.js";
 import { requireAdmin } from "../../shared/telegram-auth.js";
 import { validateJson } from "../../shared/validate-json.js";
 import {
@@ -26,11 +29,13 @@ import {
   createShiftFromWizard,
   createTeam,
   decideMarketDraft,
+  deleteCard,
   extendPhaseTimer,
   generateMarketDraft,
   getPendingDraft,
   nextDay,
   removeMember,
+  renameTeam,
   resetEvent,
   revealMissionRound,
   rewardTeams,
@@ -40,6 +45,7 @@ import {
   startAuction,
   startRoundEngine,
   undoLastRewardBatch,
+  updateCover,
   updateDaySchedule,
   updateFeatures,
   updateMarketDraft,
@@ -93,6 +99,10 @@ const UpsertCardInput = z.object({
   stock: z.number().int().min(1).max(30).default(3),
   stockLeft: z.number().int().min(0).max(30).optional(),
   effectScope: EffectScopeSchema.optional(),
+  imageId: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
   flavor: z.string().max(160).optional(),
 });
 
@@ -168,6 +178,34 @@ const BroadcastInput = z.object({
 
 export const adminRouter = new Hono<AppEnv>()
   .use("*", requireAdmin)
+  .post(
+    "/images",
+    validateJson(
+      z.object({
+        data: z
+          .string()
+          .min(32)
+          .max(320000)
+          .regex(/^[A-Za-z0-9+/]+=*$/),
+      }),
+    ),
+    async (c) => {
+      const { data } = c.req.valid("json");
+      const bytes = Buffer.from(data, "base64");
+      const webp =
+        bytes.toString("ascii", 0, 4) === "RIFF" &&
+        bytes.toString("ascii", 8, 12) === "WEBP" &&
+        bytes.readUInt32LE(4) === bytes.length - 8;
+      const jpeg =
+        bytes.readUInt16BE(0) === 0xffd8 &&
+        bytes.at(2) === 255 &&
+        bytes.readUInt16BE(bytes.length - 2) === 0xffd9;
+      if (!webp && !jpeg) throw new DomainError("Выберите растровую картинку", 400);
+      const id = createHash("sha256").update(bytes).digest("hex");
+      await runtime().db.insert(studioImages).values({ id, data }).onConflictDoNothing();
+      return c.json({ id });
+    },
+  )
   .post("/reward", validateJson(RewardInput), async (c) => {
     const options = await mutationOptions(c);
     await rewardTeams(options, c.req.valid("json"));
@@ -209,6 +247,10 @@ export const adminRouter = new Hono<AppEnv>()
   .patch("/features", validateJson(FeatureFlagsSchema.partial()), async (c) => {
     const options = await mutationOptions(c);
     await updateFeatures(options, c.req.valid("json"));
+    return snapshotResponse(c);
+  })
+  .post("/cards/remove", validateJson(z.object({ cardId: z.string().min(1) })), async (c) => {
+    await deleteCard(await mutationOptions(c), c.req.valid("json").cardId);
     return snapshotResponse(c);
   })
   .post("/cards", validateJson(UpsertCardInput), async (c) => {
@@ -260,6 +302,15 @@ export const adminRouter = new Hono<AppEnv>()
   .post("/shift/create", validateJson(ShiftWizardInputSchema), async (c) => {
     const options = await mutationOptions(c);
     await createShiftFromWizard(options, c.req.valid("json"));
+    return snapshotResponse(c);
+  })
+  .post("/teams/rename", validateJson(TeamInput.extend({ teamId: z.string().min(1) })), async (c) => {
+    const options = await mutationOptions(c);
+    await renameTeam(options, c.req.valid("json"));
+    return stateResponse(c, options.eventId);
+  })
+  .post("/cover", validateJson(z.object({ coverId: z.string().regex(/^[a-f0-9]{64}$/) })), async (c) => {
+    await updateCover(await mutationOptions(c), c.req.valid("json").coverId);
     return snapshotResponse(c);
   })
   .post("/teams", validateJson(TeamInput), async (c) => {

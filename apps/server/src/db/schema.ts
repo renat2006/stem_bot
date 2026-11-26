@@ -32,6 +32,11 @@ export interface EventRoundRuntime {
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 const telegramId = (name: string) => bigint(name, { mode: "number" });
 
+export const studioImages = pgTable("studio_images", {
+  id: text("id").primaryKey(),
+  data: text("data").notNull(),
+});
+
 export const events = pgTable("events", {
   id: text("id").primaryKey(),
   title: text("title").notNull(),

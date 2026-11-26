@@ -4,7 +4,7 @@ import { useState } from "react";
 import { renderSVG } from "uqr";
 import { AssemblyStage } from "../../../entities/assembly/index.js";
 import type { TeamMemberInfo, TeamWithStats } from "../../../entities/game/index.js";
-import { CreateTeamForm, TeamAdminActions } from "../../../features/manage-team/index.js";
+import { CreateTeamForm, renameTeam, TeamAdminActions } from "../../../features/manage-team/index.js";
 import type { RunAction } from "../../../shared/lib/index.js";
 import {
   BuySlots,
@@ -106,6 +106,30 @@ export function TeamsBoard({ teams, members, template, purchaseLimit, run }: Tea
 
                 <details>
                   <summary className="cursor-pointer py-3 text-sm font-semibold">Состав и управление</summary>
+                  <form
+                    className="flex flex-wrap gap-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const name = String(new FormData(e.currentTarget).get("name") ?? "").trim();
+                      if (name.length >= 2) void run(() => renameTeam(team.id, name));
+                    }}
+                  >
+                    <label className="grid flex-1 gap-1 text-xs">
+                      Название команды
+                      <input
+                        name="name"
+                        key={team.name}
+                        className="studio-field"
+                        defaultValue={team.name}
+                        minLength={2}
+                        maxLength={40}
+                        required
+                      />
+                    </label>
+                    <button type="submit" className="atlas-quiet self-end">
+                      Переименовать
+                    </button>
+                  </form>
                   <div className="mt-2 flex flex-wrap items-center gap-3 rounded-lg bg-sf px-3 py-2">
                     {template.stats.map((stat) => (
                       <span key={stat.id} className="flex items-center gap-1.5 text-xs text-mu">

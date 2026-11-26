@@ -2,6 +2,8 @@ export {
   applyParetoFix,
   applyQuickFix,
   applyTurn,
+  type BroadcastReport,
+  broadcastToTeams,
   closeAuctionNow,
   createShiftFromWizard,
   decideMarketDraft,

@@ -1,5 +1,5 @@
 import { resolveBoardTurn, resolveDayEngine, resolveLexicon, usesPhysicalBoard } from "@stem/shared";
-import { ChevronRight, Ellipsis, Monitor, Plus, Settings, Undo2 } from "lucide-react";
+import { ChevronRight, Ellipsis, MessageSquare, Monitor, Plus, Settings, Undo2 } from "lucide-react";
 import { useRef, useState } from "react";
 import type { GameSnapshot } from "../../../entities/game/index.js";
 import {
@@ -18,6 +18,7 @@ import { EventFeed } from "../../../widgets/event-feed/index.js";
 import { TeamsBoard } from "../../../widgets/teams-board/index.js";
 import { AtlasConstructor } from "./atlas-constructor.js";
 import { BriefingEditor } from "./briefing-editor.js";
+import { BroadcastSheet } from "./broadcast-sheet.js";
 import { CardsStudioTab } from "./cards-studio-tab.js";
 import { MechanicsTab } from "./mechanics-tab.js";
 import { ShiftWizardSheet } from "./shift-wizard.js";
@@ -57,6 +58,7 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
   const [studioMode, setStudioMode] = useState<StudioMode>(initialStudioMode);
   const [tab, setTab] = useState<AdminTab>("round");
   const [wizardOpen, setWizardOpen] = useState(initialWizardState);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
   const toolsMenu = useRef<HTMLDetailsElement>(null);
   const closeTools = () => toolsMenu.current?.removeAttribute("open");
   const [fastChecks, setFastChecks] = useState<Record<string, [boolean, boolean]>>({});
@@ -255,6 +257,19 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
               >
                 <Plus className="h-3.5 w-3.5 text-ac" />
                 <span>Новая смена</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  hapticTap();
+                  closeTools();
+                  setBroadcastOpen(true);
+                }}
+                className="atlas-quiet text-xs"
+              >
+                <MessageSquare className="h-3.5 w-3.5 text-ac" />
+                <span>Написать командам</span>
               </button>
 
               <button
@@ -668,6 +683,8 @@ export function AdminConsolePage({ snapshot, clockOffsetMs, run, onOpenSettings 
           setTab("teams");
         }}
       />
+
+      <BroadcastSheet open={broadcastOpen} teams={teams} onClose={() => setBroadcastOpen(false)} />
     </article>
   );
 }

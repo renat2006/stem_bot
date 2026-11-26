@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import type { TeamWithStats } from "../../../entities/game/index.js";
 import { broadcastToTeams } from "../../../features/control-shift/index.js";
 import { useTelegram } from "../../../shared/lib/index.js";
-import { BottomSheet, ToggleSwitch } from "../../../shared/ui/index.js";
+import { ModalDialog, ToggleSwitch } from "../../../shared/ui/index.js";
 
 const QUICK_MESSAGES = [
   "Через 5 минут открываем магазин — готовьте план покупок.",
@@ -49,7 +49,7 @@ export function BroadcastSheet({ open, teams, onClose }: BroadcastSheetProps) {
   };
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Сообщение в клиентский бот">
+    <ModalDialog open={open} onClose={onClose} title="Сообщение в клиентский бот">
       <div className="space-y-4">
         <div className="space-y-1.5">
           <span className="text-xs font-bold text-mu">Получатель</span>
@@ -135,6 +135,6 @@ export function BroadcastSheet({ open, teams, onClose }: BroadcastSheetProps) {
           <span>{sending ? "Отправляем…" : "Отправить в клиентский бот"}</span>
         </button>
       </div>
-    </BottomSheet>
+    </ModalDialog>
   );
 }

@@ -35,6 +35,7 @@ import {
   events,
   ledger,
   marketDrafts,
+  marketListings,
   members,
   proposals,
   teams,
@@ -373,7 +374,13 @@ export function upsertCard(
         ? input.id.trim()
         : slugifyCardName(input.name, current.cards.length);
 
+    const previous = current.cards.find((card) => card.id === cardId);
+    if (!input.id && previous) throw new DomainError("Деталь с таким названием уже есть", 409);
     const card: CardItem = {
+      ...previous,
+      imageId: input.imageId ?? previous?.imageId,
+      flavor: input.flavor,
+      effectScope: input.effectScope,
       id: cardId,
       name: input.name.trim(),
       slotId: input.slotId,
@@ -384,8 +391,6 @@ export function upsertCard(
       stats: input.stats,
       trackBonus: input.trackBonus,
       stock: input.stock,
-      ...(input.effectScope ? { effectScope: input.effectScope } : {}),
-      ...(input.flavor ? { flavor: input.flavor } : {}),
     };
 
     const existingIdx = current.cards.findIndex((c) => c.id === card.id);
@@ -423,6 +428,43 @@ export function upsertCard(
     ctx.rulesChanged();
     ctx.log({ kind: "card-upserted", data: { cardId: card.id, cardName: card.name } });
     return { cardId: card.id };
+  });
+}
+
+export function deleteCard(options: MutationOptions, cardId: string) {
+  return mutateEvent(options, async (ctx) => {
+    const template = normalizeTemplate(ctx.event.template);
+    if (!template.cards.some((card) => card.id === cardId)) throw new DomainError("Деталь уже удалена", 404);
+    const holds = await ctx.tx.select().from(teams).where(eq(teams.eventId, ctx.event.id));
+    const linked = await Promise.all(
+      [auctions, marketListings, proposals].map((table) =>
+        ctx.tx
+          .select({ id: table.id })
+          .from(table)
+          .where(and(eq(table.eventId, ctx.event.id), eq(table.cardId, cardId)))
+          .limit(1),
+      ),
+    );
+    if (
+      holds.some(
+        (team) => Object.values(team.equipped).includes(cardId) || team.inventory.includes(cardId),
+      ) ||
+      linked.some((rows) => rows.length)
+    )
+      throw new DomainError("Деталь участвует в игре. Чтобы остановить продажи, поставьте остаток 0.", 409);
+    await ctx.tx
+      .update(events)
+      .set({
+        template: { ...template, cards: template.cards.filter((card) => card.id !== cardId) },
+        rulesVersion: ctx.event.rulesVersion + 1,
+      })
+      .where(eq(events.id, ctx.event.id));
+    await ctx.tx
+      .delete(cardStock)
+      .where(and(eq(cardStock.eventId, ctx.event.id), eq(cardStock.cardId, cardId)));
+    ctx.rulesChanged();
+    ctx.log({ kind: "card-removed", data: { cardId } });
+    return { cardId };
   });
 }
 
@@ -752,6 +794,19 @@ export function decideMarketDraft(
 
 export async function createShiftFromWizard(options: MutationOptions, input: ShiftWizardInput) {
   const base = DEFAULT_TEMPLATES.find((t) => t.id === input.baseTemplateId) ?? ROVER_SPRINT_TEMPLATE;
+  const cards = input.cards ?? base.cards;
+  if (
+    new Set(cards.map((card) => card.id)).size !== cards.length ||
+    cards.some((card) => !base.slots.some((slot) => slot.id === card.slotId))
+  )
+    throw new DomainError("Проверьте детали и их слоты", 400);
+  if (input.teamNames && input.teamNames.length !== input.teamCount)
+    throw new DomainError("Проверьте список команд", 400);
+  if (
+    input.daySchedule &&
+    (input.daySchedule.length !== input.totalDays || input.daySchedule.some((d, i) => d.day !== i + 1))
+  )
+    throw new DomainError("Проверьте расписание", 400);
   let customTemplate = normalizeTemplate({
     ...base,
     id: `${base.id}-${Date.now().toString(36)}`,
@@ -759,8 +814,11 @@ export async function createShiftFromWizard(options: MutationOptions, input: Shi
     theme: input.theme.trim(),
     totalDays: input.totalDays,
     totalPoints: input.totalDays,
+    features: { ...base.features, ...input.features },
+    coverId: input.coverId,
     eventTag: `${input.title.trim().toUpperCase()} · ${input.totalDays} ДН.`,
-    cards: base.cards.map((c) => ({
+    daySchedule: input.daySchedule ?? base.daySchedule,
+    cards: cards.map((c) => ({
       ...c,
       dayAvailable: Math.min(input.totalDays, c.dayAvailable),
     })),
@@ -789,7 +847,7 @@ export async function createShiftFromWizard(options: MutationOptions, input: Shi
   return mutateEvent(options, async (ctx) => {
     await ctx.tx.delete(proposals).where(eq(proposals.eventId, ctx.event.id));
     await ctx.tx.delete(marketDrafts).where(eq(marketDrafts.eventId, ctx.event.id));
-    await resetEventContent(ctx.tx, ctx.event.id, customTemplate, input.teamCount);
+    await resetEventContent(ctx.tx, ctx.event.id, customTemplate, input.teamCount, input.teamNames);
     const rulesVersion = ctx.event.rulesVersion + 1;
     await ctx.tx
       .update(events)
@@ -814,6 +872,26 @@ export async function createShiftFromWizard(options: MutationOptions, input: Shi
     ctx.rulesChanged();
     ctx.log({ kind: "shift-created", data: { title: customTemplate.title, teams: input.teamCount } });
     return { title: customTemplate.title };
+  });
+}
+
+export function renameTeam(options: MutationOptions, input: { teamId: string; name: string }) {
+  return mutateEvent(options, async (ctx) => {
+    await requireTeam(ctx.tx, ctx.event.id, input.teamId);
+    await ctx.tx.update(teams).set({ name: input.name }).where(eq(teams.id, input.teamId));
+    ctx.log({ kind: "team", teamId: input.teamId, data: { name: input.name } });
+    return { teamId: input.teamId };
+  });
+}
+
+export function updateCover(options: MutationOptions, coverId: string) {
+  return mutateEvent(options, async (ctx) => {
+    await ctx.tx
+      .update(events)
+      .set({ template: { ...ctx.event.template, coverId }, rulesVersion: ctx.event.rulesVersion + 1 })
+      .where(eq(events.id, ctx.event.id));
+    ctx.rulesChanged();
+    return { coverId };
   });
 }
 

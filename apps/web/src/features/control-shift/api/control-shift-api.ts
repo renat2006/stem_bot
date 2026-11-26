@@ -34,6 +34,7 @@ export interface UpsertCardPayload {
   stock: number;
   stockLeft?: number;
   effectScope?: EffectScope;
+  imageId?: string;
   flavor?: string;
 }
 
@@ -56,6 +57,9 @@ export const resetEvent = (templateId: string | undefined, demoTeams: boolean) =
 
 export const updateFeatures = (flags: Partial<FeatureFlags>) =>
   patchJson<GameSnapshot>("/api/admin/features", flags);
+
+export const removeCard = (cardId: string) => postJson<GameSnapshot>("/api/admin/cards/remove", { cardId });
+export const uploadImage = (data: string) => postJson<{ id: string }>("/api/admin/images", { data });
 
 export const upsertCard = (input: UpsertCardPayload) => postJson<GameSnapshot>("/api/admin/cards", input);
 
@@ -128,3 +132,5 @@ export interface BroadcastReport {
 
 export const broadcastToTeams = (input: { target: string; text: string; silent?: boolean }) =>
   postJson<{ report: BroadcastReport; targetLabel: string }>("/api/admin/broadcast", input);
+
+export const updateCover = (coverId: string) => postJson<GameSnapshot>("/api/admin/cover", { coverId });

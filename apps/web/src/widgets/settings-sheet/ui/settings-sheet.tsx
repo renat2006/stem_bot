@@ -7,7 +7,7 @@ import {
   setReducedMotionPreference,
   usePreferences,
 } from "../../../shared/lib/index.js";
-import { BottomSheet, ToggleSwitch } from "../../../shared/ui/index.js";
+import { ModalDialog, ToggleSwitch } from "../../../shared/ui/index.js";
 
 export function SettingsSheet({
   open,
@@ -34,7 +34,7 @@ export function SettingsSheet({
   ];
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Настройки отображения">
+    <ModalDialog open={open} onClose={onClose} title="Настройки отображения">
       <div className="space-y-4">
         <div>
           <h3 className="text-lg font-semibold text-fg">Комфорт и интерфейс</h3>
@@ -102,6 +102,6 @@ export function SettingsSheet({
           </button>
         )}
       </div>
-    </BottomSheet>
+    </ModalDialog>
   );
 }

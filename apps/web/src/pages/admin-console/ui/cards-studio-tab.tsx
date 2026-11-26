@@ -10,19 +10,23 @@ import {
   fetchMarketDraft,
   generateMarketDraft,
   type MarketDraftRecord,
+  removeCard,
   startAuction,
   upsertCard,
 } from "../../../features/control-shift/index.js";
 import type { RunAction } from "../../../shared/lib/index.js";
 import {
-  BottomSheet,
   Coin,
+  ConfirmButton,
   EffectScopeBadge,
+  ModalDialog,
   ModuleCard,
   RARITY_LABEL,
   RarityBadge,
   SCOPE_LABEL,
 } from "../../../shared/ui/index.js";
+
+import { ImageField } from "./image-field.js";
 
 const RARITIES: CardRarity[] = ["common", "rare", "legendary"];
 const SCOPES: EffectScope[] = ["step", "event_shield", "economy", "slot_synergy"];
@@ -33,8 +37,11 @@ export function CardsStudioTab({ snapshot, run }: { snapshot: GameSnapshot; run:
   const [rarityFilter, setRarityFilter] = useState<"all" | CardRarity>("all");
   const [slotFilter, setSlotFilter] = useState<string>("all");
 
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<{
     id?: string;
+    imageId?: string;
     name: string;
     slotId: string;
     rarity: CardRarity;
@@ -69,6 +76,7 @@ export function CardsStudioTab({ snapshot, run }: { snapshot: GameSnapshot; run:
     if (card) {
       setEditing({
         id: card.id,
+        imageId: card.imageId,
         name: card.name,
         slotId: card.slotId,
         rarity: card.rarity,
@@ -137,16 +145,23 @@ export function CardsStudioTab({ snapshot, run }: { snapshot: GameSnapshot; run:
 
   return (
     <div className="space-y-4">
-      <select
-        aria-label="Работа с картами"
-        className="studio-field"
-        value={section}
-        onChange={(event) => setSection(event.target.value)}
-      >
-        <option value="catalog">Каталог деталей</option>
-        <option value="generator">Генератор деталей</option>
-        {template.features.auctions && <option value="auction">Аукцион</option>}
-      </select>
+      <nav className="studio-steps" aria-label="Работа с картами">
+        {[
+          ["catalog", "Каталог"],
+          ["generator", "Генератор"],
+          ...(template.features.auctions ? [["auction", "Аукцион"]] : []),
+        ].map(([id, label]) => (
+          <button
+            type="button"
+            key={id}
+            aria-current={section === id ? "page" : undefined}
+            onClick={() => setSection(id ?? "catalog")}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+
       {section === "catalog" && (
         <ModuleCard
           title="Каталог и настройка деталей"
@@ -460,7 +475,7 @@ export function CardsStudioTab({ snapshot, run }: { snapshot: GameSnapshot; run:
         </ModuleCard>
       )}
 
-      <BottomSheet
+      <ModalDialog
         open={Boolean(editing)}
         onClose={() => setEditing(null)}
         title={editing?.id ? "Настройка детали" : "Новая деталь"}
@@ -479,6 +494,12 @@ export function CardsStudioTab({ snapshot, run }: { snapshot: GameSnapshot; run:
               </p>
             </div>
 
+            <ImageField
+              label="Изображение детали"
+              id={editing.imageId}
+              onBusy={setUploading}
+              onChange={(imageId) => setEditing((prev) => (prev ? { ...prev, imageId } : null))}
+            />
             <label className="flex flex-col gap-1">
               <span className="text-xs font-medium text-mu">Название детали</span>
               <input
@@ -654,7 +675,7 @@ export function CardsStudioTab({ snapshot, run }: { snapshot: GameSnapshot; run:
 
             <button
               type="button"
-              disabled={editing.name.trim().length < 2}
+              disabled={uploading || saving || editing.name.trim().length < 2}
               onClick={() => {
                 const tier = editing.rarity === "legendary" ? 5 : editing.rarity === "rare" ? 3 : 1;
                 const payload = {
@@ -666,22 +687,38 @@ export function CardsStudioTab({ snapshot, run }: { snapshot: GameSnapshot; run:
                   price: editing.price,
                   dayAvailable: editing.dayAvailable,
                   stats: editing.stats,
-                  trackBonus: 0,
+                  trackBonus: template.cards.find((c) => c.id === editing.id)?.trackBonus ?? 0,
+                  imageId: editing.imageId,
                   stock: editing.stock,
                   stockLeft: editing.stockLeft,
                   effectScope: editing.rarity === "legendary" ? editing.effectScope : undefined,
                   flavor: editing.flavor.trim() || undefined,
                 };
-                setEditing(null);
-                void run(() => upsertCard(payload));
+                setSaving(true);
+                void run(() => upsertCard(payload)).then((ok) => {
+                  setSaving(false);
+                  if (ok) setEditing(null);
+                });
               }}
               className="h-12 w-full rounded-xl bg-ac text-base font-semibold text-acfg disabled:opacity-45"
             >
               Сохранить деталь
             </button>
+            {editing.id && (
+              <ConfirmButton
+                variant="destructive"
+                confirmLabel="Подтвердить удаление детали"
+                onConfirm={async () => {
+                  const cardId = editing.id;
+                  if (cardId && (await run(() => removeCard(cardId)))) setEditing(null);
+                }}
+              >
+                Удалить деталь
+              </ConfirmButton>
+            )}
           </div>
         )}
-      </BottomSheet>
+      </ModalDialog>
     </div>
   );
 }

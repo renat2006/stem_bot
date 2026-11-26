@@ -19,6 +19,8 @@ export const SlotDefinitionSchema = z.object({
   label: z.string().min(1),
 });
 
+export const ImageIdSchema = z.string().regex(/^[0-9a-f]{64}$/);
+
 export const CardItemSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -32,6 +34,7 @@ export const CardItemSchema = z.object({
   stock: z.number().int().min(1).default(3),
   effectScope: EffectScopeSchema.optional(),
   flavor: z.string().optional(),
+  imageId: ImageIdSchema.optional(),
   sellerTeam: z.string().optional(),
   actionTag: z.string().optional(),
   actionBadge: z.string().optional(),
@@ -252,6 +255,7 @@ export const GameTemplateSchema = z.object({
   eventTag: z.string().default("STEM-ШКОЛА"),
   eventKey: z.enum(["neurofauna", "startup", "airship", "rovers"]).default("neurofauna"),
   objectName: z.string().default("Существо"),
+  coverId: ImageIdSchema.optional(),
   artPackId: z.string().min(1).optional(),
   objectRig: z.enum(["creature", "airship", "campus", "rover"]).default("creature"),
   currencyName: z.string().min(1),

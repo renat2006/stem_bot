@@ -1375,3 +1375,58 @@
     flex-wrap: wrap;
   }
 }
+
+.studio-sections,
+.studio-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.studio-sections button,
+.studio-steps button {
+  min-height: 44px;
+  border-radius: 10px;
+  padding: 6px 12px;
+  background: var(--sf2);
+  color: var(--fg);
+  font-size: 14px;
+  font-weight: 650;
+}
+.studio-sections [aria-current],
+.studio-steps [aria-current] {
+  background: var(--ac);
+  color: var(--acfg);
+}
+@media (max-width: 600px) {
+  .studio-sections {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .studio-sections button {
+    padding-inline: 4px;
+  }
+  .studio-sections button:last-child {
+    grid-column: span 2;
+  }
+  .atlas-studio-modes {
+    width: auto;
+    margin-left: auto;
+  }
+  .studio-steps button {
+    flex: 1 1 auto;
+  }
+  .shift-setup .studio-steps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  dialog:has(input[type="file"]) {
+    max-height: calc(100dvh - var(--app-safe-top, 0px) - var(--app-safe-bottom, 0px) - 16px);
+  }
+  dialog:has(input[type="file"]) label {
+    min-width: 0;
+  }
+  dialog:has(input[type="file"]) :is(input, select) {
+    max-width: 100%;
+    min-width: 0;
+  }
+}
